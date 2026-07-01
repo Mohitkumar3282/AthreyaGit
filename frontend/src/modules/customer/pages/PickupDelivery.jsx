@@ -35,7 +35,7 @@ const getDeliveryFee = (distance) => {
 
 const PickupDelivery = () => {
   const navigate = useNavigate();
-  const { currentLocation } = useLocation();
+  const { currentLocation, refreshLocation } = useLocation();
   const [shops, setShops] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [loadingShops, setLoadingShops] = useState(true);
@@ -81,12 +81,24 @@ const PickupDelivery = () => {
     return list;
   }, [addresses, currentLocAddress]);
 
-  const handleUseCurrentLocation = () => {
-    if (currentLocAddress) {
-      setSelectedAddressId("current_location_temp");
-      toast.success("Using current location as delivery address");
-    } else {
-      toast.error("Could not fetch current location");
+  const handleUseCurrentLocation = async () => {
+    const toastId = toast.loading("Fetching your current location...");
+    try {
+      const result = await refreshLocation();
+      if (result?.ok && result.location) {
+        setSelectedAddressId("current_location_temp");
+        toast.success("Using current location as delivery address", { id: toastId });
+      } else {
+        if (currentLocAddress) {
+          setSelectedAddressId("current_location_temp");
+          toast.success("Using current location as delivery address", { id: toastId });
+        } else {
+          toast.error(result?.error || "Could not fetch current location", { id: toastId });
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch current location", { id: toastId });
     }
   };
 
