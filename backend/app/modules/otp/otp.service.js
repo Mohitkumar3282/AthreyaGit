@@ -167,7 +167,7 @@ export async function sendSmsOtp({ mobile, userType, purpose, ipAddress = "unkno
   const account = await findAccountByUserType(userType, normalizedMobile);
   assertPurposeEligibility({ purpose, account, userType });
 
-  if (process.env.NODE_ENV === "production" && isMockOtpEnabled()) {
+  if (process.env.NODE_ENV === "production" && isMockOtpEnabled() && !(process.env.USE_MOCK_OTP === "true" || process.env.USE_MOCK_OTP === "1")) {
     const error = new Error("Mock OTP mode cannot be enabled in production");
     error.statusCode = 500;
     throw error;
