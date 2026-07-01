@@ -120,20 +120,10 @@ const PickupDelivery = () => {
   const billAmtNum = pickupType === "pay_and_collect" ? Number(billAmount || 0) : 0;
   const totalAmount = deliveryFee + billAmtNum;
 
+  // Load saved addresses once on mount
   useEffect(() => {
-    const loadShopsAndAddresses = async () => {
-      setLoadingShops(true);
+    const loadAddresses = async () => {
       try {
-        // Load nearby shops
-        const shopsRes = await customerApi.getNearbySellers({
-          lat: currentLocation?.latitude,
-          lng: currentLocation?.longitude,
-        });
-        const fetchedShops =
-          shopsRes?.data?.results || shopsRes?.data?.result || shopsRes?.data || [];
-        setShops(fetchedShops);
-
-        // Load saved addresses
         const profileRes = await customerApi.getProfile();
         const profile = profileRes?.data?.result || profileRes?.data?.data || profileRes?.data;
         const fetchedAddresses = profile?.addresses || [];
@@ -142,15 +132,36 @@ const PickupDelivery = () => {
           setSelectedAddressId(fetchedAddresses[0]._id || fetchedAddresses[0].id);
         }
       } catch (err) {
-        console.error("Failed to load shops or addresses", err);
-        toast.error("Failed to load initial shops list or profile addresses.");
+        console.error("Failed to load profile addresses", err);
+        toast.error("Failed to load profile addresses.");
+      }
+    };
+
+    loadAddresses();
+  }, []);
+
+  // Load nearby shops when currentLocation changes
+  useEffect(() => {
+    const loadShops = async () => {
+      setLoadingShops(true);
+      try {
+        const shopsRes = await customerApi.getNearbySellers({
+          lat: currentLocation?.latitude,
+          lng: currentLocation?.longitude,
+        });
+        const fetchedShops =
+          shopsRes?.data?.results || shopsRes?.data?.result || shopsRes?.data || [];
+        setShops(fetchedShops);
+      } catch (err) {
+        console.error("Failed to load shops", err);
+        toast.error("Failed to load nearby shops list.");
       } finally {
         setLoadingShops(false);
       }
     };
 
-    loadShopsAndAddresses();
-  }, [currentLocation]);
+    loadShops();
+  }, [currentLocation?.latitude, currentLocation?.longitude]);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
