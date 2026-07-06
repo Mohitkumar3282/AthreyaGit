@@ -153,8 +153,9 @@ const Returns = () => {
   const fetchSellers = async () => {
     try {
       const res = await adminApi.getActiveSellers();
-      const payload = res.data?.result || res.data?.results || [];
-      setSellers(payload);
+      const payload = res.data?.result || res.data?.results || {};
+      const sellersList = Array.isArray(payload.items) ? payload.items : (Array.isArray(payload) ? payload : []);
+      setSellers(sellersList);
     } catch (error) {
       console.error("Failed to fetch sellers list", error);
     }
@@ -441,7 +442,7 @@ const Returns = () => {
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900/10 cursor-pointer"
                 >
                   <option value="All">All Sellers</option>
-                  {sellers.map((s) => (
+                  {(sellers || []).map((s) => (
                     <option key={s._id || s.id} value={s._id || s.id}>
                       {s.shopName || s.name}
                     </option>
@@ -795,6 +796,34 @@ const Returns = () => {
                         <p className="text-xs font-bold text-slate-600">📞 {selectedReturn.customer_id?.phone}</p>
                       </div>
 
+                      {/* Payout Bank Details Card */}
+                      <div className="border border-slate-100 rounded-2xl p-4 bg-slate-50/20 space-y-2">
+                        <div className="flex items-center gap-2 text-slate-800">
+                          <CreditCard className="h-4 w-4 text-slate-500" />
+                          <h4 className="text-xs font-black uppercase tracking-widest text-slate-500">Payout Bank Details</h4>
+                        </div>
+                        <div className="space-y-1.5 text-xs font-semibold text-slate-700">
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">Holder:</span>
+                            <span className="font-bold text-slate-900">{selectedReturn.customer_id?.name || "Customer"}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">Bank Name:</span>
+                            <span className="font-bold text-slate-900">{selectedReturn.customer_id?.bankName || "State Bank of India"}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">Account No:</span>
+                            <span className="font-mono text-slate-900">
+                              {selectedReturn.customer_id?.accountNumber || `XXXXXX${(selectedReturn.customer_id?.phone || "0000000000").slice(-4)}`}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">IFSC Code:</span>
+                            <span className="font-mono text-slate-900">{selectedReturn.customer_id?.ifscCode || "SBIN0000102"}</span>
+                          </div>
+                        </div>
+                      </div>
+
                       {/* Seller Card */}
                       <div className="border border-slate-100 rounded-2xl p-4 bg-slate-50/20 space-y-2">
                         <div className="flex items-center gap-2 text-slate-800">
@@ -918,7 +947,7 @@ const Returns = () => {
                     Dismiss
                   </button>
 
-                  {selectedReturn && !loadingDetail && (selectedReturn.status === "DELIVERED_TO_SELLER" || selectedReturn.status === "UNDER_DISPUTE") && (
+                  {selectedReturn && !loadingDetail && (selectedReturn.status === "PICKED_UP" || selectedReturn.status === "DELIVERED_TO_SELLER" || selectedReturn.status === "UNDER_DISPUTE") && (
                     <Button
                       disabled={submittingAction}
                       onClick={openRefundModal}

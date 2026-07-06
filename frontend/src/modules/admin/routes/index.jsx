@@ -89,6 +89,7 @@ const OfferSectionsManagement = React.lazy(
 const ShopByStoreManagement = React.lazy(
   () => import("../pages/ShopByStoreManagement"),
 );
+const DailyNeeds = React.lazy(() => import("../pages/DailyNeeds"));
 const AdminSettings = React.lazy(() => import("../pages/AdminSettings"));
 const EnvSettings = React.lazy(() => import("../pages/EnvSettings"));
 const AdminProfile = React.lazy(() => import("../pages/AdminProfile"));
@@ -124,6 +125,7 @@ const navItems = [
       { label: "Coupons & Promos", path: "/admin/coupons" },
       { label: "Offer Sections", path: "/admin/offer-sections" },
       { label: "Shop by Store", path: "/admin/shop-by-store" },
+      { label: "Daily Needs", path: "/admin/daily-needs" },
     ],
   },
   {
@@ -252,6 +254,7 @@ const AdminRoutes = () => {
         <Route path="/offers" element={<OffersManagement />} />
         <Route path="/offer-sections" element={<OfferSectionsManagement />} />
         <Route path="/shop-by-store" element={<ShopByStoreManagement />} />
+        <Route path="/daily-needs" element={<DailyNeeds />} />
         <Route path="/coupons" element={<CouponManagement />} />
         <Route path="/sellers/pending" element={<PendingSellers />} />
         <Route path="/seller-locations" element={<SellerLocations />} />

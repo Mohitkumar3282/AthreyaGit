@@ -29,14 +29,14 @@ router.post(
 router.get(
   "/orders/:orderId/cancellation",
   verifyToken,
-  allowRoles("customer", "user", "seller", "delivery_boy", "admin"),
+  allowRoles("customer", "user", "seller", "delivery_boy", "delivery", "admin"),
   getCancellationRequestByOrderId
 );
 
 router.get(
   "/cancellation-requests/:cancellationRequestId",
   verifyToken,
-  allowRoles("customer", "user", "seller", "delivery_boy", "admin"),
+  allowRoles("customer", "user", "seller", "delivery_boy", "delivery", "admin"),
   getCancellationRequestDetail
 );
 
@@ -101,21 +101,21 @@ router.put(
 router.get(
   "/delivery-boy/cancellation-tasks",
   verifyToken,
-  allowRoles("delivery_boy", "admin"),
+  allowRoles("delivery_boy", "delivery", "admin"),
   getMyCancellationTasks
 );
 
 router.post(
   "/delivery-boy/cancellation-tasks/:cancellationRequestId/accept",
   verifyToken,
-  allowRoles("delivery_boy"),
+  allowRoles("delivery_boy", "delivery"),
   acceptCancellationTask
 );
 
 router.post(
   "/delivery-boy/cancellation-tasks/:cancellationRequestId/decline",
   verifyToken,
-  allowRoles("delivery_boy"),
+  allowRoles("delivery_boy", "delivery"),
   declineCancellationTask
 );
 

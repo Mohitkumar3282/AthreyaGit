@@ -50,6 +50,8 @@ const ALLOWED_KEYS = [
   "onlineEnabled",
   "lowStockAlertsEnabled",
   "productApproval",
+  "dailyNeeds",
+  "dailyNeedsCategoryIds",
 ];
 
 function flattenForMongoSet(prefix, value, target) {
@@ -127,6 +129,14 @@ const updateSettingsSchema = Joi.object({
     sellerCreateRequiresApproval: Joi.boolean(),
     sellerEditRequiresApproval: Joi.boolean(),
   }).unknown(false),
+  dailyNeeds: Joi.object({
+    fruits: Joi.string().allow("").max(100),
+    vegetables: Joi.string().allow("").max(100),
+    chicken: Joi.string().allow("").max(100),
+    mutton: Joi.string().allow("").max(100),
+    eggs: Joi.string().allow("").max(100),
+  }).unknown(false),
+  dailyNeedsCategoryIds: Joi.array().items(Joi.string().max(100)).optional(),
 }).unknown(false);
 
 /**
@@ -147,7 +157,7 @@ export const getPublicSettings = async (req, res) => {
       async () => {
         const existing = await Setting.findOne(filter)
           .select(
-            "appName supportEmail supportPhone currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor returnDeliveryCommission deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy codEnabled onlineEnabled lowStockAlertsEnabled productApproval createdAt",
+            "appName supportEmail supportPhone currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor returnDeliveryCommission deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy codEnabled onlineEnabled lowStockAlertsEnabled productApproval dailyNeeds dailyNeedsCategoryIds createdAt",
           )
           .lean();
         return existing || null;

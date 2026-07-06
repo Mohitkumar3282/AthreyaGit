@@ -7,7 +7,7 @@ const SlideToPay = ({
     amount,
     isLoading = false,
     disabled = false,
-    text = "Slide to Pay"
+    text = "Slide to Order"
 }) => {
     const [isCompleted, setIsCompleted] = useState(false);
     const controls = useAnimation();

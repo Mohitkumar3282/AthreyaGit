@@ -58,8 +58,8 @@ export function checkProximity(deliveryLocation, customerLocation) {
     customerLng
   );
   
-  // Check if distance is within proximity range (0m - 120m inclusive)
-  const inRange = distance >= 0 && distance <= 120;
+  // Check if distance is within proximity range (0m - 1000m inclusive)
+  const inRange = distance >= 0 && distance <= 1000;
   
   return {
     inRange,

@@ -50,7 +50,7 @@ router.post(
 router.get(
   "/return-requests/:returnRequestId",
   verifyToken,
-  allowRoles("customer", "user", "seller", "delivery_boy", "admin"),
+  allowRoles("customer", "user", "seller", "delivery_boy", "delivery", "admin"),
   getReturnRequestDetail
 );
 
@@ -124,7 +124,7 @@ router.put(
 router.get(
   "/delivery-boy/return-tasks",
   verifyToken,
-  allowRoles("delivery_boy", "admin"),
+  allowRoles("delivery_boy", "delivery", "admin"),
   getMyReturnTasks
 );
 
@@ -132,7 +132,7 @@ router.get(
 router.post(
   "/delivery-boy/return-tasks/:returnRequestId/accept",
   verifyToken,
-  allowRoles("delivery_boy"),
+  allowRoles("delivery_boy", "delivery"),
   acceptReturnTask
 );
 
@@ -140,7 +140,7 @@ router.post(
 router.post(
   "/delivery-boy/return-tasks/:returnRequestId/decline",
   verifyToken,
-  allowRoles("delivery_boy"),
+  allowRoles("delivery_boy", "delivery"),
   declineReturnTask
 );
 
@@ -148,7 +148,7 @@ router.post(
 router.post(
   "/delivery-boy/return-tasks/:returnRequestId/picked-up",
   verifyToken,
-  allowRoles("delivery_boy"),
+  allowRoles("delivery_boy", "delivery"),
   upload.single("pickup_image"),
   markPickedUp
 );
@@ -157,7 +157,7 @@ router.post(
 router.post(
   "/delivery-boy/return-tasks/:returnRequestId/delivered-to-seller",
   verifyToken,
-  allowRoles("delivery_boy"),
+  allowRoles("delivery_boy", "delivery"),
   markDeliveredToSeller
 );
 
@@ -165,7 +165,7 @@ router.post(
 router.put(
   "/delivery-boy/location",
   verifyToken,
-  allowRoles("delivery_boy"),
+  allowRoles("delivery_boy", "delivery"),
   updateDeliveryBoyLocation
 );
 
@@ -176,6 +176,14 @@ router.get(
   verifyToken,
   allowRoles("admin"),
   getAdminReturnRequests
+);
+
+// Dashboard stats
+router.get(
+  "/admin/return-requests/stats",
+  verifyToken,
+  allowRoles("admin"),
+  getAdminReturnStats
 );
 
 // Get return request detail
@@ -200,14 +208,6 @@ router.post(
   verifyToken,
   allowRoles("admin"),
   initiateRefund
-);
-
-// Dashboard stats
-router.get(
-  "/admin/return-requests/stats",
-  verifyToken,
-  allowRoles("admin"),
-  getAdminReturnStats
 );
 
 // ── AUTHENTICATION / TESTING HELPERS ─────────────────────────────────────────

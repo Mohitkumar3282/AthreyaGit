@@ -90,6 +90,24 @@ const ReturnTaskDetail = () => {
         }
     };
 
+    const handleRequestDropOtp = async () => {
+        try {
+            setRequestingOtp(true);
+            const orderId = task.order_id?.orderId || task.order_id;
+            if (isCancellation) {
+                await deliveryApi.requestCancellationDropOtp(orderId, {});
+            } else {
+                await deliveryApi.requestReturnDropOtp(orderId, {});
+            }
+            toast.success("OTP sent to seller successfully!");
+        } catch (error) {
+            console.error("Failed to request drop OTP", error);
+            toast.error(error.response?.data?.message || "Failed to request drop OTP");
+        } finally {
+            setRequestingOtp(false);
+        }
+    };
+
     const handleImageSelect = (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -347,6 +365,13 @@ const ReturnTaskDetail = () => {
 
                         <div className="border-t border-slate-100 pt-4 space-y-4">
                             <div className="space-y-3">
+                                <Button
+                                    className="w-full bg-primary font-bold text-white mb-2"
+                                    onClick={handleRequestDropOtp}
+                                    isLoading={requestingOtp}
+                                >
+                                    Send OTP to Seller
+                                </Button>
                                 <label className="text-xs font-bold text-slate-600 block">Enter Drop OTP from Seller Store</label>
                                 <div className="flex gap-2">
                                     <input
@@ -381,6 +406,12 @@ const ReturnTaskDetail = () => {
                         <p className="text-xs text-emerald-800">
                             The package has been successfully delivered back to the seller store, and the transaction is complete.
                         </p>
+                        <Button
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl mt-2 active:scale-95 transition-transform"
+                            onClick={() => navigate("/delivery/return-tasks")}
+                        >
+                            Back to Return Tasks
+                        </Button>
                     </Card>
                 )}
             </div>

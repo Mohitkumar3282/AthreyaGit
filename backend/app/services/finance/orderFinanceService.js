@@ -473,18 +473,15 @@ export async function handleCodOrderFinance(
       session,
     });
 
-    order.paymentBreakdown = {
-      ...(order.paymentBreakdown || {}),
-      codCollectedAmount: roundCurrency(
-        (order.paymentBreakdown?.codCollectedAmount || 0) + codAmountNet,
-      ),
-      codRemittedAmount: roundCurrency(order.paymentBreakdown?.codRemittedAmount || 0),
-      codPendingAmount: roundCurrency(
-        (order.paymentBreakdown?.codCollectedAmount || 0) +
-          codAmountNet -
-          (order.paymentBreakdown?.codRemittedAmount || 0),
-      ),
-    };
+    order.paymentBreakdown.codCollectedAmount = roundCurrency(
+      (order.paymentBreakdown?.codCollectedAmount || 0) + codAmountNet,
+    );
+    order.paymentBreakdown.codRemittedAmount = roundCurrency(
+      order.paymentBreakdown?.codRemittedAmount || 0,
+    );
+    order.paymentBreakdown.codPendingAmount = roundCurrency(
+      order.paymentBreakdown.codCollectedAmount - order.paymentBreakdown.codRemittedAmount,
+    );
 
     order.paymentStatus = ORDER_PAYMENT_STATUS.CASH_COLLECTED;
     order.payment = {

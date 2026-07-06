@@ -386,15 +386,45 @@ const getHomePageDataCacheKey = (location) => {
 const getCachedHomePageData = (location) =>
   homePageDataCache.get(getHomePageDataCacheKey(location)) || null;
 
-const DailyNeedsSection = () => {
+const DailyNeedsSection = ({ categoryMap }) => {
   const navigate = useNavigate();
+  const { settings } = useSettings();
+
+  const dailyNeedsList = useMemo(() => {
+    const list = [];
+    const ids = settings?.dailyNeedsCategoryIds || [];
+    ids.forEach((id) => {
+      const cat = categoryMap[id];
+      if (cat) {
+        list.push({
+          name: cat.name,
+          path: `/category/${cat._id || cat.id}`,
+          icon: cat.image ? (
+            <img src={applyCloudinaryTransform(cat.image)} alt={cat.name} className="w-full h-full object-cover rounded-[14px]" />
+          ) : (
+            <Sparkles className="h-6 w-6 text-[#1a6e2e]" />
+          )
+        });
+      }
+    });
+
+    // Fallback if settings don't have any categories mapped yet
+    if (list.length === 0) {
+      return DAILY_NEEDS;
+    }
+
+    return list;
+  }, [settings?.dailyNeedsCategoryIds, categoryMap]);
+
+  if (dailyNeedsList.length === 0) return null;
+
   return (
     <div className="container mx-auto max-w-6xl px-4 md:px-8 py-4 my-2">
       <h3 className="text-base md:text-xl font-black text-[#1A1A1A] tracking-tight uppercase mb-3">
         Daily needs
       </h3>
       <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-2">
-        {DAILY_NEEDS.map((item) => (
+        {dailyNeedsList.map((item) => (
           <div
             key={item.name}
             onClick={() => navigate(item.path)}
@@ -812,7 +842,7 @@ const Home = () => {
                   />
                   {/* Logo overlay on video */}
                   <div className="absolute top-4 left-4 z-20 bg-white px-3 py-1.5 rounded-xl border border-[#1a6e2e]/20 flex items-center justify-center max-h-24 pointer-events-none">
-                    <img src={settings?.logoUrl || LogoImage} alt="Logo" className="h-12 sm:h-16 w-auto object-contain scale-[1.2]" />
+                    <img src={settings?.logoUrl ? applyCloudinaryTransform(settings.logoUrl) : LogoImage} alt="Logo" className="h-12 sm:h-16 w-auto object-contain scale-[1.2]" />
                   </div>
 
                   {/* Bottom Scrolling Marquee Overlay */}
@@ -834,7 +864,7 @@ const Home = () => {
           </motion.div>
 
           {/* Daily Needs Section */}
-          <DailyNeedsSection />
+          <DailyNeedsSection categoryMap={categoryMap} />
 
           {/* All Shops Near You Section */}
           <div className="container mx-auto max-w-6xl px-4 md:px-8 py-5 my-4 bg-white rounded-[2rem] border border-[#1a6e2e]/20">

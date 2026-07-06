@@ -20,9 +20,9 @@ const VALID_TRANSITIONS = {
   REQUESTED: ["SELLER_APPROVED", "SELLER_REJECTED", "CANCELLED"],
   SELLER_APPROVED: ["PICKUP_SCHEDULED", "CANCELLED"],
   PICKUP_SCHEDULED: ["PICKED_UP", "SELLER_APPROVED"],
-  PICKED_UP: ["DELIVERED_TO_SELLER"],
+  PICKED_UP: ["DELIVERED_TO_SELLER", "REFUND_INITIATED"],
   DELIVERED_TO_SELLER: ["REFUND_INITIATED", "UNDER_DISPUTE"],
-  REFUND_INITIATED: ["REFUND_COMPLETED"],
+  REFUND_INITIATED: ["REFUND_INITIATED", "REFUND_COMPLETED"],
   REFUND_COMPLETED: ["CLOSED"],
   UNDER_DISPUTE: ["REFUND_INITIATED", "SELLER_REJECTED"]
 };
@@ -141,10 +141,8 @@ export const submitReturnRequest = async (req, res) => {
     }
 
     // Calculate refund amount
-    const isCOD = order.paymentMode === "COD" || (order.payment && order.payment.method === "cash");
     const subtotal = order.paymentBreakdown?.productSubtotal || order.pricing?.subtotal || 0;
-    const deliveryFee = order.paymentBreakdown?.deliveryFeeCharged || order.pricing?.deliveryFee || 0;
-    const refund_amount = isCOD ? subtotal : subtotal + deliveryFee;
+    const refund_amount = subtotal;
 
     const returnRequest = await ReturnRequest.create({
       order_id: order._id,
@@ -167,6 +165,7 @@ export const submitReturnRequest = async (req, res) => {
     });
 
     order.return_request_id = returnRequest._id;
+    order.returnStatus = "return_requested";
     await order.save();
 
     // Notify seller
@@ -250,6 +249,13 @@ export const cancelReturnRequest = async (req, res) => {
     });
     await returnRequest.save();
 
+    // Also update parent Order status
+    const order = await Order.findById(returnRequest.order_id);
+    if (order) {
+      order.returnStatus = "none";
+      await order.save();
+    }
+
     return handleResponse(res, 200, "Return request cancelled successfully", {
       success: true,
       returnRequestId: returnRequest.id,
@@ -318,6 +324,13 @@ export const approveReturnRequest = async (req, res) => {
     });
     await returnRequest.save();
 
+    // Also update parent Order
+    const order = await Order.findById(returnRequest.order_id);
+    if (order) {
+      order.returnStatus = "return_approved";
+      await order.save();
+    }
+
     // Trigger push notification to customer
     emitToCustomer(returnRequest.customer_id.toString(), {
       event: "return:approved",
@@ -363,6 +376,13 @@ export const rejectReturnRequest = async (req, res) => {
       note: note
     });
     await returnRequest.save();
+
+    // Also update parent Order
+    const order = await Order.findById(returnRequest.order_id);
+    if (order) {
+      order.returnStatus = "return_rejected";
+      await order.save();
+    }
 
     // Trigger push to customer
     emitToCustomer(returnRequest.customer_id.toString(), {
@@ -515,6 +535,14 @@ export const assignDeliveryBoy = async (req, res) => {
     });
     await returnRequest.save();
 
+    // Also update parent Order so OTP generation logic functions correctly
+    const order = await Order.findById(returnRequest.order_id);
+    if (order) {
+      order.returnStatus = "return_pickup_assigned";
+      order.returnDeliveryBoy = deliveryBoy._id;
+      await order.save();
+    }
+
     // Sockets & Notifications
     emitToDelivery(deliveryBoy._id.toString(), {
       event: "return:task:assigned",
@@ -591,6 +619,14 @@ export const reassignDeliveryBoy = async (req, res) => {
       note: `Reassigned from ${previousBoyId ? "previous" : "none"} to ${newBoy.name}`
     });
     await returnRequest.save();
+
+    // Also update parent Order so OTP generation logic functions correctly
+    const order = await Order.findById(returnRequest.order_id);
+    if (order) {
+      order.returnStatus = "return_pickup_assigned";
+      order.returnDeliveryBoy = newBoy._id;
+      await order.save();
+    }
 
     // Sockets & Notifications
     emitToDelivery(newBoy._id.toString(), {
@@ -695,6 +731,14 @@ export const declineReturnTask = async (req, res) => {
     });
     await returnRequest.save();
 
+    // Also update parent Order
+    const order = await Order.findById(returnRequest.order_id);
+    if (order) {
+      order.returnStatus = "return_approved";
+      order.returnDeliveryBoy = null;
+      await order.save();
+    }
+
     // Notify seller
     emitToSeller(returnRequest.seller_id.toString(), {
       event: "return:task:declined",
@@ -742,6 +786,14 @@ export const markPickedUp = async (req, res) => {
       note: "Item picked up from customer" + (pickupImageUrl ? ` (Proof: ${pickupImageUrl})` : "")
     });
     await returnRequest.save();
+
+    // Also update parent Order
+    const order = await Order.findById(returnRequest.order_id);
+    if (order) {
+      order.returnStatus = "return_in_transit";
+      order.returnPickedAt = new Date();
+      await order.save();
+    }
 
     // Notify customer and seller
     emitToCustomer(returnRequest.customer_id.toString(), {
@@ -792,6 +844,14 @@ export const markDeliveredToSeller = async (req, res) => {
       note: "Returned package delivered to seller store"
     });
     await returnRequest.save();
+
+    // Also update parent Order
+    const order = await Order.findById(returnRequest.order_id);
+    if (order) {
+      order.returnStatus = "returned";
+      order.returnDeliveredBackAt = new Date();
+      await order.save();
+    }
 
     // Notify seller
     emitToSeller(returnRequest.seller_id.toString(), {
@@ -902,6 +962,9 @@ export const overrideReturnRequest = async (req, res) => {
     }
 
     let targetStatus;
+    const finalRefundAmount = returnRequest.refund_amount || 0;
+    const finalMethod = returnRequest.refund_method || "wallet";
+
     if (action === "approve") {
       targetStatus = "SELLER_APPROVED";
       returnRequest.seller_action_at = new Date();
@@ -909,7 +972,83 @@ export const overrideReturnRequest = async (req, res) => {
       targetStatus = "SELLER_REJECTED";
       returnRequest.seller_action_at = new Date();
     } else if (action === "initiate_refund") {
-      targetStatus = "REFUND_INITIATED";
+      targetStatus = "REFUND_COMPLETED";
+      returnRequest.refund_initiated_at = new Date();
+      returnRequest.refund_completed_at = new Date();
+
+      // Execute Money Flow
+      let txnReference = `REF-WALLET-${Date.now()}`;
+      const session = await mongoose.startSession();
+      try {
+        await session.withTransaction(async () => {
+          // If method is wallet, credit customer's wallet
+          if (finalMethod === "wallet") {
+            await walletService.creditWallet({
+              ownerType: OWNER_TYPE.CUSTOMER,
+              ownerId: returnRequest.customer_id,
+              amount: finalRefundAmount,
+              bucket: "available",
+              session,
+              ledgerType: LEDGER_TRANSACTION_TYPE.WALLET_REFUND,
+              ledgerReference: txnReference,
+              ledgerDescription: `Return request refund for Order #${returnRequest.order_id}`,
+              idempotencyKey: `RETURN-REFUND-${returnRequest._id}`,
+              metadata: { source: "admin_override_initiate_refund" }
+            });
+
+            await Transaction.create(
+              [
+                {
+                  user: returnRequest.customer_id,
+                  userModel: "User",
+                  type: "Refund",
+                  amount: finalRefundAmount,
+                  status: "Settled",
+                  reference: `${txnReference}-CUST`,
+                  meta: { orderId: returnRequest.order_id, type: "return_wallet" }
+                }
+              ],
+              { session }
+            );
+          }
+          
+          // Debit seller wallet to recover refund cost
+          const order = await Order.findById(returnRequest.order_id).session(session);
+          if (order && order.seller) {
+            await walletService.debitWallet({
+              ownerType: OWNER_TYPE.SELLER,
+              ownerId: order.seller,
+              amount: finalRefundAmount,
+              bucket: "available",
+              session,
+              ledgerType: LEDGER_TRANSACTION_TYPE.REFUND,
+              ledgerReference: txnReference,
+              ledgerDescription: `Refund debited for return request #${returnRequest._id}`,
+              idempotencyKey: `RETURN-SELLER-DEBIT-${returnRequest._id}`,
+              metadata: { refundAmount: finalRefundAmount },
+              allowNegative: true
+            });
+
+            await Transaction.create(
+              [
+                {
+                  user: order.seller,
+                  userModel: "Seller",
+                  type: "Refund",
+                  amount: -finalRefundAmount,
+                  status: "Settled",
+                  reference: `${txnReference}-SELLER`
+                }
+              ],
+              { session }
+            );
+          }
+        });
+      } finally {
+        session.endSession();
+      }
+
+      returnRequest.refund_transaction_id = txnReference;
     } else {
       return handleResponse(res, 400, "Invalid override action");
     }
@@ -923,11 +1062,41 @@ export const overrideReturnRequest = async (req, res) => {
     });
     await returnRequest.save();
 
-    // Sockets update
-    emitToCustomer(returnRequest.customer_id.toString(), {
-      event: "return:override",
-      payload: { returnRequestId: returnRequest.id, status: returnRequest.status }
-    });
+    // Also update parent Order
+    const order = await Order.findById(returnRequest.order_id);
+    if (order) {
+      if (targetStatus === "SELLER_APPROVED") {
+        order.returnStatus = "return_approved";
+      } else if (targetStatus === "SELLER_REJECTED") {
+        order.returnStatus = "return_rejected";
+      } else if (targetStatus === "REFUND_COMPLETED") {
+        order.returnStatus = "refund_completed";
+        if (order.payment) {
+          order.payment.status = "refunded";
+        }
+      }
+      await order.save();
+    }
+
+    // Emit event for refund completed if applicable
+    if (targetStatus === "REFUND_COMPLETED") {
+      emitNotificationEvent(NOTIFICATION_EVENTS.REFUND_COMPLETED, {
+        customerId: returnRequest.customer_id,
+        orderId: returnRequest.order_id,
+        data: { refundAmount: finalRefundAmount, paymentMethod: finalMethod }
+      });
+
+      emitToCustomer(returnRequest.customer_id.toString(), {
+        event: "return:refund:completed",
+        payload: { returnRequestId: returnRequest.id, status: returnRequest.status, refundAmount: finalRefundAmount }
+      });
+    } else {
+      // Sockets update
+      emitToCustomer(returnRequest.customer_id.toString(), {
+        event: "return:override",
+        payload: { returnRequestId: returnRequest.id, status: returnRequest.status }
+      });
+    }
 
     return handleResponse(res, 200, "Return request overridden successfully", returnRequest);
   } catch (error) {
@@ -948,32 +1117,27 @@ export const initiateRefund = async (req, res) => {
     }
 
     if (!isValidTransition(returnRequest.status, "REFUND_INITIATED")) {
-      return handleResponse(res, 400, "Refund can only be initiated when package is delivered to seller");
+      return handleResponse(res, 400, "Refund can only be initiated when package is picked up or delivered to seller");
     }
 
     const finalRefundAmount = refund_amount != null ? Number(refund_amount) : returnRequest.refund_amount;
     const finalMethod = refund_method || returnRequest.refund_method || "wallet";
 
-    returnRequest.status = "REFUND_INITIATED";
-    returnRequest.refund_amount = finalRefundAmount;
-    returnRequest.refund_method = finalMethod;
-    returnRequest.refund_initiated_at = new Date();
-    returnRequest.status_history.push({
-      status: "REFUND_INITIATED",
-      changed_by: "admin",
-      note: `Refund of ₹${finalRefundAmount} initiated via ${finalMethod}`
-    });
-    await returnRequest.save();
-
-    // Emit refund initiated notification
-    emitNotificationEvent(NOTIFICATION_EVENTS.REFUND_INITIATED, {
-      customerId: returnRequest.customer_id,
-      orderId: returnRequest.order_id
-    });
-
     // Execute Money Flow
     let txnReference = `REF-WALLET-${Date.now()}`;
     await session.withTransaction(async () => {
+      // Save REFUND_INITIATED status inside session so it rolls back automatically on failure
+      returnRequest.status = "REFUND_INITIATED";
+      returnRequest.refund_amount = finalRefundAmount;
+      returnRequest.refund_method = finalMethod;
+      returnRequest.refund_initiated_at = new Date();
+      returnRequest.status_history.push({
+        status: "REFUND_INITIATED",
+        changed_by: "admin",
+        note: `Refund of ₹${finalRefundAmount} initiated via ${finalMethod}`
+      });
+      await returnRequest.save({ session });
+
       // If method is wallet, credit customer's wallet
       if (finalMethod === "wallet") {
         await walletService.creditWallet({
@@ -1018,7 +1182,8 @@ export const initiateRefund = async (req, res) => {
           ledgerReference: txnReference,
           ledgerDescription: `Refund debited for return request #${returnRequest._id}`,
           idempotencyKey: `RETURN-SELLER-DEBIT-${returnRequest._id}`,
-          metadata: { refundAmount: finalRefundAmount }
+          metadata: { refundAmount: finalRefundAmount },
+          allowNegative: true
         });
 
         await Transaction.create(
@@ -1035,6 +1200,12 @@ export const initiateRefund = async (req, res) => {
           { session }
         );
       }
+    });
+
+    // Emit refund initiated notification
+    emitNotificationEvent(NOTIFICATION_EVENTS.REFUND_INITIATED, {
+      customerId: returnRequest.customer_id,
+      orderId: returnRequest.order_id
     });
 
     // Mark as completed/closed
@@ -1106,9 +1277,8 @@ export const getAdminReturnStats = async (req, res) => {
     }
 
     // Refund total this month
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
 
     const monthlyRefunds = await ReturnRequest.aggregate([
       {

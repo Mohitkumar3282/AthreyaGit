@@ -39,6 +39,7 @@ import { useToast } from "@shared/components/ui/Toast";
 import { useSettings } from "@core/context/SettingsContext";
 import LogoImage from "../../../assets/Logo.png";
 import SlideToPay from "../components/shared/SlideToPay";
+import { AddressAutocompleteField } from "@/shared/components/AddressAutocompleteField";
 import { getCachedGeocode, setCachedGeocode } from "@/core/utils/geocodeCache";
 import { getJSON, setJSON, STORAGE_KEYS } from "@core/utils/storage";
 import { createSocketTokenReader } from "@core/utils/authStorage";
@@ -1084,7 +1085,7 @@ const CheckoutPage = () => {
             amount={finalAmountToPay}
             onSuccess={handlePlaceOrder}
             isLoading={isPlacingOrder || isPreviewLoading || !pricingPreview}
-            text={finalAmountToPay === 0 ? "Place Free Order" : "Slide to Pay"}
+            text={finalAmountToPay === 0 ? "Place Free Order" : "Slide to Order"}
           />
         </div>
       </div>
@@ -1147,10 +1148,20 @@ const CheckoutPage = () => {
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="edit-address" className="text-xs font-semibold text-slate-700">Address</Label>
-                <Input
+                <AddressAutocompleteField
                   id="edit-address"
                   value={editAddressForm.address}
-                  onChange={(e) => setEditAddressForm((prev) => ({ ...prev, address: e.target.value }))}
+                  onChange={(val) => setEditAddressForm((prev) => ({ ...prev, address: val }))}
+                  onSelect={(details) => {
+                    setEditAddressForm((prev) => ({
+                      ...prev,
+                      address: details.address,
+                      city: [details.city, details.state, details.pincode].filter(Boolean).join(", ") || prev.city,
+                      location: { lat: details.lat, lng: details.lng },
+                      placeId: details.placeId,
+                      formattedAddress: details.address,
+                    }));
+                  }}
                   className="h-10"
                   placeholder="House, street, area"
                 />

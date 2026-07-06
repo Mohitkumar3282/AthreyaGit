@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { AddressAutocompleteField } from "@/shared/components/AddressAutocompleteField";
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { customerApi } from '../services/customerApi';
@@ -384,7 +385,22 @@ const AddressesPage = () => {
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="address">Address</Label>
-                            <Textarea id="address" placeholder="Flat No, Building, Street" value={addForm.address} onChange={e => setAddForm(f => ({ ...f, address: e.target.value }))} />
+                            <AddressAutocompleteField
+                                id="address"
+                                placeholder="Flat No, Building, Street"
+                                value={addForm.address}
+                                onChange={val => setAddForm(f => ({ ...f, address: val }))}
+                                onSelect={details => {
+                                    setAddForm(f => ({
+                                        ...f,
+                                        address: details.address,
+                                        city: details.city || f.city,
+                                        state: details.state || f.state,
+                                        pincode: details.pincode || f.pincode,
+                                    }));
+                                }}
+                                textarea={true}
+                            />
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="landmark">Nearest Landmark (optional)</Label>
@@ -445,7 +461,22 @@ const AddressesPage = () => {
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="edit-address">Address</Label>
-                            <Textarea id="edit-address" value={editForm.address} onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))} />
+                            <AddressAutocompleteField
+                                id="edit-address"
+                                placeholder="Flat No, Building, Street"
+                                value={editForm.address}
+                                onChange={val => setEditForm(f => ({ ...f, address: val }))}
+                                onSelect={details => {
+                                    setEditForm(f => ({
+                                        ...f,
+                                        address: details.address,
+                                        city: details.city || f.city,
+                                        state: details.state || f.state,
+                                        pincode: details.pincode || f.pincode,
+                                    }));
+                                }}
+                                textarea={true}
+                            />
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="edit-landmark">Nearest Landmark (optional)</Label>

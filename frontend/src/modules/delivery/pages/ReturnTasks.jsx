@@ -134,7 +134,7 @@ const ReturnTasks = () => {
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {tasks.map((task) => {
+                    {tasks.filter(task => task.status !== "DELIVERED_TO_SELLER" && task.status !== "CANCELLED" && task.status !== "REFUND_COMPLETED").map((task) => {
                         const accepted = isTaskAccepted(task) || task.status === "PICKED_UP" || task.status === "DELIVERED_TO_SELLER";
                         const remaining = getRemainingSeconds(task.pickup_scheduled_at);
                         const expired = remaining <= 0;

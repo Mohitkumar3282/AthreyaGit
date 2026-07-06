@@ -161,6 +161,17 @@ const settingSchema = new mongoose.Schema(
                 default: false,
             },
         },
+        dailyNeeds: {
+            fruits: String,
+            vegetables: String,
+            chicken: String,
+            mutton: String,
+            eggs: String,
+        },
+        dailyNeedsCategoryIds: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Category"
+        }],
     },
     {
         timestamps: true,

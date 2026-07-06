@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import ProductCard from "../shared/ProductCard";
 import { cn } from "@/lib/utils";
+import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
 import ExperienceBannerCarousel from "./ExperienceBannerCarousel";
 import { setJSON, STORAGE_KEYS } from "@core/utils/storage";
 
@@ -135,7 +136,7 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
                       <div className="relative aspect-square w-full rounded-2xl bg-[#F8F9FA] border border-slate-100/80 flex items-center justify-center overflow-hidden p-1 transition-all duration-200 group-hover:border-primary/40 group-hover:bg-white group-hover:">
                         {cat.image ? (
                           <img
-                            src={cat.image}
+                            src={applyCloudinaryTransform(cat.image)}
                             alt={cat.name}
                             className="w-full h-full object-contain object-center mix-blend-multiply transition-transform duration-200 group-hover:scale-105"
                           />
@@ -219,7 +220,7 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
                       <div className="relative aspect-square w-full rounded-2xl bg-[#F8F9FA] border border-slate-100/80 flex items-center justify-center overflow-hidden p-1 transition-all duration-200 group-hover:border-primary/40 group-hover:bg-white group-hover:">
                         {cat.image ? (
                           <img
-                            src={cat.image}
+                            src={applyCloudinaryTransform(cat.image)}
                             alt={cat.name}
                             className="w-full h-full object-contain object-center mix-blend-multiply transition-transform duration-200 group-hover:scale-105"
                           />

@@ -44,11 +44,11 @@ const CategoryProductsPage = () => {
         setIsLoading(true);
         try {
             const slugMap = {
-                fruits: "6a3fc1728bb6d217bf338f1d",
-                vegetables: "6a3fc1738bb6d217bf338f24",
-                chicken: "6a3fc1748bb6d217bf338f2b",
-                mutton: "6a3fc1748bb6d217bf338f32",
-                eggs: "6a3fc1748bb6d217bf338f39",
+                fruits: settings?.dailyNeeds?.fruits || "6a3fc1728bb6d217bf338f1d",
+                vegetables: settings?.dailyNeeds?.vegetables || "6a3fc1738bb6d217bf338f24",
+                chicken: settings?.dailyNeeds?.chicken || "6a3fc1748bb6d217bf338f2b",
+                mutton: settings?.dailyNeeds?.mutton || "6a3fc1748bb6d217bf338f32",
+                eggs: settings?.dailyNeeds?.eggs || "6a3fc1748bb6d217bf338f39",
             };
             const resolvedCatId = slugMap[catId?.toLowerCase()] || catId;
 

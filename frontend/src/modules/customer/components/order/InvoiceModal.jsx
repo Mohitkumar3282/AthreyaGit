@@ -69,7 +69,7 @@ const InvoiceModal = ({ isOpen, onClose, order }) => {
                                             {order.items.map((item, idx) => (
                                                 <tr key={idx}>
                                                     <td className="px-4 py-3 text-slate-700 font-medium">{item.name}</td>
-                                                    <td className="px-4 py-3 text-slate-500 text-right">{item.qty}</td>
+                                                    <td className="px-4 py-3 text-slate-500 text-right">{item.quantity || item.qty || 1}</td>
                                                     <td className="px-4 py-3 text-slate-800 font-bold text-right">₹{item.price}</td>
                                                 </tr>
                                             ))}
@@ -80,15 +80,21 @@ const InvoiceModal = ({ isOpen, onClose, order }) => {
                                 <div className="space-y-2 pt-2 border-t border-slate-100">
                                     <div className="flex justify-between text-sm text-slate-500">
                                         <span>Subtotal</span>
-                                        <span>₹{order.bill.itemTotal}</span>
+                                        <span>₹{order.pricing?.subtotal || order.bill?.itemTotal || order.billAmount || 0}</span>
                                     </div>
                                     <div className="flex justify-between text-sm text-slate-500">
                                         <span>Tax</span>
-                                        <span>₹{order.bill.tax}</span>
+                                        <span>₹{order.pricing?.gst || order.bill?.tax || 0}</span>
                                     </div>
+                                    {order.pricing?.deliveryFee > 0 && (
+                                        <div className="flex justify-between text-sm text-slate-500">
+                                            <span>Delivery Fee</span>
+                                            <span>₹{order.pricing.deliveryFee}</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between text-base font-black text-slate-800 pt-2 border-t border-slate-100">
                                         <span>Total Paid</span>
-                                        <span>₹{order.bill.grandTotal}</span>
+                                        <span>₹{order.pricing?.total || order.bill?.grandTotal || order.billAmount || 0}</span>
                                     </div>
                                 </div>
                             </div>

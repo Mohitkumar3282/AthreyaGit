@@ -11,6 +11,7 @@ import {
   getOrderSocket,
   onDeliveryBroadcast,
   onDeliveryBroadcastWithdrawn,
+  onReturnTaskAssigned,
 } from "@/core/services/orderSocket";
 import {
   loadHandledIncomingOrderIds,
@@ -555,6 +556,52 @@ const DeliveryLayout = () => {
     });
   }, [user?.isOnline]);
 
+  useEffect(() => {
+    if (!user?.isOnline) return undefined;
+    const getToken = getDeliveryToken;
+    return onReturnTaskAssigned(getToken, async (payload) => {
+      const returnRequestId = payload?.returnRequestId;
+      if (!returnRequestId || activeOrderRef.current || suppressIncomingModal) return;
+
+      try {
+        const res = await deliveryApi.getReturnTaskDetail(returnRequestId);
+        if (res.data.success) {
+          const returnRequest = res.data.result;
+          if (!returnRequest) return;
+
+          // Compute earnings
+          const totalAmount = returnRequest.refund_amount || 0;
+          const earnings = 15; // standard / mock return payout
+
+          // Format items
+          const items = returnRequest.order_id?.items || [];
+
+          shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(returnRequest.order_id?.orderId || returnRequestId);
+
+          setActiveOrder({
+            id: returnRequestId,
+            mongoId: returnRequestId,
+            pickup: returnRequest.order_id?.address?.address || "Customer Address",
+            drop: returnRequest.seller_id?.shopName || "Seller Store",
+            distance: "Nearby",
+            estTime: "10-15 min",
+            value: totalAmount,
+            earnings: earnings,
+            expiresAt: new Date(Date.now() + 60 * 1000).toISOString(),
+            isReturnPickup: true,
+            items: items.map(it => ({
+              name: it.product?.name || "Product Item",
+              quantity: it.quantity || 1,
+              image: it.product?.images?.[0] || ""
+            }))
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch assigned return task details:", error);
+      }
+    });
+  }, [user?.isOnline, suppressIncomingModal]);
+
   // Notifications safety-net polling.
   //
   // Same idea as the available-orders poll above but slower (~25s) since
@@ -682,7 +729,11 @@ const DeliveryLayout = () => {
     try {
       console.log("Delivery Alert - Skipping order:", current.id);
       if (current.isReturnPickup) {
-        await deliveryApi.rejectReturnPickup(current.id);
+        try {
+          await deliveryApi.declineReturnTask(current.id);
+        } catch (e) {
+          await deliveryApi.rejectReturnPickup(current.id);
+        }
       } else {
         await deliveryApi.skipOrder(current.id);
       }
@@ -743,7 +794,11 @@ const DeliveryLayout = () => {
           ? crypto.randomUUID()
           : `${Date.now()}`;
       if (activeOrder.isReturnPickup) {
-        await deliveryApi.acceptReturnPickup(activeOrder.id);
+        try {
+          await deliveryApi.acceptReturnTask(activeOrder.id);
+        } catch (e) {
+          await deliveryApi.acceptReturnPickup(activeOrder.id);
+        }
       } else {
         await deliveryApi.acceptOrder(activeOrder.id, idem);
       }
@@ -753,7 +808,11 @@ const DeliveryLayout = () => {
       markIncomingOrderHandled(orderId);
       stopOrderRingtone();
       setActiveOrder(null);
-      navigate(`/delivery/order-details/${orderId}`);
+      if (activeOrder.isReturnPickup) {
+        navigate(`/delivery/return-task-details/${orderId}`);
+      } else {
+        navigate(`/delivery/order-details/${orderId}`);
+      }
     } catch (error) {
       console.error("Delivery Alert - Accept failed:", error);
       const msg =

@@ -232,8 +232,32 @@ const PickupDelivery = () => {
       };
 
       const res = await customerApi.placeCustomPickupOrder(payload);
-      toast.success("Booking confirmed successfully!");
-      navigate("/orders");
+      if (res.data.success) {
+        const orderObj = res.data.result?.order;
+        const orderId = orderObj?.orderId;
+        
+        if (paymentMode === "ONLINE" && orderId) {
+          try {
+            const paymentRes = await customerApi.createPaymentOrder({
+              orderRef: orderId,
+              orderId: orderId,
+            });
+            if (paymentRes.data.success && paymentRes.data.result?.redirectUrl) {
+              window.location.href = paymentRes.data.result.redirectUrl;
+              return;
+            } else {
+              throw new Error(paymentRes.data.message || "Failed to initiate payment gateway");
+            }
+          } catch (payError) {
+            toast.error(payError.message || "Order created but payment gateway failed. Please pay from order details.");
+            navigate("/orders");
+            return;
+          }
+        }
+        
+        toast.success("Booking confirmed successfully!");
+        navigate("/orders");
+      }
     } catch (err) {
       console.error("Booking Error", err);
       toast.error(err?.response?.data?.message || "Failed to place booking.");

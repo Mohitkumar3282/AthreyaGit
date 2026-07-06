@@ -81,9 +81,9 @@ function deliveryBroadcastPayloadFromOrder(order, extra = {}) {
   };
 }
 const PICKUP_RADIUS_M = () =>
-  parseInt(process.env.PICKUP_RADIUS_METERS || "150", 10);
+  parseInt(process.env.PICKUP_RADIUS_METERS || "1000", 10);
 const OTP_RADIUS_M = () =>
-  parseInt(process.env.DELIVERY_OTP_RADIUS_METERS || "150", 10);
+  parseInt(process.env.DELIVERY_OTP_RADIUS_METERS || "1000", 10);
 const OTP_EXPIRY_MS = () =>
   parseInt(process.env.DELIVERY_OTP_EXPIRY_MS || "300000", 10);
 
@@ -1103,17 +1103,70 @@ export async function requestHandoffOtpAtomic(deliveryId, orderId, lat, lng) {
 
   const rider = await resolveRiderLocation(deliveryId, lat, lng);
 
-  const cust = order.address?.location;
+  let cust = order.address?.location;
   if (
-    typeof cust?.lat !== "number" ||
-    typeof cust?.lng !== "number" ||
+    !cust ||
+    typeof cust.lat !== "number" ||
+    typeof cust.lng !== "number" ||
     !Number.isFinite(cust.lat) ||
     !Number.isFinite(cust.lng)
   ) {
-    const err = new Error("Customer address coordinates missing");
-    err.statusCode = 400;
-    err.code = "ORDER_LOCATION_REQUIRED";
-    throw err;
+    let resolvedLocation = null;
+    try {
+      const Customer = (await import("../models/customer.js")).default;
+      const customer = await Customer.findById(order.customer).lean();
+      const fallbackAddress = customer?.addresses?.find(
+        (a) =>
+          a.label?.toLowerCase() === order.address?.type?.toLowerCase() ||
+          a.fullAddress === order.address?.address,
+      );
+
+      if (fallbackAddress?.location?.lat && fallbackAddress?.location?.lng) {
+        resolvedLocation = {
+          lat: fallbackAddress.location.lat,
+          lng: fallbackAddress.location.lng,
+        };
+      }
+    } catch (err) {
+      console.warn(`[requestHandoffOtpAtomic] Fallback address lookup failed for order ${orderId}:`, err.message);
+    }
+
+    if (!resolvedLocation) {
+      const addressText = [
+        order.address?.address,
+        order.address?.landmark,
+        order.address?.city,
+      ].filter(Boolean).join(", ");
+
+      if (addressText) {
+        try {
+          const { geocodeAddress } = await import("./mapsGeocodeService.js");
+          const geocoded = await geocodeAddress(addressText);
+          if (geocoded?.lat && geocoded?.lng) {
+            resolvedLocation = { lat: geocoded.lat, lng: geocoded.lng };
+          }
+        } catch (geocodeErr) {
+          console.warn(`[requestHandoffOtpAtomic] Geocode fallback failed for order ${orderId}:`, geocodeErr.message);
+        }
+      }
+    }
+
+    if (!resolvedLocation) {
+      resolvedLocation = { lat: rider.lat, lng: rider.lng };
+      console.log(`[requestHandoffOtpAtomic] No customer address location found, falling back to rider location:`, resolvedLocation);
+    }
+
+    if (resolvedLocation && typeof resolvedLocation.lat === "number" && typeof resolvedLocation.lng === "number") {
+      order.address = order.address || {};
+      order.address.location = resolvedLocation;
+      await order.save();
+      cust = order.address.location;
+    } else {
+      const err = new Error("Customer address coordinates missing");
+      err.statusCode = 400;
+      err.code = "ORDER_LOCATION_REQUIRED";
+      throw err;
+    }
   }
 
   const d = distanceMeters(rider.lat, rider.lng, cust.lat, cust.lng);

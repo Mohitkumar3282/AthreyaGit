@@ -6,6 +6,7 @@ import LocationDrawer from "./LocationDrawer";
 import { useLocation } from "../../context/LocationContext";
 import { useProductDetail } from "../../context/ProductDetailContext";
 import { useSettings } from "@core/context/SettingsContext";
+import { useCart } from "../../context/CartContext";
 import { cn } from "@/lib/utils";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
 import { isMobileOrWebView } from "@/core/utils/deviceUtils";
@@ -157,6 +158,7 @@ const MainLocationHeader = ({
   const { scrollY } = useScroll();
   const [isLocationOpen, setIsLocationOpen] = useState(false);
   const [cartAnimData, setCartAnimData] = useState(null);
+  const { cartCount } = useCart();
 
   // Dynamically load shopping-cart Lottie on mount
   useEffect(() => {
@@ -432,9 +434,11 @@ const MainLocationHeader = ({
                 style={{ color: headerFontColor }}
               >
                 <ShoppingCartOutlinedIcon sx={{ fontSize: 24 }} />
-                <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-[#1a6e2e] text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-[#1a6e2e]/20 border border-[#1a6e2e]/20 transition-transform group-hover:-translate-y-0.5">
-                  0
-                </span>
+                {cartCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-yellow-400 text-[#1a6e2e] text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-[#1a6e2e]/20 border border-[#1a6e2e]/20 transition-transform group-hover:-translate-y-0.5 animate-in zoom-in duration-300">
+                    {cartCount}
+                  </span>
+                )}
               </motion.button>
 
               <motion.button
