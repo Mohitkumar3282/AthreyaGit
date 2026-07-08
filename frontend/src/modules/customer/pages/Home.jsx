@@ -25,6 +25,7 @@ import LogoTransparent from "@/assets/LogoTransparent.png";
 import { customerApi } from "../services/customerApi";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
 import { getAreaName, getTeluguAreaName } from "../components/shared/MainLocationHeader";
+import { getLegacyStatusFromOrder, getOrderStatusLabel } from "@/shared/utils/orderStatus";
 
 // Module-level variable to track if the brand animation has played in this SPA session
 let hasBikePlayedGlobal = false;
@@ -38,6 +39,24 @@ const Home = () => {
   const [categories, setCategories] = useState([]);
   const [headerCategories, setHeaderCategories] = useState([]);
   const [shops, setShops] = useState([]);
+  const [liveOrder, setLiveOrder] = useState(null);
+
+  useEffect(() => {
+    customerApi.getMyOrders()
+      .then(res => {
+        const items = res.data?.result?.items || res.data?.results || [];
+        if (Array.isArray(items)) {
+          const active = items.find(order => {
+            const status = getLegacyStatusFromOrder(order);
+            return ["pending", "confirmed", "packed", "out_for_delivery"].includes(status);
+          });
+          if (active) {
+            setLiveOrder(active);
+          }
+        }
+      })
+      .catch(e => console.log("Guest session or no live orders:", e));
+  }, []);
 
   // Session-bound brand animation state
   const [showBikeAnimation, setShowBikeAnimation] = useState(() => {
@@ -160,15 +179,7 @@ const Home = () => {
   // 1. Quick categories row
   const quickCategoriesList = dynamicHeaderCategories.length > 0
     ? [...dynamicHeaderCategories.slice(0, 6), { label: "More", teluguLabel: "మరిన్ని", isMore: true, path: "/categories" }]
-    : [
-        { label: "Water Can", teluguLabel: "వాటర్ క్యాన్", image: "https://images.unsplash.com/photo-1610992015732-2449b76344ca?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Water", "/search?q=Water Can") },
-        { label: "Milk", teluguLabel: "పాలు", image: "https://images.unsplash.com/photo-1528498033373-386cc8224357?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Milk", "/search?q=Milk") },
-        { label: "Tiffins", teluguLabel: "టిఫిన్స్", image: "https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Tiffin", "/search?q=Tiffins") },
-        { label: "Restaurant", teluguLabel: "రెస్టారెంట్", image: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Restaurant", "/categories") },
-        { label: "Vegetables", teluguLabel: "కూరగాయలు", image: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Vegetable", "/category/vegetables") },
-        { label: "Fruits", teluguLabel: "పండ్లు", image: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Fruit", "/category/fruits") },
-        { label: "More", teluguLabel: "మరిన్ని", isMore: true, path: "/categories" }
-      ];
+    : [];
 
   const dailyNeedsCategoryIds = settings?.dailyNeedsCategoryIds || [];
   const mappedDailyNeedsCategories = dailyNeedsCategoryIds
@@ -188,22 +199,17 @@ const Home = () => {
       }))
     : (dynamicCategories.length > 0
         ? dynamicCategories.slice(0, 6)
-        : [
-            { label: "Water Can", teluguLabel: "వాటర్ క్యాన్", image: "https://images.unsplash.com/photo-1610992015732-2449b76344ca?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Water", "/search?q=Water Can") },
-            { label: "Milk", teluguLabel: "పాలు", image: "https://images.unsplash.com/photo-1528498033373-386cc8224357?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Milk", "/search?q=Milk") },
-            { label: "Tiffins", teluguLabel: "టిఫిన్స్", image: "https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Tiffin", "/search?q=Tiffins") },
-            { label: "Vegetables", teluguLabel: "కూరగాయలు", image: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Vegetable", "/category/vegetables") },
-            { label: "Groceries", teluguLabel: "కిరాణా", image: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Grocery", "/category/grocery") },
-            { label: "Meat", teluguLabel: "మాంసం", image: "https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Meat", "/search?q=Meat") }
-          ]);
+        : []);
 
   // 3. Exclusive Partners
-  const partnerStores = [
-    { name: "Sri Sai Ram Kirana Store", teluguName: "శ్రీ సాయి రామ్ కిరాణా స్టోర్", rating: "4.6", time: "20-30 mins", image: "https://images.unsplash.com/photo-1534723452862-4c874018d66d?q=80&w=400&fit=crop", path: getShopPath("Sai Ram", "/orders") },
-    { name: "Green Veggies", teluguName: "గ్రీన్ వెజిటబుల్స్", rating: "4.5", time: "15-25 mins", image: "https://images.unsplash.com/photo-1574316071802-0d684efa7bf5?q=80&w=400&fit=crop", path: getShopPath("Green Veggies", "/category/vegetables") },
-    { name: "Meghana Tiffins", teluguName: "మేఘనా టిఫిన్స్", rating: "4.7", time: "20-25 mins", image: "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?q=80&w=400&fit=crop", path: getShopPath("Meghana", "/search?q=Tiffins") },
-    { name: "Lucky Chicken Center", teluguName: "లక్కీ చికెన్ సెంటర్", rating: "4.4", time: "25-35 mins", image: "https://images.unsplash.com/photo-1604503468506-a8da13d82791?q=80&w=400&fit=crop", path: getShopPath("Lucky Chicken", "/search?q=Chicken") }
-  ];
+  const partnerStores = shops.map(shop => ({
+    name: shop.shopName,
+    teluguName: shop.locality || "",
+    rating: shop.rating || "4.5",
+    time: shop.storeTimings || "20-30 mins",
+    image: applyCloudinaryTransform(shop.shopLogo || shop.shopBanner || "https://images.unsplash.com/photo-1534723452862-4c874018d66d?q=80&w=400&fit=crop"),
+    path: `/shops/${shop._id || shop.id}`
+  }));
 
   // 4. Bottom Quick Links
   const bottomQuickLinks = [
@@ -353,70 +359,72 @@ const Home = () => {
       </div>
 
       {/* 4. Active Live Orders Widget / Promotion */}
-      <div className="flex gap-3 px-4 py-2">
-        {/* Left Live Order Card */}
-        <div 
-          onClick={() => navigate('/orders')}
-          className="flex-1 min-h-[175px] rounded-2xl relative overflow-hidden border border-[#0d4f1c] bg-cover bg-center cursor-pointer" 
-          style={{ backgroundImage: `url('https://images.unsplash.com/photo-1578916171728-46686eac8d58?q=80&w=400&fit=crop')` }}
-        >
-          <div className="absolute inset-0 bg-black/65 z-0" />
-          <div className="relative z-10 p-3.5 flex flex-col justify-between h-full">
-            
-            {/* Header info */}
-            <div className="flex justify-between items-start">
-              {/* Store Circle Logo */}
-              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-[#A3E635] shadow-md">
-                <div className="w-7 h-7 rounded-full bg-green-900 flex items-center justify-center text-white text-[8px] font-black">
-                  SR
+      {liveOrder && (
+        <div className="flex gap-3 px-4 py-2">
+          {/* Left Live Order Card */}
+          <div 
+            onClick={() => navigate(`/orders/${liveOrder.orderId}`)}
+            className="flex-1 min-h-[175px] rounded-2xl relative overflow-hidden border border-[#0d4f1c] bg-cover bg-center cursor-pointer" 
+            style={{ backgroundImage: `url('https://images.unsplash.com/photo-1578916171728-46686eac8d58?q=80&w=400&fit=crop')` }}
+          >
+            <div className="absolute inset-0 bg-black/65 z-0" />
+            <div className="relative z-10 p-3.5 flex flex-col justify-between h-full">
+              
+              {/* Header info */}
+              <div className="flex justify-between items-start">
+                {/* Store Circle Logo */}
+                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-[#A3E635] shadow-md">
+                  <div className="w-7 h-7 rounded-full bg-green-900 flex items-center justify-center text-white text-[8px] font-black">
+                    {liveOrder.seller?.shopName ? liveOrder.seller.shopName.substring(0, 2).toUpperCase() : 'SR'}
+                  </div>
+                </div>
+                
+                {/* ETA / Live */}
+                <div className="flex items-center gap-1">
+                  <span className="text-[9px] font-black text-white bg-black/50 px-2 py-0.5 rounded-full border border-white/20">
+                    ETA: {liveOrder.seller?.storeTimings || '20-30 min'}
+                  </span>
+                  <span className="flex items-center gap-1 bg-red-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md">
+                    <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
+                    LIVE
+                  </span>
                 </div>
               </div>
               
-              {/* ETA / Live */}
-              <div className="flex items-center gap-1">
-                <span className="text-[9px] font-black text-white bg-black/50 px-2 py-0.5 rounded-full border border-white/20">
-                  ETA: 12 min
-                </span>
-                <span className="flex items-center gap-1 bg-red-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md">
-                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
-                  LIVE
-                </span>
+              {/* Wording exactly like screenshot */}
+              <div className="mt-1.5">
+                <p className="text-[9px] text-white/80 font-bold uppercase tracking-wider">Live Order in progress</p>
+                <h4 className="text-[14px] font-black text-white leading-tight">{liveOrder.seller?.shopName || 'Store'}</h4>
+                <p className="text-[9px] text-slate-355 font-bold mt-0.5 leading-tight">
+                  Status: {getOrderStatusLabel(liveOrder).toUpperCase()} <br />
+                  <span className="text-[#A3E635]">Order #{liveOrder.orderId.slice(-6)}</span>
+                </p>
               </div>
+
+              <button className="mt-2.5 w-max px-3 py-1.5 bg-white text-black font-black rounded-lg text-[10px] uppercase shadow-sm">
+                View Live Order
+              </button>
             </div>
-            
-            {/* Wording exactly like screenshot */}
-            <div className="mt-1.5">
-              <p className="text-[9px] text-white/80 font-bold uppercase tracking-wider">Live Orders in Aswapuram</p>
-              <h4 className="text-[14px] font-black text-white leading-tight">Sai Ram General Store</h4>
-              <p className="text-[9px] text-slate-355 font-bold mt-0.5 leading-tight">
-                Order Status: Packing your items <br />
-                <span className="text-[#A3E635]">(మీ వస్తువులు ప్యాకింగ్ అవుతున్నాయి)</span>
+          </div>
+
+          {/* Right Safe Delivery Card */}
+          <div 
+            className="w-[36%] rounded-2xl relative overflow-hidden border border-[#0d4f1c] bg-cover bg-center flex flex-col justify-end" 
+            style={{ backgroundImage: `url('https://images.unsplash.com/photo-1619191168248-906fe35555bb?q=80&w=400&fit=crop')` }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-0" />
+            <div className="relative z-10 bg-black/70 p-2 text-center flex flex-col items-center justify-center gap-1 border-t border-white/10">
+              <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center text-white shrink-0 shadow-sm border border-white/20">
+                <span className="text-[10px] font-black">✓</span>
+              </div>
+              <p className="text-[8.5px] font-black leading-tight text-white">
+                సురక్షిత డెలివరీ <br />
+                మీ ఇంటికి వరకు
               </p>
             </div>
-
-            <button className="mt-2.5 w-max px-3 py-1.5 bg-white text-black font-black rounded-lg text-[10px] uppercase shadow-sm">
-              View Live Orders
-            </button>
           </div>
         </div>
-
-        {/* Right Safe Delivery Card */}
-        <div 
-          className="w-[36%] rounded-2xl relative overflow-hidden border border-[#0d4f1c] bg-cover bg-center flex flex-col justify-end" 
-          style={{ backgroundImage: `url('https://images.unsplash.com/photo-1619191168248-906fe35555bb?q=80&w=400&fit=crop')` }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-0" />
-          <div className="relative z-10 bg-black/70 p-2 text-center flex flex-col items-center justify-center gap-1 border-t border-white/10">
-            <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center text-white shrink-0 shadow-sm border border-white/20">
-              <span className="text-[10px] font-black">✓</span>
-            </div>
-            <p className="text-[8.5px] font-black leading-tight text-white">
-              సురక్షిత డెలివరీ <br />
-              మీ ఇంటికి వరకు
-            </p>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* 5. TODAY'S NEEDS (ఈరోజు అవసరాలు) */}
       <div className="px-4 py-3">
@@ -490,43 +498,47 @@ const Home = () => {
       </div>
 
       {/* 7. ATHREYA EXCLUSIVE PARTNERS (ప్రత్యేక భాగస్వాములు) */}
-      <div className="px-4 py-3">
-        <div className="flex justify-between items-center mb-2.5">
-          <h3 className="text-[12.5px] font-black text-[#A3E635] tracking-wide uppercase">
-            ATHREYA EXCLUSIVE PARTNERS (ప్రత్యేక భాగస్వాములు)
-          </h3>
-          <button onClick={() => navigate('/shop-by-store')} className="text-[10.5px] font-black text-[#A3E635] hover:underline">
-            See All
-          </button>
-        </div>
-        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
-          {partnerStores.map((store, idx) => (
-            <div 
-              key={idx} 
-              onClick={() => navigate(store.path)} 
-              className="w-[145px] shrink-0 bg-white rounded-2xl overflow-hidden shadow-md cursor-pointer active:scale-95 transition-transform flex flex-col"
-            >
-              <div className="w-full h-[95px] relative">
-                <img src={store.image} alt={store.name} className="w-full h-full object-cover" />
-              </div>
-              <div className="p-2 flex flex-col justify-between flex-1 leading-none">
-                <div>
-                  <h4 className="text-[10.5px] font-black text-slate-800 line-clamp-1">{store.name}</h4>
-                  <p className="text-[8.5px] font-bold text-slate-500 line-clamp-1 mt-0.5">{store.teluguName}</p>
+      {shops.length > 0 && (
+        <div className="px-4 py-3">
+          <div className="flex justify-between items-center mb-2.5">
+            <h3 className="text-[12.5px] font-black text-[#A3E635] tracking-wide uppercase">
+              ATHREYA EXCLUSIVE PARTNERS (ప్రత్యేక భాగస్వాములు)
+            </h3>
+            <button onClick={() => navigate('/shop-by-store')} className="text-[10.5px] font-black text-[#A3E635] hover:underline">
+              See All
+            </button>
+          </div>
+          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+            {partnerStores.map((store, idx) => (
+              <div 
+                key={idx} 
+                onClick={() => navigate(store.path)} 
+                className="w-[145px] shrink-0 bg-white rounded-2xl overflow-hidden shadow-md cursor-pointer active:scale-95 transition-transform flex flex-col"
+              >
+                <div className="w-full h-[95px] relative">
+                  <img src={store.image} alt={store.name} className="w-full h-full object-cover" />
                 </div>
-                <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-slate-100">
-                  <span className="text-[9px] font-black text-slate-700 flex items-center gap-0.5">
-                    {store.rating} <span className="text-yellow-500 text-[8px]">★</span>
-                  </span>
-                  <span className="text-[8.5px] font-bold text-slate-500">
-                    {store.time}
-                  </span>
+                <div className="p-2 flex flex-col justify-between flex-1 leading-none">
+                  <div>
+                    <h4 className="text-[10.5px] font-black text-slate-800 line-clamp-1">{store.name}</h4>
+                    {store.teluguName && (
+                      <p className="text-[8.5px] font-bold text-slate-500 line-clamp-1 mt-0.5">{store.teluguName}</p>
+                    )}
+                  </div>
+                  <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-slate-100">
+                    <span className="text-[9px] font-black text-slate-700 flex items-center gap-0.5">
+                      {store.rating} <span className="text-yellow-500 text-[8px]">★</span>
+                    </span>
+                    <span className="text-[8.5px] font-bold text-slate-500">
+                      {store.time}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 8. PARCEL PICKUP (పార్సెల్ పికప్) Section */}
       <div className="mx-4 my-3 bg-[#03210b] border border-[#0d4f1c] rounded-2xl p-4 flex gap-4 items-center shadow-md">
