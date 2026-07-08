@@ -247,6 +247,7 @@ const AdminAuth = () => {
                                     src={logoUrl}
                                     alt={`${appName} logo`}
                                     className="w-14 h-14 object-contain"
+                                    style={{ filter: "url(#logo-yellow-watch-green-rider)" }}
                                 />
                             ) : (
                                 <ShieldCheck size={30} className="text-brand-600" />

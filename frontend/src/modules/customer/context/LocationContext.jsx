@@ -288,8 +288,8 @@ export const LocationProvider = ({ children }) => {
     refreshAddresses();
   }, [refreshAddresses]);
 
-  // On mount: only restore from cache. Do NOT auto-fetch – browsers block the
-  // location prompt unless it's triggered by a user gesture (e.g. tap).
+  // On mount: restore from cache if present. If no cache exists, automatically auto-detect 
+  // location using GPS permission/Flutter bridge.
   useEffect(() => {
     const parsed = getJSON(STORAGE_KEY, null);
     const addressName = parsed?.address || parsed?.name;
@@ -307,14 +307,17 @@ export const LocationProvider = ({ children }) => {
         { persist: false, updateSavedHome: false },
       );
     } else {
-      // If no location is stored (or TTL expired), persist the default
-      // immediately so subsequent reads have something to anchor on.
-      updateLocation(currentLocation, {
-        persist: true,
-        updateSavedHome: false,
+      // Auto-detect using GPS/Bridge on startup!
+      fetchAndCacheLocation().then((res) => {
+        if (!res || !res.ok) {
+          // If auto-detection fails/is blocked, persist the default location as fallback
+          updateLocation(currentLocation, {
+            persist: true,
+            updateSavedHome: false,
+          });
+        }
       });
     }
-    // Live fetch happens only when user taps location pill or "Use current location"
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -95,4 +95,8 @@ export const deliveryApi = {
   getCancellationTaskDetail: (cancellationRequestId) => axiosInstance.get(`/cancellation-requests/${cancellationRequestId}`),
   acceptCancellationTask: (cancellationRequestId) => axiosInstance.post(`/delivery-boy/cancellation-tasks/${cancellationRequestId}/accept`),
   declineCancellationTask: (cancellationRequestId, data) => axiosInstance.post(`/delivery-boy/cancellation-tasks/${cancellationRequestId}/decline`, data),
+ 
+  // Shop Bill Upload
+  uploadBillImage: (orderId, billImage) =>
+    axiosInstance.post(`/orders/workflow/${orderId}/bill/upload`, { billImage }),
 };

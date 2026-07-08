@@ -4,18 +4,28 @@ import { Home, LayoutGrid, ShoppingBag, User, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-    { label: 'Home', icon: Home, path: '/' },
-    { label: 'Pickup', icon: Package, path: '/pickup-delivery' },
-    { label: 'Category', icon: LayoutGrid, path: '/categories' },
-    { label: 'Orders', icon: ShoppingBag, path: '/orders' },
-    { label: 'Profile', icon: User, path: '/profile' },
+    { label: 'Home', teluguLabel: 'హోమ్', icon: Home, path: '/' },
+    { label: 'Pickup', teluguLabel: 'పికప్', icon: Package, path: '/pickup-delivery' },
+    { label: 'Category', teluguLabel: 'కేటగిరీలు', icon: LayoutGrid, path: '/categories' },
+    { label: 'Orders', teluguLabel: 'ఆర్డర్లు', icon: ShoppingBag, path: '/orders' },
+    { label: 'Profile', teluguLabel: 'ప్రొఫైల్', icon: User, path: '/profile' },
 ];
 
 const BottomNav = () => {
     const location = useLocation();
+    const isHome = location.pathname === '/';
+    const isCategories = location.pathname === '/categories';
+    const isGreenTheme = isHome || isCategories;
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-[500] bg-white border-t border-[#1a6e2e]/20 flex items-center justify-around h-[70px] md:hidden px-4 pb-[env(safe-area-inset-bottom)]">
+        <div 
+            className={cn(
+                "fixed bottom-0 left-0 right-0 z-[500] flex items-center justify-around h-[70px] md:hidden px-4 pb-[env(safe-area-inset-bottom)] transition-colors duration-300",
+                isGreenTheme 
+                    ? "bg-[#042A0F] border-t border-[#063A16]/40" 
+                    : "bg-white border-t border-[#1a6e2e]/20"
+            )}
+        >
             {navItems.map((item) => {
                 const isActive = location.pathname === item.path ||
                     (item.path !== '/' && location.pathname.startsWith(item.path));
@@ -26,7 +36,7 @@ const BottomNav = () => {
                         to={item.path}
                         className="flex-1 flex flex-col items-center justify-center h-full relative group transition-all"
                     >
-                        {isActive && (
+                        {isActive && !isGreenTheme && (
                             <div className="absolute -inset-y-2 -inset-x-4 bg-[#1a6e2e]/5 rounded-[20px] -z-10 transition-opacity duration-300" />
                         )}
 
@@ -42,25 +52,45 @@ const BottomNav = () => {
                                     strokeWidth={isActive ? 2.5 : 2}
                                     className={cn(
                                         "transition-colors duration-300",
-                                        isActive ? "text-[#1a6e2e]" : "text-gray-400"
+                                        isGreenTheme 
+                                            ? (isActive ? "text-white" : "text-slate-400")
+                                            : (isActive ? "text-[#1a6e2e]" : "text-gray-400")
                                     )}
                                 />
                             </div>
 
-                            <span
-                                className={cn(
-                                    "text-[10px] font-bold tracking-tight mt-1 transition-all duration-300",
-                                    isActive ? "text-[#1a6e2e]" : "text-gray-400"
+                            <div className="flex flex-col items-center mt-1">
+                                <span
+                                    className={cn(
+                                        "text-[10px] font-bold tracking-tight transition-all duration-300 leading-none",
+                                        isGreenTheme 
+                                            ? (isActive ? "text-white" : "text-slate-400")
+                                            : (isActive ? "text-[#1a6e2e]" : "text-gray-400")
+                                    )}
+                                >
+                                    {item.label}
+                                </span>
+                                {isGreenTheme && (
+                                    <span
+                                        className={cn(
+                                            "text-[9px] font-medium tracking-tight mt-0.5 leading-none transition-all duration-300",
+                                            isActive ? "text-white" : "text-slate-400"
+                                        )}
+                                    >
+                                        {item.teluguLabel}
+                                    </span>
                                 )}
-                                style={{ transform: isActive ? "translateY(1px)" : "translateY(0)" }}
-                            >
-                                {item.label}
-                            </span>
+                            </div>
                         </div>
 
-                        {/* Top Accent Line for Active State */}
+                        {/* Top Accent Line for Active State (white on home/categories, green otherwise) */}
                         {isActive && (
-                            <div className="absolute -top-[1px] w-8 h-[3px] bg-[#1a6e2e] rounded-full transition-opacity duration-300" />
+                            <div 
+                                className={cn(
+                                    "absolute -top-[1px] w-8 h-[3px] rounded-full transition-opacity duration-300",
+                                    isGreenTheme ? "bg-white" : "bg-[#1a6e2e]"
+                                )} 
+                            />
                         )}
                     </Link>
                 );

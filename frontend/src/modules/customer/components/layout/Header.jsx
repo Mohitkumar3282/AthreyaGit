@@ -7,11 +7,11 @@ import { useCart } from '../../context/CartContext';
 import { useLocation as useAppLocation } from "../../context/LocationContext";
 import { useSettings } from '@core/context/SettingsContext';
 import LocationDrawer from '../shared/LocationDrawer';
-import LogoImage from "../../../../assets/Logo.png";
+import LogoTransparent from "../../../../assets/LogoTransparent.png";
 
 const Header = () => {
     const { settings } = useSettings();
-    const logoUrl = settings?.logoUrl || LogoImage;
+    const logoUrl = settings?.logoUrl || LogoTransparent;
     const { count: wishlistCount } = useWishlist();
     const { cartCount } = useCart();
     const location = useLocation();
@@ -72,47 +72,21 @@ const Header = () => {
     }, [typingState]);
 
     return (
-        <header className="absolute top-4 md:top-8 left-0 right-0 z-[200] px-4">
+        <header className="absolute top-2 md:top-8 left-0 right-0 z-[200] px-2 md:px-4">
             <div className="container mx-auto max-w-6xl">
-                {/* Mobile Top Row: Location & Profile */}
-                <div className="md:hidden flex items-center justify-between mb-4 px-2 animate-in slide-in-from-top duration-500">
-                    <button
-                        type="button"
-                        data-lenis-prevent
-                        data-lenis-prevent-touch
-                        onClick={() => {
-                            refreshLocation();
-                            setIsLocationOpen(true);
-                        }}
-                        className="flex items-center gap-3 cursor-pointer active:scale-95 transition-transform border-0 bg-transparent p-0 text-left"
-                    >
-                        <div className="h-10 w-10 bg-white/20  rounded-2xl flex items-center justify-center border border-white/30 border border-[#1a6e2e]/20">
-                            <MapPin size={22} className="text-white fill-current" />
-                        </div>
-                        <div className="flex flex-col leading-tight">
-                            <span className="text-[10px] font-black text-white/80 uppercase tracking-widest flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
-                                {currentLocation.time}
-                            </span>
-                            <div className="flex items-center gap-1 font-black text-white text-base">
-                                <span className="max-w-[150px] truncate">{currentLocation.name}</span> <span className="text-[10px] opacity-70">▼</span>
-                            </div>
-                        </div>
-                    </button>
-                </div>
-
                 {/* Main Header Capsule */}
-                <div className="px-4 md:px-8 h-18 bg-white/95  rounded-full border border-[#1a6e2e]/20 flex items-center justify-between border border-white/20">
-                    {/* Logo */}
-                    <div className="flex items-center gap-6 mr-4 md:mr-12">
+                <div className="px-3 md:px-8 py-2 md:py-0 h-auto md:h-18 bg-white/95 rounded-[2rem] md:rounded-full border border-[#1a6e2e]/20 flex flex-col md:flex-row md:items-center md:justify-between border border-white/20 gap-3 md:gap-0">
+                    {/* Logo & Mobile Actions Wrapper */}
+                    <div className="flex items-center justify-between md:justify-start w-full md:w-auto gap-4 md:gap-6 mr-0 md:mr-12">
                         <Link to="/" className="flex items-center gap-0 group">
                             <img
                                 src={logoUrl}
                                 alt="Athreya Delivery Logo"
                                 loading="lazy"
-                                className="h-14 md:h-20 w-auto object-contain transition-transform group-hover:scale-105 -mr-2 md:-mr-3 scale-[1.2]"
+                                className="h-10 md:h-20 w-auto object-contain transition-transform group-hover:scale-105 mr-1.5 md:-mr-3 scale-[1.1] md:scale-[1.2]"
+                                style={{ filter: "url(#logo-yellow-watch-green-rider)" }}
                             />
-                            <span className="text-base md:text-lg font-black tracking-tight flex gap-1 text-slate-800">
+                            <span className="text-xs md:text-lg font-black tracking-tight flex flex-col md:flex-row md:gap-1 leading-tight text-slate-800">
                                 <span className="text-[#3a2a83]">ATHREYA</span>
                                 <span className="text-[#f15a24]">DELIVERY</span>
                             </span>
@@ -138,6 +112,18 @@ const Header = () => {
                                 </div>
                             </div>
                         </button>
+
+                        {/* Mobile Cart Icon */}
+                        <div className="flex md:hidden items-center">
+                            <Link to="/checkout" id="header-cart-icon-mobile" className="relative flex items-center justify-center p-2 hover:bg-slate-50 rounded-full transition-colors group">
+                                <ShoppingCart className="h-6 w-6 text-slate-600 group-hover:text-[#1a6e2e] transition-colors" />
+                                {cartCount > 0 && (
+                                    <span className="absolute top-0 right-0 h-5 w-5 rounded-full bg-[#1a6e2e] text-[10px] font-bold text-white flex items-center justify-center border-2 border-white border border-[#1a6e2e]/20 animate-in zoom-in duration-300">
+                                        {cartCount}
+                                    </span>
+                                )}
+                            </Link>
+                        </div>
                     </div>
 
                     {/* Desktop Navigation */}
@@ -150,13 +136,13 @@ const Header = () => {
 
                     {/* Search Bar - Hidden on checkout page */}
                     {!isCheckoutPage && (
-                        <div className="flex-1 flex items-center max-w-sm ml-4 md:ml-8 mr-4 md:mr-8">
+                        <div className="w-full md:flex-1 flex items-center md:max-w-sm m-0 md:ml-8 md:mr-8">
                             <div className="relative w-full">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                                 <input
                                     type="search"
                                     placeholder={searchPlaceholder}
-                                    className="w-full rounded-full border-none bg-slate-100/50 md:bg-white md:border md:border-slate-200 pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-primary transition-all outline-none"
+                                    className="w-full rounded-full border border-slate-200/80 bg-slate-50 md:bg-white pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-[#1a6e2e] transition-all outline-none"
                                 />
                             </div>
                         </div>

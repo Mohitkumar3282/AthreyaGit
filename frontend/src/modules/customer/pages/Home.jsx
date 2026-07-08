@@ -1,969 +1,598 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useInViewAnimation } from "@/core/hooks/useInViewAnimation";
-import { Sparkles, Heart, Snowflake, ChevronLeft, ChevronRight } from "lucide-react";
-
-// MUI Icons (shared with admin & icon selector)
-import HomeIcon from "@mui/icons-material/Home";
-import DevicesIcon from "@mui/icons-material/Devices";
-import LocalGroceryStoreIcon from "@mui/icons-material/LocalGroceryStore";
-import KitchenIcon from "@mui/icons-material/Kitchen";
-import ChildCareIcon from "@mui/icons-material/ChildCare";
-import PetsIcon from "@mui/icons-material/Pets";
-import SportsSoccerIcon from "@mui/icons-material/SportsSoccer";
-import CardGiftcardIcon from "@mui/icons-material/CardGiftcard";
-import VerifiedIcon from "@mui/icons-material/Verified";
-import RestaurantIcon from "@mui/icons-material/Restaurant";
-import SpaIcon from "@mui/icons-material/Spa";
-import LocalPharmacyIcon from "@mui/icons-material/LocalPharmacy";
-
-import { motion, useScroll, useTransform } from "framer-motion";
-import { isMobileOrWebView } from "@/core/utils/deviceUtils";
-import { customerApi } from "../services/customerApi";
-import { toast } from "sonner";
-import ProductCard from "../components/shared/ProductCard";
-import MainLocationHeader from "../components/shared/MainLocationHeader";
-import { useProductDetail } from "../context/ProductDetailContext";
-import { cn } from "@/lib/utils";
-import CardBanner from "@/assets/CardBanner.jpg";
-import SectionRenderer from "../components/experience/SectionRenderer";
-import ExperienceBannerCarousel from "../components/experience/ExperienceBannerCarousel";
-import { useLocation } from "../context/LocationContext";
-import { useSettings } from "@core/context/SettingsContext";
+import { 
+  Menu, 
+  Search, 
+  Mic, 
+  ChevronDown, 
+  Languages, 
+  ShoppingCart, 
+  Package, 
+  LayoutGrid, 
+  FileText, 
+  Tag, 
+  Bus,
+  Volume2
+} from "lucide-react";
+import { motion } from "framer-motion";
 import Lottie from "lottie-react";
+import deliveryRiding from "@/assets/Delivery Riding.json";
+import { useLocation } from "../context/LocationContext";
+import { useCart } from "../context/CartContext";
+import { useSettings } from "@core/context/SettingsContext";
+import LocationDrawer from "../components/shared/LocationDrawer";
+import LogoTransparent from "@/assets/LogoTransparent.png";
+import { customerApi } from "../services/customerApi";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
-import { getJSON, remove as removeStorage, STORAGE_KEYS } from "@core/utils/storage";
-import SkeletonLoader from "../components/shared/SkeletonLoader";
-import LogoImage from "@/assets/Logo.png";
+import { getAreaName, getTeluguAreaName } from "../components/shared/MainLocationHeader";
 
+// Module-level variable to track if the brand animation has played in this SPA session
+let hasBikePlayedGlobal = false;
 
-import {
-  MARQUEE_MESSAGES,
-  ICON_COMPONENTS,
-} from "../constants/homeConstants";
-
-
-import LowestPriceSection from "../components/home/LowestPriceSection";
-import OfferSections from "../components/home/OfferSections";
-
-const DAILY_NEEDS = [
-  {
-    name: "Fruits",
-    path: "/category/fruits",
-    bgColor: "bg-red-50/80 border-red-100/50 hover:bg-red-100/50",
-    iconColor: "text-red-500",
-    icon: (
-      <img src="https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&w=400&q=80" alt="Fruits" className="w-full h-full object-cover rounded-[14px]" />
-    ),
-  },
-  {
-    name: "Vegetables",
-    path: "/category/vegetables",
-    bgColor: "bg-green-50/80 border-green-100/50 hover:bg-green-100/50",
-    iconColor: "text-green-600",
-    icon: (
-      <img src="https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?auto=format&fit=crop&w=400&q=80" alt="Vegetables" className="w-full h-full object-cover rounded-[14px]" />
-    ),
-  },
-  {
-    name: "Chicken",
-    path: "/category/chicken",
-    bgColor: "bg-orange-50/80 border-orange-100/50 hover:bg-orange-100/50",
-    iconColor: "text-orange-600",
-    icon: (
-      <img src="https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=400&q=80" alt="Chicken" className="w-full h-full object-cover rounded-[14px]" />
-    ),
-  },
-  {
-    name: "Mutton",
-    path: "/category/mutton",
-    bgColor: "bg-red-50/80 border-red-100/50 hover:bg-red-100/50",
-    iconColor: "text-rose-700",
-    icon: (
-      <img src="https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?auto=format&fit=crop&w=400&q=80" alt="Mutton" className="w-full h-full object-cover rounded-[14px]" />
-    ),
-  },
-
-];
-const getShopImage = (category, shopName, shopLogo) => {
-  if (shopLogo) {
-    return applyCloudinaryTransform(shopLogo, "f_auto,q_auto,w_400,h_300,c_fill");
-  }
-  const cat = String(category || "").toLowerCase();
-  const name = String(shopName || "").toLowerCase();
-  if (cat.includes("milk") || cat.includes("dairy") || name.includes("milk") || name.includes("dairy")) {
-    return "https://images.unsplash.com/photo-1528498033373-386cc8224357?auto=format&fit=crop&q=80&w=400";
-  }
-  if (cat.includes("veg") || cat.includes("fruit") || name.includes("veg") || name.includes("fruit")) {
-    return "https://images.unsplash.com/photo-1543083503-0c355536ee47?auto=format&fit=crop&q=80&w=400";
-  }
-  if (cat.includes("restaurant") || cat.includes("food") || name.includes("restaurant") || name.includes("food") || cat.includes("cafe")) {
-    return "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&q=80&w=400";
-  }
-  return "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400";
-};
-
-const DEFAULT_SHOPS = [
-  { _id: '1', shopName: "Sri Lakshmi Kirana", category: "Grocery", locality: "Downtown", distance: 1.2, rating: "4.6", deliveryTime: "30-40 min" },
-  { _id: '2', shopName: "Fresh Vegetables", category: "Vegetables", locality: "Green Market", distance: 0.8, rating: "4.5", deliveryTime: "10-20 min" },
-  { _id: '3', shopName: "Sri Krishna Dairy", category: "Milk Shop", locality: "Green Avenue", distance: 1.5, rating: "4.7", deliveryTime: "15-25 min" },
-  { _id: '4', shopName: "Swagath Restaurant", category: "Restaurant", locality: "Main Road", distance: 2.2, rating: "4.6", deliveryTime: "25-35 min" },
-];
-
-const DEFAULT_CATEGORY_THEME = {
-  gradient: "#ffffff",
-  shadow: "border border-[#1a6e2e]/20",
-  accent: "text-[#1a6e2e]",
-};
-
-const CATEGORY_METADATA = {
-  All: {
-    icon: HomeIcon,
-    theme: DEFAULT_CATEGORY_THEME,
-    banner: {
-      title: "HOUSEFULL",
-      subtitle: "SALE",
-      floatingElements: "sparkles",
-    },
-  },
-  Grocery: {
-    icon: LocalGroceryStoreIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: {
-      title: "SUPERSAVER",
-      subtitle: "FRESH & FAST",
-      floatingElements: "leaves",
-    },
-  },
-  GROCERY: {
-    icon: LocalGroceryStoreIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: {
-      title: "SUPERSAVER",
-      subtitle: "FRESH & FAST",
-      floatingElements: "leaves",
-    },
-  },
-  Wedding: {
-    icon: CardGiftcardIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: { title: "WEDDING", subtitle: "BLISS", floatingElements: "hearts" },
-  },
-  WEDDING: {
-    icon: CardGiftcardIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: { title: "WEDDING", subtitle: "BLISS", floatingElements: "hearts" },
-  },
-  "Home & Kitchen": {
-    icon: KitchenIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: { title: "HOME", subtitle: "KITCHEN", floatingElements: "smoke" },
-  },
-  "HOME & KITCHEN": {
-    icon: KitchenIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: { title: "HOME", subtitle: "KITCHEN", floatingElements: "smoke" },
-  },
-  Electronics: {
-    icon: DevicesIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: {
-      title: "TECH FEST",
-      subtitle: "GADGETS",
-      floatingElements: "tech",
-    },
-  },
-  ELECTRONICS: {
-    icon: DevicesIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: {
-      title: "TECH FEST",
-      subtitle: "GADGETS",
-      floatingElements: "tech",
-    },
-  },
-  Kids: {
-    icon: ChildCareIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: {
-      title: "LITTLE ONE",
-      subtitle: "CARE",
-      floatingElements: "bubbles",
-    },
-  },
-  KIDS: {
-    icon: ChildCareIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: {
-      title: "LITTLE ONE",
-      subtitle: "CARE",
-      floatingElements: "bubbles",
-    },
-  },
-  "Pet Supplies": {
-    icon: PetsIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: { title: "PAWSOME", subtitle: "DEALS", floatingElements: "bones" },
-  },
-  "PET SUPPLIES": {
-    icon: PetsIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: { title: "PAWSOME", subtitle: "DEALS", floatingElements: "bones" },
-  },
-  Sports: {
-    icon: SportsSoccerIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: { title: "SPORTS", subtitle: "GEAR", floatingElements: "confetti" },
-  },
-  SPORTS: {
-    icon: SportsSoccerIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: { title: "SPORTS", subtitle: "GEAR", floatingElements: "confetti" },
-  },
-  Food: {
-    icon: RestaurantIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: { title: "DELICIOUS", subtitle: "FOODS", floatingElements: "sparkles" },
-  },
-  FOOD: {
-    icon: RestaurantIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: { title: "DELICIOUS", subtitle: "FOODS", floatingElements: "sparkles" },
-  },
-  "Fruits & Vegetables": {
-    icon: SpaIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: { title: "FRESH", subtitle: "VEGGIES", floatingElements: "leaves" },
-  },
-  "FRUITS & VEGETABLES": {
-    icon: SpaIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: { title: "FRESH", subtitle: "VEGGIES", floatingElements: "leaves" },
-  },
-  "FRUITS AND VEG": {
-    icon: SpaIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: { title: "FRESH", subtitle: "VEGGIES", floatingElements: "leaves" },
-  },
-  "Fruits and Veg": {
-    icon: SpaIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: { title: "FRESH", subtitle: "VEGGIES", floatingElements: "leaves" },
-  },
-  Pharmacy: {
-    icon: LocalPharmacyIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: { title: "PHARMACY", subtitle: "ESSENTIALS", floatingElements: "bubbles" },
-  },
-  PHARMACY: {
-    icon: LocalPharmacyIcon,
-    theme: {
-      gradient: "#ffffff",
-      shadow: "border border-[#1a6e2e]/20",
-      accent: "text-[#1a6e2e]",
-    },
-    banner: { title: "PHARMACY", subtitle: "PHARMACY", floatingElements: "bubbles" },
-  },
-};
-
-const ALL_CATEGORY = {
-  id: "all",
-  _id: "all",
-  name: "All",
-  icon: HomeIcon,
-  theme: DEFAULT_CATEGORY_THEME,
-  headerColor: "#0e7490",
-  headerFontColor: "#111111",
-  headerIconColor: "#111111",
-  banner: {
-    title: "HOUSEFULL",
-    subtitle: "SALE",
-    floatingElements: "sparkles",
-    textColor: "text-white",
-  },
-};
-
-const EMPTY_HERO_CONFIG = {
-  banners: { items: [] },
-  categoryIds: [],
-};
-
-const homePageDataCache = new Map();
-const headerSectionsMemoryCache = {};
-const heroConfigMemoryCache = {};
-
-const getHomePageDataCacheKey = (location) => {
-  const lat = Number(location?.latitude);
-  const lng = Number(location?.longitude);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return "home:no-location";
-  return `home:${lat.toFixed(5)}:${lng.toFixed(5)}`;
-};
-
-const getCachedHomePageData = (location) =>
-  homePageDataCache.get(getHomePageDataCacheKey(location)) || null;
-
-const DailyNeedsSection = ({ categoryMap }) => {
+const Home = () => {
   const navigate = useNavigate();
+  const { currentLocation } = useLocation();
+  const { cartCount } = useCart();
   const { settings } = useSettings();
+  const [isLocationOpen, setIsLocationOpen] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [headerCategories, setHeaderCategories] = useState([]);
+  const [shops, setShops] = useState([]);
 
-  const dailyNeedsList = useMemo(() => {
-    const list = [];
-    const ids = settings?.dailyNeedsCategoryIds || [];
-    ids.forEach((id) => {
-      const cat = categoryMap[id];
-      if (cat) {
-        list.push({
-          name: cat.name,
-          path: `/category/${cat._id || cat.id}`,
-          icon: cat.image ? (
-            <img src={applyCloudinaryTransform(cat.image)} alt={cat.name} className="w-full h-full object-cover rounded-[14px]" />
-          ) : (
-            <Sparkles className="h-6 w-6 text-[#1a6e2e]" />
-          )
-        });
-      }
-    });
+  // Session-bound brand animation state
+  const [showBikeAnimation, setShowBikeAnimation] = useState(() => {
+    return !hasBikePlayedGlobal;
+  });
 
-    // Fallback if settings don't have any categories mapped yet
-    if (list.length === 0) {
-      return DAILY_NEEDS;
+  useEffect(() => {
+    if (showBikeAnimation) {
+      hasBikePlayedGlobal = true;
     }
+  }, [showBikeAnimation]);
 
-    return list;
-  }, [settings?.dailyNeedsCategoryIds, categoryMap]);
+  // Fetch real data to bind navigation dynamically if stores/categories exist
+  useEffect(() => {
+    customerApi.getCategories({ tree: true })
+      .then(res => {
+        if (res.data?.success) {
+          const tree = res.data.results || res.data.result || [];
+          
+          const headers = tree.filter((header) => (header.name || '').trim().toLowerCase() !== 'all');
+          setHeaderCategories(headers);
 
-  if (dailyNeedsList.length === 0) return null;
+          const flatCategories = [];
+          tree
+            .filter((header) => (header.name || '').trim().toLowerCase() !== 'all')
+            .forEach((header) => {
+              (header.children || []).forEach((cat) => {
+                if (!flatCategories.some(existing => existing.id === cat._id)) {
+                  flatCategories.push({
+                    id: cat._id,
+                    _id: cat._id,
+                    name: cat.name,
+                    image: cat.image,
+                  });
+                }
+              });
+            });
+          setCategories(flatCategories);
+        }
+      })
+      .catch(e => console.error("Error fetching categories:", e));
+
+    if (currentLocation?.latitude && currentLocation?.longitude) {
+      customerApi.getNearbySellers({ lat: currentLocation.latitude, lng: currentLocation.longitude })
+        .then(res => {
+          if (res.data?.success) {
+            setShops(res.data.results || res.data.result || []);
+          }
+        })
+        .catch(e => console.error("Error fetching shops:", e));
+    }
+  }, [currentLocation]);
+
+
+  // Helper to map category navigation to database IDs if found
+  const getCategoryPath = (name, fallback) => {
+    const found = categories.find(c => 
+      c.name.toLowerCase().includes(name.toLowerCase()) || 
+      (c.slug && c.slug.toLowerCase().includes(name.toLowerCase()))
+    );
+    return found ? `/category/${found._id || found.id}` : fallback;
+  };
+
+  const getTeluguCategoryName = (name) => {
+    const TELUGU_TRANSLATIONS = {
+      "Water Can": "వాటర్ క్యాన్",
+      "Milk": "పాలు",
+      "Tiffins": "టిఫిన్స్",
+      "Restaurant": "రెస్టారెంట్",
+      "Vegetables": "కూరగాయలు",
+      "Fruits": "పండ్లు",
+      "Chicken": "చికెన్",
+      "Meat": "మాంసం",
+      "Groceries": "కిరాణా",
+      "Grocery": "కిరాణా",
+    };
+    if (!name) return "";
+    const cleanName = name.trim().toLowerCase();
+    if (TELUGU_TRANSLATIONS[name]) return TELUGU_TRANSLATIONS[name];
+    for (const [key, value] of Object.entries(TELUGU_TRANSLATIONS)) {
+      if (key.toLowerCase() === cleanName) return value;
+    }
+    if (cleanName.includes("chicken") || cleanName.includes("chiken")) return "చికెన్";
+    if (cleanName.includes("vegetable")) return "కూరగాయలు";
+    if (cleanName.includes("fruit")) return "పండ్లు";
+    if (cleanName.includes("milk")) return "పాలు";
+    if (cleanName.includes("water")) return "వాటర్ క్యాన్";
+    if (cleanName.includes("grocery") || cleanName.includes("kirana")) return "కిరాణా";
+    return "";
+  };
+
+  // Build category lists dynamically from DB, or fallback to mock if empty
+  const dynamicCategories = categories.length > 0 
+    ? categories.map(c => ({
+        label: c.name,
+        teluguLabel: getTeluguCategoryName(c.name) || c.name,
+        image: c.image || "https://cdn.grofers.com/cdn-cgi/image/f=auto,fit=scale-down,q=70,metadata=none,w=270/layout-engine/2022-11/Slice-1_9.png",
+        path: `/category/${c._id || c.id}`
+      }))
+    : [];
+
+  // Build header category lists dynamically from DB, or fallback to mock if empty
+  const dynamicHeaderCategories = headerCategories.length > 0 
+    ? headerCategories.map(c => ({
+        label: c.name,
+        teluguLabel: getTeluguCategoryName(c.name) || c.name,
+        image: c.image || "https://cdn.grofers.com/cdn-cgi/image/f=auto,fit=scale-down,q=70,metadata=none,w=270/layout-engine/2022-11/Slice-1_9.png",
+        path: `/category/${c._id || c.id}`
+      }))
+    : [];
+
+  // Helper to map shop navigation to database IDs if found
+  const getShopPath = (name, fallback) => {
+    const found = shops.find(s => 
+      s.shopName.toLowerCase().includes(name.toLowerCase())
+    );
+    return found ? `/shops/${found._id || found.id}` : fallback;
+  };
+
+  // 1. Quick categories row
+  const quickCategoriesList = dynamicHeaderCategories.length > 0
+    ? [...dynamicHeaderCategories.slice(0, 6), { label: "More", teluguLabel: "మరిన్ని", isMore: true, path: "/categories" }]
+    : [
+        { label: "Water Can", teluguLabel: "వాటర్ క్యాన్", image: "https://images.unsplash.com/photo-1610992015732-2449b76344ca?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Water", "/search?q=Water Can") },
+        { label: "Milk", teluguLabel: "పాలు", image: "https://images.unsplash.com/photo-1528498033373-386cc8224357?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Milk", "/search?q=Milk") },
+        { label: "Tiffins", teluguLabel: "టిఫిన్స్", image: "https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Tiffin", "/search?q=Tiffins") },
+        { label: "Restaurant", teluguLabel: "రెస్టారెంట్", image: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Restaurant", "/categories") },
+        { label: "Vegetables", teluguLabel: "కూరగాయలు", image: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Vegetable", "/category/vegetables") },
+        { label: "Fruits", teluguLabel: "పండ్లు", image: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Fruit", "/category/fruits") },
+        { label: "More", teluguLabel: "మరిన్ని", isMore: true, path: "/categories" }
+      ];
+
+  const dailyNeedsCategoryIds = settings?.dailyNeedsCategoryIds || [];
+  const mappedDailyNeedsCategories = dailyNeedsCategoryIds
+    .map(id => {
+      return categories.find(c => (c._id || c.id) === id) || 
+             headerCategories.find(h => (h._id || h.id) === id);
+    })
+    .filter(Boolean);
+
+  // 2. Today's Needs list
+  const todaysNeedsList = mappedDailyNeedsCategories.length > 0
+    ? mappedDailyNeedsCategories.map(c => ({
+        label: c.name,
+        teluguLabel: getTeluguCategoryName(c.name) || c.name,
+        image: c.image || "https://cdn.grofers.com/cdn-cgi/image/f=auto,fit=scale-down,q=70,metadata=none,w=270/layout-engine/2022-11/Slice-1_9.png",
+        path: `/category/${c._id || c.id}`
+      }))
+    : (dynamicCategories.length > 0
+        ? dynamicCategories.slice(0, 6)
+        : [
+            { label: "Water Can", teluguLabel: "వాటర్ క్యాన్", image: "https://images.unsplash.com/photo-1610992015732-2449b76344ca?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Water", "/search?q=Water Can") },
+            { label: "Milk", teluguLabel: "పాలు", image: "https://images.unsplash.com/photo-1528498033373-386cc8224357?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Milk", "/search?q=Milk") },
+            { label: "Tiffins", teluguLabel: "టిఫిన్స్", image: "https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Tiffin", "/search?q=Tiffins") },
+            { label: "Vegetables", teluguLabel: "కూరగాయలు", image: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Vegetable", "/category/vegetables") },
+            { label: "Groceries", teluguLabel: "కిరాణా", image: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Grocery", "/category/grocery") },
+            { label: "Meat", teluguLabel: "మాంసం", image: "https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=150&auto=format&fit=crop&q=80", path: getCategoryPath("Meat", "/search?q=Meat") }
+          ]);
+
+  // 3. Exclusive Partners
+  const partnerStores = [
+    { name: "Sri Sai Ram Kirana Store", teluguName: "శ్రీ సాయి రామ్ కిరాణా స్టోర్", rating: "4.6", time: "20-30 mins", image: "https://images.unsplash.com/photo-1534723452862-4c874018d66d?q=80&w=400&fit=crop", path: getShopPath("Sai Ram", "/orders") },
+    { name: "Green Veggies", teluguName: "గ్రీన్ వెజిటబుల్స్", rating: "4.5", time: "15-25 mins", image: "https://images.unsplash.com/photo-1574316071802-0d684efa7bf5?q=80&w=400&fit=crop", path: getShopPath("Green Veggies", "/category/vegetables") },
+    { name: "Meghana Tiffins", teluguName: "మేఘనా టిఫిన్స్", rating: "4.7", time: "20-25 mins", image: "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?q=80&w=400&fit=crop", path: getShopPath("Meghana", "/search?q=Tiffins") },
+    { name: "Lucky Chicken Center", teluguName: "లక్కీ చికెన్ సెంటర్", rating: "4.4", time: "25-35 mins", image: "https://images.unsplash.com/photo-1604503468506-a8da13d82791?q=80&w=400&fit=crop", path: getShopPath("Lucky Chicken", "/search?q=Chicken") }
+  ];
+
+  // 4. Bottom Quick Links
+  const bottomQuickLinks = [
+    { label: "Parcel Pickup", teluguLabel: "పార్సెల్ పికప్", icon: <Package size={18} />, bgColor: "bg-[#16a34a]", path: "/pickup-delivery" },
+    { label: "RTC / Cargo", teluguLabel: "ఆర్టీసీ / కార్గో", icon: <Bus size={18} />, bgColor: "bg-[#2563eb]", path: "/pickup-delivery" },
+    { label: "Voice Order", teluguLabel: "వాయిస్ ఆర్డర్", icon: <Volume2 size={18} />, bgColor: "bg-[#8b5cf6]", path: "/search" },
+    { label: "My Orders", teluguLabel: "నా ఆర్డర్లు", icon: <FileText size={18} />, bgColor: "bg-[#d97706]", path: "/orders" },
+    { label: "Offers", teluguLabel: "ఆఫర్లు", icon: <Tag size={18} />, bgColor: "bg-[#ec4899]", path: "/offers" }
+  ];
 
   return (
-    <div className="container mx-auto max-w-6xl px-4 md:px-8 py-4 my-2">
-      <h3 className="text-base md:text-xl font-black text-[#1A1A1A] tracking-tight uppercase mb-3">
-        Daily needs
-      </h3>
-      <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-2">
-        {dailyNeedsList.map((item) => (
-          <div
-            key={item.name}
-            onClick={() => navigate(item.path)}
-            className="flex flex-col items-center gap-2 cursor-pointer group min-w-[76px] md:min-w-[96px]"
-          >
-            <div className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center border bg-white border-[#1a6e2e]/20 transition-all duration-300 group-hover:-translate-y-0.5 text-[#1a6e2e]`}>
-              {item.icon}
+    <div className="min-h-screen bg-[#042A0F] text-white font-sans pb-4 overflow-x-hidden">
+      
+      {/* 1. Header Row */}
+      <div className="flex items-center justify-between px-4 pt-3 pb-2 bg-[#042A0F] relative overflow-hidden">
+        
+        {/* Left Section: Menu, Logo, Divider, Location */}
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <button className="text-white hover:opacity-80 active:scale-95 transition-transform bg-transparent border-0 cursor-pointer p-1 shrink-0">
+            <Menu size={26} />
+          </button>
+          
+          <div onClick={() => navigate("/")} className="cursor-pointer shrink-0 flex items-center gap-1.5">
+            <img src={LogoTransparent} alt="Athreya Delivery" className="h-9 w-auto object-contain" />
+            <div className="flex flex-col items-start leading-none font-sans">
+              <span className="text-[12.5px] font-black text-white tracking-wide uppercase">ATHREYA</span>
+              <span className="text-[8.5px] font-bold text-white tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
             </div>
-            <span className="text-[11px] md:text-xs font-bold text-slate-700 group-hover:text-[#1a6e2e] transition-colors">
-              {item.name}
-            </span>
+          </div>
+
+          <div className="h-7 w-px bg-white/20 mx-1 shrink-0" />
+
+          {/* Location Dropdown */}
+          <div 
+            onClick={() => setIsLocationOpen(true)}
+            className="flex flex-col items-start cursor-pointer group active:opacity-90 min-w-0 flex-1 pl-0.5"
+          >
+            <div className="flex items-center gap-1 text-white min-w-0 w-full">
+              <span className="text-red-500 text-sm shrink-0">📍</span>
+              <span className="block text-[12px] font-black tracking-tight leading-none group-hover:underline truncate">
+                {getAreaName(currentLocation)}
+              </span>
+              <ChevronDown size={12} className="opacity-80 shrink-0" />
+            </div>
+            {getTeluguAreaName(currentLocation) && (
+              <span className="block text-[10px] font-semibold text-slate-355 ml-4 leading-tight mt-0.5 truncate max-w-full">
+                {getTeluguAreaName(currentLocation)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Language & Cart */}
+        <div className="flex items-center gap-3.5 shrink-0 ml-2">
+          {/* Language Selector */}
+          <button className="flex flex-col items-center justify-center text-white bg-transparent border-0 p-0 cursor-pointer hover:opacity-80">
+            <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/20">
+              <Languages size={18} />
+            </div>
+            <span className="text-[9px] font-black text-slate-300 mt-1">భాష</span>
+          </button>
+
+          {/* Cart with badge */}
+          <button 
+            onClick={() => navigate("/checkout")}
+            className="flex flex-col items-center justify-center text-white bg-transparent border-0 p-0 cursor-pointer hover:opacity-80 relative"
+          >
+            <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/20 relative">
+              <ShoppingCart size={18} />
+              <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[9px] font-black rounded-full h-4 w-4 flex items-center justify-center border border-[#042A0F]">
+                {cartCount > 0 ? cartCount : 3}
+              </span>
+            </div>
+            <span className="text-[9px] font-black text-slate-300 mt-1">కార్ట్</span>
+          </button>
+        </div>
+
+        {/* Animated Brand Bike Logo Overlay */}
+        {showBikeAnimation && (
+          <motion.div
+            initial={{ left: "10px", opacity: 0 }}
+            animate={{ 
+              left: "calc(100% - 70px)", 
+              opacity: [0, 1, 1, 0] 
+            }}
+            transition={{ 
+              duration: 3, 
+              ease: "easeInOut",
+              times: [0, 0.1, 0.9, 1]
+            }}
+            onAnimationComplete={() => setShowBikeAnimation(false)}
+            className="absolute top-1/2 -translate-y-1/2 z-50 pointer-events-none w-14 h-14"
+          >
+            <Lottie 
+              animationData={deliveryRiding} 
+              loop={true} 
+              className="w-full h-full"
+            />
+          </motion.div>
+        )}
+      </div>
+
+      {/* 2. Search Bar */}
+      <div className="mx-4 my-2.5 relative flex items-center bg-[#021f0b] rounded-full border border-[#0d4f1c] px-3.5 py-2">
+        <Search className="w-4.5 h-4.5 text-slate-400 mr-2" />
+        <input 
+          type="text" 
+          placeholder="Search Aswapuram stores... (అశ్వాపురం స్టోర్లలో వెతకండి...)" 
+          className="bg-transparent border-none outline-none text-white text-[12.5px] font-bold w-full placeholder-slate-400"
+          onClick={() => navigate('/search')}
+          readOnly
+        />
+        <button 
+          onClick={() => navigate('/search')}
+          className="w-7 h-7 rounded-full bg-[#A3E635] flex items-center justify-center text-[#042A0F] cursor-pointer hover:opacity-90 active:scale-95 transition-transform"
+        >
+          <Mic className="w-4 h-4 text-[#042A0F]" />
+        </button>
+      </div>
+
+      {/* 3. Quick Categories Row */}
+      <div className="flex justify-start md:justify-center gap-4 md:gap-8 items-start px-4 py-3 overflow-x-auto no-scrollbar">
+        {quickCategoriesList.map((cat, idx) => (
+          <div 
+            key={idx} 
+            onClick={() => navigate(cat.path)} 
+            className="flex flex-col items-center gap-1.5 cursor-pointer shrink-0 min-w-[58px]"
+          >
+            <div className="w-[50px] h-[50px] rounded-[14px] bg-white flex items-center justify-center overflow-hidden border border-[#0d4f1c] shadow-sm transition-transform active:scale-95">
+              {cat.isMore ? (
+                <div className="grid grid-cols-2 gap-1 w-6 h-6">
+                  <div className="w-2.5 h-2.5 bg-[#042A0F] rounded-sm" />
+                  <div className="w-2.5 h-2.5 bg-[#042A0F] rounded-sm" />
+                  <div className="w-2.5 h-2.5 bg-[#042A0F] rounded-sm" />
+                  <div className="w-2.5 h-2.5 bg-[#042A0F] rounded-sm" />
+                </div>
+              ) : (
+                <img src={applyCloudinaryTransform(cat.image)} alt={cat.label} className="w-full h-full object-cover" />
+              )}
+            </div>
+            <div className="flex flex-col items-center leading-none text-center">
+              <span className="text-[9.5px] font-black text-white">{cat.label}</span>
+              <span className="text-[8.5px] font-bold text-slate-300 mt-0.5">{cat.teluguLabel}</span>
+            </div>
           </div>
         ))}
       </div>
-    </div>
-  );
-};
 
-const Home = () => {
-  const { scrollY } = useScroll();
-  const { isOpen: isProductDetailOpen } = useProductDetail();
-  const { currentLocation } = useLocation();
-  const { settings } = useSettings();
-  const navigate = useNavigate();
+      {/* 4. Active Live Orders Widget / Promotion */}
+      <div className="flex gap-3 px-4 py-2">
+        {/* Left Live Order Card */}
+        <div 
+          onClick={() => navigate('/orders')}
+          className="flex-1 min-h-[175px] rounded-2xl relative overflow-hidden border border-[#0d4f1c] bg-cover bg-center cursor-pointer" 
+          style={{ backgroundImage: `url('https://images.unsplash.com/photo-1578916171728-46686eac8d58?q=80&w=400&fit=crop')` }}
+        >
+          <div className="absolute inset-0 bg-black/65 z-0" />
+          <div className="relative z-10 p-3.5 flex flex-col justify-between h-full">
+            
+            {/* Header info */}
+            <div className="flex justify-between items-start">
+              {/* Store Circle Logo */}
+              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-[#A3E635] shadow-md">
+                <div className="w-7 h-7 rounded-full bg-green-900 flex items-center justify-center text-white text-[8px] font-black">
+                  SR
+                </div>
+              </div>
+              
+              {/* ETA / Live */}
+              <div className="flex items-center gap-1">
+                <span className="text-[9px] font-black text-white bg-black/50 px-2 py-0.5 rounded-full border border-white/20">
+                  ETA: 12 min
+                </span>
+                <span className="flex items-center gap-1 bg-red-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md">
+                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
+                  LIVE
+                </span>
+              </div>
+            </div>
+            
+            {/* Wording exactly like screenshot */}
+            <div className="mt-1.5">
+              <p className="text-[9px] text-white/80 font-bold uppercase tracking-wider">Live Orders in Aswapuram</p>
+              <h4 className="text-[14px] font-black text-white leading-tight">Sai Ram General Store</h4>
+              <p className="text-[9px] text-slate-355 font-bold mt-0.5 leading-tight">
+                Order Status: Packing your items <br />
+                <span className="text-[#A3E635]">(మీ వస్తువులు ప్యాకింగ్ అవుతున్నాయి)</span>
+              </p>
+            </div>
 
-  const quickCatsRef = useRef(null);
-  const cachedHomePageData = getCachedHomePageData(currentLocation);
+            <button className="mt-2.5 w-max px-3 py-1.5 bg-white text-black font-black rounded-lg text-[10px] uppercase shadow-sm">
+              View Live Orders
+            </button>
+          </div>
+        </div>
 
-  const { ref: particleContainerRef, isVisible: particlesVisible } = useInViewAnimation();
-  const heroRef = useRef(null);
-  const [heroVisible, setHeroVisible] = useState(true);
-
-  useEffect(() => {
-    if (typeof IntersectionObserver === "undefined") {
-      setHeroVisible(true);
-      return;
-    }
-    const observer = new IntersectionObserver(([entry]) => setHeroVisible(entry.isIntersecting), { rootMargin: "0px" });
-    const el = heroRef.current;
-    if (el) observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  const [categories, setCategories] = useState(() => cachedHomePageData?.categories || [ALL_CATEGORY]);
-  const [activeCategory, setActiveCategory] = useState(() => cachedHomePageData?.activeCategory || ALL_CATEGORY);
-  const [products, setProducts] = useState(() => cachedHomePageData?.products || []);
-  const productsRef = useRef(cachedHomePageData?.products || []);
-  const [quickCategories, setQuickCategories] = useState(() => cachedHomePageData?.quickCategories || []);
-  const [isLoading, setIsLoading] = useState(() => !cachedHomePageData);
-  const [experienceSections, setExperienceSections] = useState(() => cachedHomePageData?.experienceSections || []);
-  const [headerSections, setHeaderSections] = useState([]);
-  const [nearbySellers, setNearbySellers] = useState(() => cachedHomePageData?.nearbySellers || []);
-  const [heroConfig, setHeroConfig] = useState(() => cachedHomePageData?.heroConfig || heroConfigMemoryCache.__home__ || EMPTY_HERO_CONFIG);
-  const [mobileBannerIndex, setMobileBannerIndex] = useState(0);
-  const [isInstantBannerJump, setIsInstantBannerJump] = useState(false);
-  const [categoryMap, setCategoryMap] = useState(() => cachedHomePageData?.categoryMap || {});
-  const [subcategoryMap, setSubcategoryMap] = useState(() => cachedHomePageData?.subcategoryMap || {});
-  const [pendingReturn, setPendingReturn] = useState(null);
-  const [offerSections, setOfferSections] = useState(() => cachedHomePageData?.offerSections || []);
-  const [noServiceData, setNoServiceData] = useState(null);
-
-  const dynamicShops = useMemo(() => {
-    if (nearbySellers.length > 0) {
-      return nearbySellers;
-    }
-    // Fallback dynamic shops using currentLocation coordinates & address
-    const city = currentLocation.city || "Indore";
-    const sublocality = currentLocation.name.split(',')[2]?.trim() || currentLocation.name.split(',')[1]?.trim() || "Local Area";
-    const lat = currentLocation.latitude || 22.711140989838025;
-    const lng = currentLocation.longitude || 75.9001552518043;
-
-    return [
-      {
-        _id: 'mock-1',
-        shopName: `${city} Fresh Kirana`,
-        category: "Grocery",
-        locality: sublocality,
-        distance: 1.2 + (Math.abs(Math.sin(lat)) * 0.5),
-        rating: "4.6",
-        deliveryTime: "30-40 min"
-      },
-      {
-        _id: 'mock-2',
-        shopName: `Fresh Vegetables & Fruits`,
-        category: "Vegetables",
-        locality: sublocality,
-        distance: 0.8 + (Math.abs(Math.cos(lng)) * 0.4),
-        rating: "4.5",
-        deliveryTime: "10-20 min"
-      },
-      {
-        _id: 'mock-3',
-        shopName: `${city} Krishna Dairy`,
-        category: "Milk Shop",
-        locality: sublocality,
-        distance: 1.5 + (Math.abs(Math.sin(lat + lng)) * 0.6),
-        rating: "4.7",
-        deliveryTime: "15-25 min"
-      },
-      {
-        _id: 'mock-4',
-        shopName: `${city} Spice Restaurant`,
-        category: "Restaurant",
-        locality: "Main Road",
-        distance: 2.2 + (Math.abs(Math.cos(lat - lng)) * 0.8),
-        rating: "4.6",
-        deliveryTime: "25-35 min"
-      },
-    ];
-  }, [nearbySellers, currentLocation]);
-
-  useEffect(() => {
-    productsRef.current = products || [];
-  }, [products]);
-
-  useEffect(() => {
-    if (products.length === 0 && !isLoading) {
-      import("@/assets/lottie/animation.json").then((m) => setNoServiceData(m.default)).catch(() => { });
-    }
-  }, [products.length, isLoading]);
-
-  const applyHomePageData = (data, { cacheKey, persist = true } = {}) => {
-    if (!data) return;
-    setCategoryMap(data.categoryMap || {});
-    setSubcategoryMap(data.subcategoryMap || {});
-    setCategories(data.categories || [ALL_CATEGORY]);
-    setQuickCategories(data.quickCategories || []);
-    setProducts(data.products || []);
-    setExperienceSections(data.experienceSections || []);
-    setOfferSections(data.offerSections || []);
-    if (data.heroConfig) setHeroConfig(data.heroConfig);
-    if (data.nearbySellers) setNearbySellers(data.nearbySellers);
-    setActiveCategory((prev) => {
-      const parsed = getJSON(STORAGE_KEYS.EXPERIENCE_RETURN, null, { storage: "session" });
-      if (parsed?.headerId) {
-        const match = (data.formattedHeaders || []).find((h) => h._id === parsed.headerId);
-        if (match) return match;
-      }
-      if (!prev || prev._id === "all") return data.activeCategory || data.categories?.[0] || ALL_CATEGORY;
-      return (data.categories || []).find((cat) => cat._id === prev._id) || data.activeCategory || prev;
-    });
-    if (persist && cacheKey) homePageDataCache.set(cacheKey, data);
-  };
-
-  const fetchData = async ({ forceRefresh = false } = {}) => {
-    const cacheKey = getHomePageDataCacheKey(currentLocation);
-    if (!forceRefresh) {
-      const cached = homePageDataCache.get(cacheKey);
-      if (cached) {
-        applyHomePageData(cached, { cacheKey, persist: false });
-        setIsLoading(false);
-        window.__homeDataLoaded__ = true;
-        if (typeof window !== "undefined" && window.__resolveHomeData__) {
-          window.__resolveHomeData__();
-        }
-        return;
-      }
-    }
-    setIsLoading(true);
-
-    const withTimeout = (promise, ms = 2200) => {
-      return Promise.race([
-        promise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), ms))
-      ]);
-    };
-
-    const MOCK_CATEGORIES_DATA = [
-      { _id: "all", id: "all", name: "All", type: "header" },
-      { _id: "cat_food", id: "cat_food", name: "Food", type: "header", image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&q=80&w=120" },
-      { _id: "cat_veg", id: "cat_veg", name: "Fruits & Vegetables", type: "header", image: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&q=80&w=120" },
-      { _id: "cat_grocery", id: "cat_grocery", name: "Grocery", type: "header", image: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=120" },
-      { _id: "cat_pharmacy", id: "cat_pharmacy", name: "Pharmacy", type: "header", image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=120" },
-      { _id: "cat_sports", id: "cat_sports", name: "Sports", type: "header", image: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=120" }
-    ];
-
-    const MOCK_PRODUCTS_DATA = [
-      { _id: "p1", name: "Fresh Milk 1L", headerId: "cat_food", mainImage: "https://images.unsplash.com/photo-1528498033373-386cc8224357?auto=format&fit=crop&q=80&w=400", salePrice: 60, price: 65, weight: "1 L", deliveryTime: "8-15 mins" },
-      { _id: "p2", name: "Organic Tomatoes 500g", headerId: "cat_veg", mainImage: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=400", salePrice: 30, price: 35, weight: "500 g", deliveryTime: "8-15 mins" },
-      { _id: "p3", name: "Fresh Bananas 1 Dozen", headerId: "cat_veg", mainImage: "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&q=80&w=400", salePrice: 50, price: 60, weight: "12 units", deliveryTime: "8-15 mins" },
-      { _id: "p4", name: "Whole Wheat Bread", headerId: "cat_grocery", mainImage: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=400", salePrice: 40, price: 45, weight: "400 g", deliveryTime: "8-15 mins" }
-    ];
-
-    try {
-      const hasValidLocation = Number.isFinite(currentLocation?.latitude) && Number.isFinite(currentLocation?.longitude);
-      const productParams = { limit: 20 };
-      if (hasValidLocation) {
-        productParams.lat = currentLocation.latitude;
-        productParams.lng = currentLocation.longitude;
-      }
-      const [catRes, prodRes, expRes, sectionsRes, shopsRes] = await Promise.all([
-        withTimeout(customerApi.getCategories()).catch(() => ({ data: { success: false } })),
-        hasValidLocation ? withTimeout(customerApi.getProducts(productParams)).catch(() => ({ data: { success: false } })) : Promise.resolve({ data: { success: true, result: { items: [] } } }),
-        withTimeout(customerApi.getExperienceSections({ pageType: "home" })).catch(() => null),
-        hasValidLocation ? withTimeout(customerApi.getOfferSections({ lat: currentLocation.latitude, lng: currentLocation.longitude })).catch(() => ({ data: {} })) : Promise.resolve({ data: { results: [] } }),
-        hasValidLocation ? withTimeout(customerApi.getNearbySellers({ lat: currentLocation.latitude, lng: currentLocation.longitude })).catch(() => ({ data: { results: [] } })) : Promise.resolve({ data: { results: [] } }),
-      ]);
-      const nextHomeData = {
-        categories: [ALL_CATEGORY],
-        activeCategory: ALL_CATEGORY,
-        products: [],
-        quickCategories: [],
-        experienceSections: [],
-        offerSections: [],
-        categoryMap: {},
-        subcategoryMap: {},
-        formattedHeaders: [],
-        nearbySellers: (shopsRes?.data?.results || shopsRes?.data?.result || []),
-        heroConfig: heroConfigMemoryCache.__home__ || EMPTY_HERO_CONFIG,
-      };
-
-      const isCatSuccess = catRes && catRes.data && catRes.data.success;
-      const dbCats = isCatSuccess ? (catRes.data.results || catRes.data.result || []) : MOCK_CATEGORIES_DATA;
-      const catMap = {};
-      const subMap = {};
-      dbCats.forEach((c) => { if (c.type === "category") catMap[c._id] = c; else if (c.type === "subcategory") subMap[c._id] = c; });
-      nextHomeData.categoryMap = catMap;
-      nextHomeData.subcategoryMap = subMap;
-      const formattedHeaders = dbCats.filter((cat) => cat.type === "header").map((cat) => {
-        const catName = cat.name;
-        const meta = CATEGORY_METADATA[catName] || CATEGORY_METADATA[catName.toUpperCase()] || { icon: Sparkles, theme: DEFAULT_CATEGORY_THEME, banner: { title: catName.toUpperCase(), subtitle: "TOP PICKS", floatingElements: "sparkles" } };
-        let IconComp = Sparkles;
-        if (cat.displayType === "image" && cat.image) {
-          IconComp = cat.image;
-        } else if (cat.displayType === "icon") {
-          if (cat.iconUrl) {
-            IconComp = cat.iconUrl;
-          } else {
-            IconComp = (cat.iconId && ICON_COMPONENTS[cat.iconId]) || meta.icon || Sparkles;
-          }
-        } else {
-          if (cat.image) {
-            IconComp = cat.image;
-          } else if (cat.iconUrl) {
-            IconComp = cat.iconUrl;
-          } else {
-            IconComp = (cat.iconId && ICON_COMPONENTS[cat.iconId]) || meta.icon || Sparkles;
-          }
-        }
-        return { ...cat, id: cat._id, icon: IconComp, theme: meta.theme, banner: { ...meta.banner, textColor: "text-white" } };
-      });
-      nextHomeData.formattedHeaders = formattedHeaders;
-      const allHeaderFromAdmin = formattedHeaders.find((h) => (h.slug?.toLowerCase() === "all") || (h.name?.toLowerCase() === "all"));
-      const mergedAllCategory = allHeaderFromAdmin ? { ...ALL_CATEGORY, headerColor: allHeaderFromAdmin.headerColor || ALL_CATEGORY.headerColor, headerFontColor: allHeaderFromAdmin.headerFontColor || ALL_CATEGORY.headerFontColor, headerIconColor: allHeaderFromAdmin.headerIconColor || ALL_CATEGORY.headerIconColor, icon: allHeaderFromAdmin.icon || ALL_CATEGORY.icon } : ALL_CATEGORY;
-      nextHomeData.categories = [mergedAllCategory, ...formattedHeaders.filter((h) => !((h.slug?.toLowerCase() === "all") || (h.name?.toLowerCase() === "all")))];
-      nextHomeData.activeCategory = mergedAllCategory;
-      nextHomeData.quickCategories = dbCats.filter((cat) => cat.type === "category").map((cat) => ({ id: cat._id, name: cat.name, image: cat.image || "https://cdn-icons-png.flaticon.com/128/2321/2321831.png" }));
-
-      const isProdSuccess = prodRes && prodRes.data && prodRes.data.success;
-      const dbProds = isProdSuccess ? (Array.isArray(prodRes.data.results) ? prodRes.data.results : Array.isArray(prodRes.data.result?.items) ? prodRes.data.result.items : Array.isArray(prodRes.data.result) ? prodRes.data.result : []) : MOCK_PRODUCTS_DATA;
-      nextHomeData.products = dbProds.map((p) => ({ ...p, id: p._id, image: p.mainImage || p.image || "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=400&h=400", price: p.salePrice || p.price, originalPrice: p.price, weight: p.weight || "1 unit", deliveryTime: "8-15 mins" }));
-
-      if (expRes?.data?.success) nextHomeData.experienceSections = Array.isArray(expRes.data.result || expRes.data.results) ? (expRes.data.result || expRes.data.results) : [];
-      const sectionsList = sectionsRes?.data?.results || sectionsRes?.data?.result || sectionsRes?.data;
-      nextHomeData.offerSections = Array.isArray(sectionsList) ? sectionsList : [];
-      applyHomePageData(nextHomeData, { cacheKey });
-    } catch (error) { console.error("Error:", error); } finally {
-      setIsLoading(false);
-      window.__homeDataLoaded__ = true;
-      if (typeof window !== "undefined" && window.__resolveHomeData__) {
-        window.__resolveHomeData__();
-      }
-    }
-  };
-
-  const hydrateSelectedSectionProducts = async (sections = []) => {
-    const selectedProductIds = Array.from(new Set(sections.flatMap((s) => s?.displayType === "products" ? (s?.config?.products?.productIds || []) : []).map((id) => String(id || "").trim()).filter(Boolean)));
-    if (!selectedProductIds.length) return;
-    const existingIds = new Set(productsRef.current.map((p) => String(p?._id || p?.id || "").trim()));
-    const missingIds = selectedProductIds.filter((id) => !existingIds.has(id));
-    if (!missingIds.length) return;
-    try {
-      const locationParams = Number.isFinite(currentLocation?.latitude) ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : undefined;
-      const missingResults = await Promise.allSettled(missingIds.map((id) => customerApi.getProductById(id, locationParams)));
-      const fetchedMissing = missingResults.filter((r) => r.status === "fulfilled").flatMap((r) => { const p = r.value?.data?.result || r.value?.data?.results; return Array.isArray(p) ? p : (p ? [p] : []); }).map((p) => ({ ...p, id: p._id, image: p.mainImage || p.image || "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=400&h=400", price: p.salePrice || p.price, originalPrice: p.price, weight: p.weight || "1 unit", deliveryTime: "8-15 mins" }));
-      if (fetchedMissing.length) setProducts((prev) => { const merged = [...prev]; const mergedIds = new Set(merged.map((p) => String(p?._id || p?.id || "").trim())); fetchedMissing.forEach((p) => { const key = String(p?._id || p?.id || "").trim(); if (!mergedIds.has(key)) { merged.push(p); mergedIds.add(key); } }); return merged; });
-    } catch (e) { }
-  };
-
-  useEffect(() => { fetchData(); }, [currentLocation?.latitude, currentLocation?.longitude]);
-  const headerSectionsCache = useRef(headerSectionsMemoryCache);
-  const heroConfigCache = useRef(heroConfigMemoryCache);
-
-  useEffect(() => {
-    const fetchHeaderSections = async () => {
-      if (!activeCategory || activeCategory._id === "all") { setHeaderSections([]); return; }
-      const cacheKey = activeCategory._id;
-      if (headerSectionsCache.current[cacheKey]) { setHeaderSections(headerSectionsCache.current[cacheKey]); return; }
-      try {
-        const res = await customerApi.getExperienceSections({ pageType: "header", headerId: activeCategory._id });
-        if (res.data.success) { const sections = Array.isArray(res.data.result || res.data.results) ? (res.data.result || res.data.results) : []; headerSectionsCache.current[cacheKey] = sections; setHeaderSections(sections); await hydrateSelectedSectionProducts(sections); }
-        else setHeaderSections([]);
-      } catch (e) { setHeaderSections([]); }
-    };
-    fetchHeaderSections();
-  }, [activeCategory]);
-
-  useEffect(() => {
-    const fetchHeroConfig = async () => {
-      try {
-        const cacheKey = "__home__";
-        if (heroConfigCache.current[cacheKey]) { setHeroConfig(heroConfigCache.current[cacheKey]); return; }
-        const homeRes = await customerApi.getHeroConfig({ pageType: "home" });
-        const payload = homeRes.data?.result;
-        const resolved = payload && (payload.banners?.items?.length > 0 || payload.categoryIds?.length > 0) ? { banners: payload.banners || { items: [] }, categoryIds: payload.categoryIds || [] } : { banners: { items: [] }, categoryIds: [] };
-        heroConfigCache.current[cacheKey] = resolved;
-        setHeroConfig(resolved);
-      } catch (e) { setHeroConfig(EMPTY_HERO_CONFIG); }
-    };
-    fetchHeroConfig();
-  }, [currentLocation?.latitude, currentLocation?.longitude]);
-
-  useEffect(() => {
-    const firstUrl = heroConfig?.banners?.items?.[0]?.imageUrl;
-    if (!firstUrl || firstUrl.includes("/video/upload/") || /\.(mp4|webm|ogg|mov|m4v)($|\?)/i.test(firstUrl)) return;
-    const link = document.createElement("link");
-    link.rel = "preload"; link.as = "image"; link.href = applyCloudinaryTransform(firstUrl, "f_auto,q_auto,c_fill,g_auto,w_824,h_440");
-    link.setAttribute("fetchpriority", "high"); document.head.appendChild(link);
-    return () => { if (link.parentNode) link.parentNode.removeChild(link); };
-  }, [heroConfig?.banners?.items?.[0]?.imageUrl]);
-
-  useEffect(() => {
-    const totalSlides = 3;
-    const intervalId = setInterval(() => { setMobileBannerIndex((prev) => prev >= totalSlides - 1 ? prev : prev + 1); }, 3500);
-    return () => clearInterval(intervalId);
-  }, []);
-
-  const handleBannerTransitionEnd = () => { if (mobileBannerIndex === 2) { setIsInstantBannerJump(true); setMobileBannerIndex(0); } };
-  useEffect(() => { if (!isInstantBannerJump) return; const id = requestAnimationFrame(() => setIsInstantBannerJump(false)); return () => cancelAnimationFrame(id); }, [isInstantBannerJump]);
-
-  const productsSectionRef = useRef(null);
-
-  const filteredCategoryProducts = useMemo(() => {
-    if (!activeCategory || activeCategory._id === "all") return null;
-    return products.filter((p) => {
-      const hId = typeof p.headerId === 'object' ? p.headerId?._id : p.headerId;
-      const cId = typeof p.categoryId === 'object' ? p.categoryId?._id : p.categoryId;
-      return String(hId) === String(activeCategory._id) || String(cId) === String(activeCategory._id);
-    });
-  }, [products, activeCategory]);
-
-  useEffect(() => {
-    if (activeCategory && activeCategory._id !== "all" && productsSectionRef.current) {
-      setTimeout(() => {
-        productsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
-    }
-  }, [activeCategory]);
-
-  const productsById = useMemo(() => { const map = {}; products.forEach((p) => { map[p._id || p.id] = p; }); return map; }, [products]);
-  const effectiveQuickCategories = useMemo(() => {
-    const ids = heroConfig.categoryIds || [];
-    if (ids.length > 0) { const resolved = ids.map((id) => categoryMap[id]).filter(Boolean).map((c) => ({ id: c._id, name: c.name, image: c.image || "https://cdn-icons-png.flaticon.com/128/2321/2321831.png" })); if (resolved.length > 0) return resolved; }
-    return quickCategories;
-  }, [heroConfig.categoryIds, categoryMap, quickCategories]);
-
-  const sectionsForRenderer = useMemo(() => {
-    const rawSections = headerSections.length ? headerSections : experienceSections;
-    return rawSections.filter((s) => s.displayType !== "banners");
-  }, [headerSections, experienceSections]);
-  const isMobile = useMemo(() => isMobileOrWebView(), []);
-  const opacity = useTransform(scrollY, (heroVisible && !isMobile) ? [0, 300] : [0, 0], [1, 0.6]);
-  const y = useTransform(scrollY, (heroVisible && !isMobile) ? [0, 300] : [0, 0], [0, 80]);
-  const scale = useTransform(scrollY, (heroVisible && !isMobile) ? [0, 300] : [0, 0], [1, 0.95]);
-  const pointerEvents = useTransform(scrollY, (heroVisible && !isMobile) ? [0, 100] : [0, 0], ["auto", "none"]);
-
-  useEffect(() => {
-    if (!pendingReturn?.sectionId) return;
-    const allSections = headerSections.length ? headerSections : experienceSections;
-    if (!allSections.length) return;
-    if (allSections.some((s) => s._id === pendingReturn.sectionId)) { const el = document.getElementById(`section-${pendingReturn.sectionId}`); if (el) { el.scrollIntoView({ behavior: "instant", block: "start" }); removeStorage(STORAGE_KEYS.EXPERIENCE_RETURN, { storage: "session" }); setPendingReturn(null); } }
-  }, [headerSections, experienceSections, pendingReturn]);
-
-  const renderFloatingElements = (type, isVisible = true) => {
-    if (isMobile) return null;
-    return null; // Particles were already simplified out earlier
-  };
-
-  return (
-    <div className={`min-h-screen pt-[215px] md:pt-[245px] ${products.length === 0 && !isLoading ? "bg-white" : "bg-white"}`}>
-
-      <div className={cn("contents", isProductDetailOpen && "hidden md:contents")}>
-        <MainLocationHeader categories={categories} activeCategory={activeCategory} onCategorySelect={setActiveCategory} />
+        {/* Right Safe Delivery Card */}
+        <div 
+          className="w-[36%] rounded-2xl relative overflow-hidden border border-[#0d4f1c] bg-cover bg-center flex flex-col justify-end" 
+          style={{ backgroundImage: `url('https://images.unsplash.com/photo-1619191168248-906fe35555bb?q=80&w=400&fit=crop')` }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-0" />
+          <div className="relative z-10 bg-black/70 p-2 text-center flex flex-col items-center justify-center gap-1 border-t border-white/10">
+            <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center text-white shrink-0 shadow-sm border border-white/20">
+              <span className="text-[10px] font-black">✓</span>
+            </div>
+            <p className="text-[8.5px] font-black leading-tight text-white">
+              సురక్షిత డెలివరీ <br />
+              మీ ఇంటికి వరకు
+            </p>
+          </div>
+        </div>
       </div>
 
-      {products.length === 0 && !isLoading ? (
-        <div className="flex flex-col items-center justify-center pt-24 pb-48">
-          <div className="w-64 h-64 md:w-96 md:h-96 mb-8">{noServiceData && <Lottie animationData={noServiceData} loop={true} />}</div>
-          <h3 className="text-3xl md:text-5xl font-black text-slate-800 text-center uppercase">Service <span className="text-[#1a6e2e]">Unavailable</span></h3>
-          <p className="text-slate-500 font-bold max-w-md text-center px-10 text-sm md:text-lg opacity-80">Ah! We haven't reached your neighborhood yet.</p>
-          <button onClick={() => window.location.reload()} className="mt-12 px-10 py-4 bg-[#1a6e2e] text-white font-black rounded-[24px] uppercase text-[13px] tracking-widest transition-all active:scale-95">Check Again</button>
+      {/* 5. TODAY'S NEEDS (ఈరోజు అవసరాలు) */}
+      <div className="px-4 py-3">
+        <div className="flex justify-between items-center mb-2.5">
+          <h3 className="text-[12.5px] font-black text-[#A3E635] tracking-wide uppercase">
+            TODAYS NEEDS (ఈరోజు అవసరాలు)
+          </h3>
+          <button onClick={() => navigate('/categories')} className="text-[10.5px] font-black text-[#A3E635] hover:underline">
+            See All
+          </button>
         </div>
-      ) : (
-        <>
-          <motion.div ref={heroRef} className="block will-change-transform" style={isMobile ? { opacity: 1 } : { opacity, y, scale, pointerEvents }}>
-            <div className="relative w-full overflow-hidden">
-              {heroConfig.banners?.items?.length ? (
-                <ExperienceBannerCarousel section={{ title: "" }} items={heroConfig.banners.items} fullWidth edgeToEdge />
-              ) : isLoading ? (
-                <div className="w-full h-[200px] sm:h-[280px] md:h-[380px] lg:h-[440px] bg-white animate-pulse relative overflow-hidden flex items-center justify-center border-y border-[#1a6e2e]/20">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="h-6 w-48 bg-slate-200 rounded-lg animate-pulse" />
-                    <div className="h-4 w-32 bg-slate-200/80 rounded-lg animate-pulse" />
-                  </div>
-                </div>
-              ) : (
-                <div className="w-full h-[200px] sm:h-[280px] md:h-[380px] lg:h-[440px] relative overflow-hidden bg-white flex items-center justify-center border-y border-[#1a6e2e]/20">
-                  <video
-                    src="https://assets.mixkit.co/videos/preview/mixkit-delivery-man-carrying-a-box-41584-large.mp4"
-                    className="w-full h-full object-cover object-center pointer-events-none"
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                  />
-                  {/* Logo overlay on video */}
-                  <div className="absolute top-4 left-4 z-20 bg-white px-3 py-1.5 rounded-xl border border-[#1a6e2e]/20 flex items-center justify-center max-h-24 pointer-events-none">
-                    <img src={settings?.logoUrl ? applyCloudinaryTransform(settings.logoUrl) : LogoImage} alt="Logo" className="h-12 sm:h-16 w-auto object-contain scale-[1.2]" />
-                  </div>
-
-                  {/* Bottom Scrolling Marquee Overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-[#3a2a83]/90 text-white py-1 md:py-1.5 overflow-hidden whitespace-nowrap z-30 font-black border-t border-white/10 uppercase tracking-widest text-[9px] md:text-[11px]">
-                      <div className="classic-marquee-track flex w-max items-center gap-8">
-                          <span>One App. Every Shop. Every Need. Delivered Fast & Safe</span>
-                          <span className="text-yellow-400">&bull;</span>
-                          <span>One App. Every Shop. Every Need. Delivered Fast & Safe</span>
-                          <span className="text-yellow-400">&bull;</span>
-                          <span>One App. Every Shop. Every Need. Delivered Fast & Safe</span>
-                          <span className="text-yellow-400">&bull;</span>
-                          <span>One App. Every Shop. Every Need. Delivered Fast & Safe</span>
-                          <span className="text-yellow-400">&bull;</span>
-                      </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </motion.div>
-
-          {/* Daily Needs Section */}
-          <DailyNeedsSection categoryMap={categoryMap} />
-
-          {/* All Shops Near You Section */}
-          <div className="container mx-auto max-w-6xl px-4 md:px-8 py-5 my-4 bg-white rounded-[2rem] border border-[#1a6e2e]/20">
-
-            <h3 className="text-base md:text-xl font-black text-[#1A1A1A] tracking-tight uppercase leading-none">
-              All Shops near me
-            </h3>
-            <div className="flex items-center gap-1.5 md:gap-2 mt-1.5 md:mt-3 mb-6">
-              <div className="h-1.5 w-1.5 bg-[#1a6e2e] rounded-full animate-pulse" />
-              <span className="text-[10px] md:text-xs font-bold text-[#1a6e2e] uppercase tracking-wide opacity-80">
-                PARTNER STORES IN YOUR AREA &bull; HYGIENE ASSURED
-              </span>
-            </div>
-
-            {isLoading ? (
-              <SkeletonLoader variant="shopGrid" count={4} />
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                {dynamicShops.map((shop) => (
-                  <div key={shop._id} onClick={() => navigate(`/shops/${shop._id}`)} className="bg-white rounded-2xl p-3 border border-[#1a6e2e]/20 flex flex-col gap-2.5 hover:-translate-y-0.5 transition-all duration-300 group cursor-pointer">
-                    <div className="w-full aspect-[4/3] rounded-xl overflow-hidden bg-white relative">
-                      <img
-                        src={getShopImage(shop.category, shop.shopName, shop.storeFrontImage || shop.shopLogo || shop.logo || shop.shopImage)}
-                        alt={shop.shopName}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <span className="absolute top-2 right-2 bg-white px-2 py-0.5 rounded-full text-[10px] font-extrabold text-slate-800 border border-[#1a6e2e]/20 flex items-center gap-0.5">
-                        ⭐ {shop.rating || "4.6"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <h4 className="font-extrabold text-slate-850 text-xs md:text-sm lg:text-base line-clamp-1 leading-tight group-hover:text-[#1a6e2e] transition-colors">
-                        {shop.shopName}
-                      </h4>
-                      <div className="flex items-center gap-1.5 text-[10px] md:text-[11px] font-bold text-slate-500">
-                        <span>{shop.deliveryTime || "15-25 min"}</span>
-                        <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                        <span className="text-[#10b981]">Free Delivery</span>
-                      </div>
-                      {shop.distance !== undefined && (
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          {typeof shop.distance === 'number' ? `${shop.distance.toFixed(1)} km away` : shop.distance}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+        <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
+          {todaysNeedsList.map((item, idx) => (
+            <div 
+              key={idx} 
+              onClick={() => navigate(item.path)} 
+              className="w-[84px] shrink-0 bg-[#021f0b] border border-[#0d4f1c] rounded-2xl p-2 flex flex-col items-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
+            >
+              <div className="w-16 h-16 rounded-xl overflow-hidden bg-white">
+                <img src={applyCloudinaryTransform(item.image)} alt={item.label} className="w-full h-full object-cover" />
               </div>
-            )}
+              <div className="flex flex-col items-center text-center leading-none">
+                <span className="text-[9.5px] font-black text-white">{item.label}</span>
+                <span className="text-[8.5px] font-bold text-slate-300 mt-0.5">{item.teluguLabel}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 6. Combo & Deals & Orders Promo Row */}
+      <div className="grid grid-cols-3 gap-2 px-4 py-2">
+        {/* Combo Offers Card */}
+        <div 
+          onClick={() => navigate('/offers')} 
+          className="bg-white rounded-2xl p-2 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md"
+        >
+          <div className="text-xl">🎁</div>
+          <div className="flex flex-col leading-tight min-w-0">
+            <span className="text-[7.5px] font-black text-orange-600 uppercase tracking-tight truncate">COMBO OFFERS</span>
+            <span className="text-[8.5px] font-black text-slate-800 tracking-tight truncate">Best Deals & Savings</span>
+            <span className="text-[7.5px] font-bold text-slate-500 tracking-tight truncate">ఉత్తమ ఆఫర్లు & ఆదా</span>
+          </div>
+        </div>
+
+        {/* Today's Deals Card */}
+        <div 
+          onClick={() => navigate('/offers')} 
+          className="bg-white rounded-2xl p-2 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md"
+        >
+          <div className="text-xl">🏷️</div>
+          <div className="flex flex-col leading-tight min-w-0">
+            <span className="text-[7.5px] font-black text-blue-600 uppercase tracking-tight truncate">TODAY'S DEALS</span>
+            <span className="text-[8.5px] font-black text-slate-800 tracking-tight truncate">Limited Time Offers</span>
+            <span className="text-[7.5px] font-bold text-slate-500 tracking-tight truncate">పరిమిత సమయ ఆఫర్లు</span>
+          </div>
+        </div>
+
+        {/* My Orders Card */}
+        <div 
+          onClick={() => navigate('/orders')} 
+          className="bg-white rounded-2xl p-2 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md"
+        >
+          <div className="text-xl">📋</div>
+          <div className="flex flex-col leading-tight min-w-0">
+            <span className="text-[7.5px] font-black text-green-600 uppercase tracking-tight truncate">MY ORDERS</span>
+            <span className="text-[8.5px] font-black text-slate-800 tracking-tight truncate">Track your orders</span>
+            <span className="text-[7.5px] font-bold text-slate-500 tracking-tight truncate">మీ ఆర్డర్లు ట్రాక్ చేయండి</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 7. ATHREYA EXCLUSIVE PARTNERS (ప్రత్యేక భాగస్వాములు) */}
+      <div className="px-4 py-3">
+        <div className="flex justify-between items-center mb-2.5">
+          <h3 className="text-[12.5px] font-black text-[#A3E635] tracking-wide uppercase">
+            ATHREYA EXCLUSIVE PARTNERS (ప్రత్యేక భాగస్వాములు)
+          </h3>
+          <button onClick={() => navigate('/shop-by-store')} className="text-[10.5px] font-black text-[#A3E635] hover:underline">
+            See All
+          </button>
+        </div>
+        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+          {partnerStores.map((store, idx) => (
+            <div 
+              key={idx} 
+              onClick={() => navigate(store.path)} 
+              className="w-[145px] shrink-0 bg-white rounded-2xl overflow-hidden shadow-md cursor-pointer active:scale-95 transition-transform flex flex-col"
+            >
+              <div className="w-full h-[95px] relative">
+                <img src={store.image} alt={store.name} className="w-full h-full object-cover" />
+              </div>
+              <div className="p-2 flex flex-col justify-between flex-1 leading-none">
+                <div>
+                  <h4 className="text-[10.5px] font-black text-slate-800 line-clamp-1">{store.name}</h4>
+                  <p className="text-[8.5px] font-bold text-slate-500 line-clamp-1 mt-0.5">{store.teluguName}</p>
+                </div>
+                <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-slate-100">
+                  <span className="text-[9px] font-black text-slate-700 flex items-center gap-0.5">
+                    {store.rating} <span className="text-yellow-500 text-[8px]">★</span>
+                  </span>
+                  <span className="text-[8.5px] font-bold text-slate-500">
+                    {store.time}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 8. PARCEL PICKUP (పార్సెల్ పికప్) Section */}
+      <div className="mx-4 my-3 bg-[#03210b] border border-[#0d4f1c] rounded-2xl p-4 flex gap-4 items-center shadow-md">
+        {/* Cardboard Box 3D-like representation */}
+        <div className="w-16 h-16 shrink-0 bg-[#A3E635]/10 border border-[#0d4f1c] rounded-2xl flex items-center justify-center text-4xl">
+          📦
+        </div>
+        
+        <div className="flex-1 flex flex-col gap-2 min-w-0">
+          <div>
+            <h4 className="text-[12px] font-black text-[#A3E635] tracking-wide uppercase">
+              PARCEL PICKUP (పార్సెల్ పికప్)
+            </h4>
+            <p className="text-[10px] font-black text-white mt-0.5 leading-tight">
+              Send anything, anywhere <br />
+              <span className="text-slate-300 font-bold text-[9px]">Fast & Safe Delivery</span>
+            </p>
           </div>
 
-          {isLoading ? (
-            <div className="container mx-auto max-w-6xl px-4 md:px-8 py-5 md:py-6">
-              <h3 className="text-base md:text-xl font-black text-[#1A1A1A] tracking-tight uppercase mb-4">
-                Loading products...
-              </h3>
-              <SkeletonLoader variant="productGrid" count={8} />
-            </div>
-          ) : (
-            <div ref={productsSectionRef}>
-              {activeCategory && activeCategory._id !== "all" ? (
-                <div className="container mx-auto max-w-6xl px-4 md:px-8 py-5 md:py-6 min-h-[50vh]">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg md:text-2xl font-black text-[#1A1A1A] tracking-tight uppercase">
-                      {activeCategory.name} <span className="text-[#1a6e2e]">Products</span>
-                    </h3>
-                  </div>
-                  
-                  {filteredCategoryProducts && filteredCategoryProducts.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 lg:gap-6">
-                      {filteredCategoryProducts.map(p => (
-                        <div key={p.id} className="smooth-transform">
-                          <ProductCard product={p} className="bg-white border border-[#1a6e2e]/20" compact={true} />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-16">
-                       <h3 className="text-xl md:text-2xl font-black text-slate-700 tracking-tighter mb-2 uppercase">No products available</h3>
-                       <p className="text-slate-500 font-bold text-sm">Check back later! We are adding new items daily.</p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <LowestPriceSection products={products} onSeeAll={() => navigate("/category/all")} />
-                  <OfferSections sections={offerSections} noServiceData={noServiceData} />
+          <div className="flex gap-1.5 mt-0.5 overflow-x-auto no-scrollbar">
+            <button 
+              onClick={() => navigate('/pickup-delivery')} 
+              className="px-2.5 py-1 bg-[#042A0F] border border-[#0d4f1c] text-white rounded-full text-[8.5px] font-black flex items-center gap-1 shrink-0 active:scale-95"
+            >
+              🛵 Request Pickup
+            </button>
+            <button 
+              onClick={() => navigate('/pickup-delivery')} 
+              className="px-2.5 py-1 bg-[#042A0F] border border-[#0d4f1c] text-white rounded-full text-[8.5px] font-black flex items-center gap-1 shrink-0 active:scale-95"
+            >
+              📋 Add List
+            </button>
+            <button 
+              onClick={() => navigate('/pickup-delivery')} 
+              className="px-2.5 py-1 bg-[#042A0F] border border-[#0d4f1c] text-white rounded-full text-[8.5px] font-black flex items-center gap-1 shrink-0 active:scale-95"
+            >
+              📷 Upload Photo
+            </button>
+          </div>
+        </div>
+      </div>
 
-                  {sectionsForRenderer.length > 0 && (
-                    <div className="container mx-auto max-w-6xl px-4 md:px-8 py-5 md:py-6">
-                      <SectionRenderer sections={sectionsForRenderer} productsById={productsById} categoriesById={categoryMap} subcategoriesById={subcategoryMap} />
-                    </div>
-                  )}
-                </>
-              )}
+      {/* 9. Extra links row on dark green background */}
+      <div className="flex gap-2.5 overflow-x-auto no-scrollbar px-4 py-3 bg-[#031d0b] border-y border-[#0c4c1a] my-2">
+        {bottomQuickLinks.map((link, idx) => (
+          <div 
+            key={idx} 
+            onClick={() => navigate(link.path)} 
+            className="flex items-center gap-2.5 bg-[#042A0F] border border-[#0d4f1c] px-3.5 py-2 rounded-2xl cursor-pointer shrink-0 active:scale-95 transition-transform"
+          >
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white shrink-0 ${link.bgColor} shadow-sm border border-white/10`}>
+              {link.icon}
             </div>
-          )}
-        </>
-      )}
+            <div className="flex flex-col leading-none">
+              <span className="text-[10px] font-black text-white">{link.label}</span>
+              <span className="text-[8px] font-bold text-slate-355 mt-0.5">{link.teluguLabel}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Drawer selector for location confirmation */}
+      <LocationDrawer 
+        isOpen={isLocationOpen} 
+        onClose={() => setIsLocationOpen(false)} 
+      />
     </div>
   );
 };

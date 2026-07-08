@@ -1087,6 +1087,14 @@ export async function requestHandoffOtpAtomic(deliveryId, orderId, lat, lng) {
     throw err;
   }
 
+  // Regular shopping orders require a shop bill photo
+  if (order.orderType !== "custom_pickup" && !order.shopBillImage) {
+    const err = new Error("Shop bill image upload is required before requesting OTP");
+    err.statusCode = 400;
+    err.code = "BILL_IMAGE_REQUIRED";
+    throw err;
+  }
+
   // Accept either v2 workflow state OUT_FOR_DELIVERY *or* legacy v1
   // status "out_for_delivery" — the legacy controller didn't gate on
   // state at all, so this is the strictest backward-compatible guard.
@@ -1300,6 +1308,14 @@ export async function verifyHandoffOtpAndDeliver(deliveryId, orderId, code) {
     const err = new Error("Order not found or not assigned to you");
     err.statusCode = 404;
     err.code = "UNAUTHORIZED_DELIVERY";
+    throw err;
+  }
+
+  // Regular shopping orders require a shop bill photo
+  if (order.orderType !== "custom_pickup" && !order.shopBillImage) {
+    const err = new Error("Shop bill image upload is required before delivery completion");
+    err.statusCode = 400;
+    err.code = "BILL_IMAGE_REQUIRED";
     throw err;
   }
 

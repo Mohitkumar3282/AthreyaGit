@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import gsap from "gsap";
-import LogoImage from "../../assets/Logo.png";
+import LogoTransparent from "../../assets/LogoTransparent.png";
 import { useSettings } from '@core/context/SettingsContext';
 
 const SplashScreen = ({ onFinished }) => {
@@ -131,7 +131,7 @@ const SplashScreen = ({ onFinished }) => {
         >
           <div className="absolute inset-0 bg-gradient-to-tr from-[#3a2a83]/30 to-transparent opacity-100" />
           <img
-            src={settings?.logoUrl || LogoImage}
+            src={settings?.logoUrl || LogoTransparent}
             alt="Athreya Delivery Logo"
             className="w-full h-full object-contain filter drop-shadow-[0_8px_16px_rgba(0,0,0,0.35)]"
           />

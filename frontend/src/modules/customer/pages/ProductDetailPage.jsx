@@ -93,7 +93,7 @@ const ProductDetailPage = () => {
     }, [id]);
 
     useEffect(() => {
-        if (id && product) {
+        if (id) {
             fetchData(false);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -180,7 +180,7 @@ const ProductDetailPage = () => {
     const isWishlisted = isInWishlist(product.id);
 
     return (
-        <div className="relative z-10 py-8 w-full max-w-[1920px] mx-auto px-4 md:px-[50px] animate-in fade-in duration-700 mt-24">
+        <div className="relative z-10 py-8 w-full max-w-[1920px] mx-auto px-4 md:px-[50px] animate-in fade-in duration-700 mt-36 md:mt-24">
             <Link to={-1} className="inline-flex items-center gap-2 text-slate-500 hover:text-[#1a6e2e] font-bold mb-6 transition-colors group">
                 <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" /> Back
             </Link>
@@ -251,10 +251,24 @@ const ProductDetailPage = () => {
                         <p className="text-slate-600 text-lg leading-relaxed mb-6 font-medium max-w-2xl">
                             {product.description || "Fresh and premium quality product sourced directly from local vendors."}
                         </p>
+
+                        {product.isAvailableInArea === false && (
+                            <div className="bg-red-50 text-red-700 text-xs font-bold px-4 py-3 rounded-2xl border border-red-100 flex items-center gap-2 mb-6 text-left">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                <span>This item is not deliverable to your current location yet.</span>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center gap-6 p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100">
-                        {quantity > 0 ? (
+                        {product.isAvailableInArea === false ? (
+                            <Button
+                                disabled
+                                className="h-16 w-full sm:w-64 bg-slate-200 text-slate-400 text-sm font-black rounded-2xl border border-transparent cursor-not-allowed uppercase hover:bg-slate-200"
+                            >
+                                Not deliverable to your area
+                            </Button>
+                        ) : quantity > 0 ? (
                             <div className="flex items-center bg-[#1a6e2e] text-white rounded-2xl h-16 w-full sm:w-auto px-2 border border-transparent">
                                 <button
                                     onClick={() => updateQuantity(product.id, -1, "")}

@@ -12,7 +12,17 @@ export const getNearbySellers = async (req, res) => {
     const { lat, lng } = req.query;
 
     if (!lat || !lng) {
-      return handleResponse(res, 400, "Latitude and longitude are required");
+      const sellers = await Seller.find({
+        isActive: true,
+        isOpen: true,
+        isVerified: true
+      }).lean();
+      return handleResponse(
+        res,
+        200,
+        "All active sellers fetched successfully",
+        sellers,
+      );
     }
 
     const customerLat = Number(lat);

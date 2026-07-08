@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/core/context/AuthContext";
 import {
@@ -13,6 +13,7 @@ import {
   User,
   AlertTriangle,
   ShieldCheck,
+  Camera,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Button from "@/shared/components/ui/Button";
@@ -175,6 +176,49 @@ const OrderDetails = () => {
   const [pickupProofSubmitted, setPickupProofSubmitted] = useState(false);
   const [routeStats, setRouteStats] = useState(null);
   const [clockTick, setClockTick] = useState(Date.now());
+  const [shopBillImage, setShopBillImage] = useState("");
+  const [isUploadingBill, setIsUploadingBill] = useState(false);
+  const billFileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (order?.shopBillImage) {
+      setShopBillImage(order.shopBillImage);
+    }
+  }, [order]);
+
+  const handleBillImageSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingBill(true);
+    try {
+      const { default: axiosInstance } = await import("@core/api/axios");
+      const uploadForm = new FormData();
+      uploadForm.append("file", file);
+      const uploadRes = await axiosInstance.post("/media/upload", uploadForm, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const url =
+        uploadRes.data?.result?.url ||
+        uploadRes.data?.data?.url ||
+        uploadRes.data?.url;
+
+      if (!url) {
+        throw new Error("Invalid upload response");
+      }
+
+      await deliveryApi.uploadBillImage(order.orderId, url);
+      setShopBillImage(url);
+      setOrder((prev) => prev ? { ...prev, shopBillImage: url } : prev);
+      toast.success("Shop bill photo uploaded successfully!");
+    } catch (err) {
+      console.error("Upload bill error", err);
+      toast.error("Failed to upload bill photo: " + (err.message || "Unknown error"));
+    } finally {
+      setIsUploadingBill(false);
+      if (billFileInputRef.current) billFileInputRef.current.value = "";
+    }
+  };
 
   const isReturn = order?.returnStatus && order.returnStatus !== "none";
 
@@ -431,6 +475,12 @@ const OrderDetails = () => {
           setStep(2);
           toast.success(`${currentStep.action} Confirmed!`);
         } else if (step === 2) {
+          if (order.orderType !== "custom_pickup" && !shopBillImage) {
+            toast.error("Please upload the shop bill photo first.");
+            setIsSlideComplete(false);
+            setDragX(0);
+            return;
+          }
           const res = await deliveryApi.confirmPickup(order.orderId, {
             lat: location.lat,
             lng: location.lng,
@@ -889,6 +939,60 @@ const OrderDetails = () => {
                   </Button>
                 </div>
               </Card>
+
+              {/* Upload Shop Bill section */}
+              {!isReturn && step === 2 && order.orderType !== "custom_pickup" && (
+                <div className="mt-4 bg-white border border-gray-200 rounded-3xl p-5 space-y-4 shadow-sm text-left">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                      <Camera className="w-5 h-5 text-purple-700" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 text-sm">Upload Shop Bill</h4>
+                      <p className="text-xs text-gray-500">A photo of the original merchant bill is required</p>
+                    </div>
+                  </div>
+
+                  {shopBillImage ? (
+                    <div className="space-y-3">
+                      <div className="relative aspect-video max-w-xs rounded-xl overflow-hidden border border-gray-200">
+                        <img src={shopBillImage} alt="Shop Bill" className="w-full h-full object-cover" />
+                      </div>
+                      <button
+                        onClick={() => billFileInputRef.current?.click()}
+                        disabled={isUploadingBill}
+                        className="text-xs font-bold text-purple-700 flex items-center gap-1 hover:underline"
+                      >
+                        {isUploadingBill ? "Uploading..." : "Change Photo"}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => billFileInputRef.current?.click()}
+                      disabled={isUploadingBill}
+                      className="w-full py-6 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors"
+                    >
+                      {isUploadingBill ? (
+                        <Loader2 className="w-6 h-6 text-purple-700 animate-spin" />
+                      ) : (
+                        <>
+                          <Camera className="w-8 h-8 text-gray-400 mb-2" />
+                          <span className="text-sm font-bold text-gray-700">Take Photo of Shop Bill</span>
+                          <span className="text-xs text-gray-400 mt-1">Image required to proceed</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                  <input
+                    ref={billFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleBillImageSelect}
+                    className="hidden"
+                  />
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

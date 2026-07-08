@@ -43,6 +43,7 @@ import {
   getSellerReturns as getSellerReturnsFromService,
 } from "../services/orderQueryService.js";
 import { orderMatchQueryFromRouteParam } from "../utils/orderLookup.js";
+import { emitOrderStatusUpdate } from "../services/orderSocketEmitter.js";
 import { createFinanceOrderSchema } from "../validation/financeValidation.js";
 import { placeOrderAtomic } from "../services/orderPlacementService.js";
 import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
@@ -1583,6 +1584,47 @@ export const uploadReturnPickupProof = async (req, res) => {
     return handleResponse(res, 200, "Pickup proof uploaded", {
       returnPickupImages: order.returnPickupImages,
       returnPickupCondition: order.returnPickupCondition,
+    });
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};
+
+/* ===============================
+   UPLOAD SHOP BILL IMAGE (Delivery)
+================================ */
+export const uploadBillImage = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { billImage } = req.body || {};
+
+    if (!billImage) {
+      return handleResponse(res, 400, "Bill image URL is required");
+    }
+
+    const orderKey = orderMatchQueryFromRouteParam(orderId);
+    if (!orderKey) return handleResponse(res, 404, "Order not found");
+
+    const order = await Order.findOne(orderKey);
+    if (!order) return handleResponse(res, 404, "Order not found");
+
+    if (req.user.role === "delivery" && order.deliveryBoy?.toString() !== req.user.id) {
+      return handleResponse(res, 403, "Not assigned to this order");
+    }
+
+    order.shopBillImage = billImage;
+    await order.save();
+
+    emitOrderStatusUpdate(
+      order.orderId,
+      {
+        shopBillImage: billImage,
+      },
+      order.customer,
+    );
+
+    return handleResponse(res, 200, "Bill image uploaded successfully", {
+      shopBillImage: billImage,
     });
   } catch (error) {
     return handleResponse(res, 500, error.message);

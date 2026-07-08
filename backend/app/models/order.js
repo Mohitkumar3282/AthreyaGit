@@ -555,6 +555,10 @@ const orderSchema = new mongoose.Schema(
       lat: Number,
       lng: Number,
     },
+    shopBillImage: {
+      type: String,
+      default: "",
+    },
     orderType: {
       type: String,
       enum: ["regular", "custom_pickup"],

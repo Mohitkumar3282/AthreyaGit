@@ -343,6 +343,7 @@ const DeliveryAuth = () => {
                     src={logoUrl}
                     alt={`${appName} logo`}
                     className="w-10 h-10 object-contain"
+                    style={{ filter: "url(#logo-yellow-watch-green-rider)" }}
                   />
                 ) : (
                   <ShieldCheck className="w-5 h-5 text-brand-600" />

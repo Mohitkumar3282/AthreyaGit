@@ -8,16 +8,67 @@ const COLORS = [
     "#ffffff"
 ];
 
+const TELUGU_TRANSLATIONS = {
+  "Water Can": "వాటర్ క్యాన్",
+  "Milk": "పాలు",
+  "Tiffins": "టిఫిన్స్",
+  "Restaurant": "రెస్టారెంట్",
+  "Vegetables": "కూరగాయలు",
+  "Fruits": "పండ్లు",
+  "Chiken": "చికెన్",
+  "Chicken": "చికెన్",
+  "Food": "ఆహారం",
+  "horse food": "గుర్రం ఆహారం",
+  "Cookware": "వంట పాత్రలు",
+  "Rice n": "బియ్యం",
+  "Meat": "మాంసం",
+  "Grocery": "కిరాణా",
+  "Groceries": "కిరాణా",
+  "Chiken fried": "ఫ్రైడ్ చికెన్",
+  "Sea Food": "సముద్ర ఆహారం",
+  "Bakery": "బేకరీ",
+  "Snacks": "స్నాక్స్",
+  "Tea & Coffee": "టీ & కాఫీ",
+  "Pharmacy": "మెడిసిన్",
+  "Flowers": "పూలు",
+  "Electronics": "ఎలక్ట్రానిక్స్",
+  "Stationery": "స్టేషనరీ",
+  "Pets": "పెట్స్",
+  "Home Needs": "హోమ్ నీడ్స్",
+  "Baby Care": "బేబీ కేర్",
+  "Fashion": "ఫ్యాషన్",
+  "More": "మరిన్ని",
+};
+
+const getTeluguCategoryName = (name) => {
+    if (!name) return "";
+    const cleanName = name.trim().toLowerCase();
+    
+    // Check direct match
+    if (TELUGU_TRANSLATIONS[name]) return TELUGU_TRANSLATIONS[name];
+    
+    // Check case-insensitive match
+    for (const [key, value] of Object.entries(TELUGU_TRANSLATIONS)) {
+        if (key.toLowerCase() === cleanName) {
+            return value;
+        }
+    }
+    
+    // Check partial match
+    if (cleanName.includes("chicken") || cleanName.includes("chiken")) return "చికెన్";
+    if (cleanName.includes("vegetable")) return "కూరగాయలు";
+    if (cleanName.includes("fruit")) return "పండ్లు";
+    if (cleanName.includes("milk")) return "పాలు";
+    if (cleanName.includes("water")) return "వాటర్ క్యాన్";
+    if (cleanName.includes("grocery") || cleanName.includes("kirana")) return "కిరాణా";
+    if (cleanName.includes("food")) return "ఆహారం";
+    
+    return "";
+};
+
 const CategoriesPage = () => {
-    const [groups, setGroups] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [columnsPerRow, setColumnsPerRow] = useState(() => {
-        if (typeof window === 'undefined') return 4;
-        if (window.innerWidth >= 1024) return 8;
-        if (window.innerWidth >= 768) return 6;
-        return 4;
-    });
-    const [flippedCategoryId, setFlippedCategoryId] = useState(null);
 
     const fetchCategories = async () => {
         setIsLoading(true);
@@ -25,23 +76,22 @@ const CategoriesPage = () => {
             const res = await customerApi.getCategories({ tree: true });
             if (res.data.success) {
                 const tree = res.data.results || res.data.result || [];
-                const formattedGroups = tree
+                const flatCategories = [];
+                tree
                     .filter((header) => (header.name || '').trim().toLowerCase() !== 'all')
-                    .map((header, idx) => {
-                        const categories = (header.children || []).map((cat, cIdx) => ({
-                            id: cat._id,
-                            name: cat.name,
-                            image: cat.image || "https://cdn.grofers.com/cdn-cgi/image/f=auto,fit=scale-down,q=70,metadata=none,w=270/layout-engine/2022-11/Slice-1_9.png",
-                            color: COLORS[(idx + cIdx) % COLORS.length]
-                        }));
-
-                        return {
-                            title: header.name,
-                            categories,
-                        };
-                    })
-                    .filter((group) => group.categories.length > 0);
-                setGroups(formattedGroups);
+                    .forEach((header, idx) => {
+                        (header.children || []).forEach((cat, cIdx) => {
+                            if (!flatCategories.some(existing => existing.id === cat._id)) {
+                                flatCategories.push({
+                                    id: cat._id,
+                                    name: cat.name,
+                                    image: cat.image || "https://cdn.grofers.com/cdn-cgi/image/f=auto,fit=scale-down,q=70,metadata=none,w=270/layout-engine/2022-11/Slice-1_9.png",
+                                    color: COLORS[(idx + cIdx) % COLORS.length]
+                                });
+                            }
+                        });
+                    });
+                setCategories(flatCategories);
             }
         } catch (error) {
             console.error("Error fetching categories:", error);
@@ -54,158 +104,50 @@ const CategoriesPage = () => {
         fetchCategories();
     }, []);
 
-    useEffect(() => {
-        const updateColumnsPerRow = () => {
-            if (window.innerWidth >= 1024) setColumnsPerRow(8);
-            else if (window.innerWidth >= 768) setColumnsPerRow(6);
-            else setColumnsPerRow(4);
-        };
-        updateColumnsPerRow();
-        window.addEventListener('resize', updateColumnsPerRow);
-        return () => window.removeEventListener('resize', updateColumnsPerRow);
-    }, []);
-
-    const flipRows = useMemo(() => {
-        const rows = [];
-        groups.forEach((group, groupIndex) => {
-            const cats = group.categories || [];
-            const isLeftToRightGroup = groupIndex % 2 === 0;
-            for (let rowStart = 0; rowStart < cats.length; rowStart += columnsPerRow) {
-                const row = cats.slice(rowStart, rowStart + columnsPerRow);
-                const rowSequence = isLeftToRightGroup ? row : [...row].reverse();
-                const rowIds = rowSequence.map((category) => category.id).filter(Boolean);
-                if (rowIds.length) rows.push(rowIds);
-            }
-        });
-        return rows;
-    }, [groups, columnsPerRow]);
-
-    useEffect(() => {
-        if (!flipRows.length) {
-            setFlippedCategoryId(null);
-            return;
-        }
-
-        let isCancelled = false;
-        let activeTimer = null;
-        let settleTimer = null;
-        let rowCursor = 0;
-        const itemCursorByRow = new Array(flipRows.length).fill(0);
-
-        const FLIP_VISIBLE_MS = 620;
-        const GAP_BETWEEN_FLIPS_MS = 220;
-
-        const getNextFromRows = () => {
-            const totalRows = flipRows.length;
-            for (let tries = 0; tries < totalRows; tries += 1) {
-                const rowIndex = (rowCursor + tries) % totalRows;
-                const rowItems = flipRows[rowIndex] || [];
-                if (!rowItems.length) continue;
-                const itemIndex = itemCursorByRow[rowIndex] % rowItems.length;
-                const nextId = rowItems[itemIndex];
-                itemCursorByRow[rowIndex] = (itemIndex + 1) % rowItems.length;
-                rowCursor = (rowIndex + 1) % totalRows; // alternate to next row
-                return nextId;
-            }
-            return null;
-        };
-
-        const scheduleNextFlip = () => {
-            if (isCancelled) return;
-            activeTimer = setTimeout(() => {
-                if (isCancelled) return;
-                const nextId = getNextFromRows();
-                if (!nextId) return;
-                setFlippedCategoryId(nextId);
-
-                settleTimer = setTimeout(() => {
-                    if (isCancelled) return;
-                    setFlippedCategoryId(null);
-                    scheduleNextFlip();
-                }, FLIP_VISIBLE_MS);
-            }, GAP_BETWEEN_FLIPS_MS);
-        };
-
-        scheduleNextFlip();
-
-        return () => {
-            isCancelled = true;
-            if (activeTimer) clearTimeout(activeTimer);
-            if (settleTimer) clearTimeout(settleTimer);
-        };
-    }, [flipRows]);
-
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-[#042A0F] text-white">
 
             <MainLocationHeader />
             <div className="max-w-[1280px] mx-auto px-4 pt-[150px] md:pt-[170px] pb-20">
-                {groups.map((group, groupIdx) => (
-                    <div key={groupIdx} className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${groupIdx * 100}ms` }}>
-                        {/* Group Title */}
-                        <h2 className="text-lg md:text-xl font-bold tracking-tight text-slate-800 mb-5 px-1 font-sans">
-                            {group.title}
-                        </h2>
+                <div className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {/* Group Title */}
+                    <h2 className="text-[12.5px] md:text-sm font-black text-white tracking-wide uppercase mb-4.5 px-1 font-sans">
+                        ALL CATEGORIES
+                    </h2>
  
-                        {/* Categories Grid */}
-                        <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-x-3 gap-y-6">
-                            {group.categories.map((category) => (
-                                <div key={category.id} className="flex flex-col group cursor-pointer">
-                                    <Link
-                                        to={`/category/${category.id}`}
-                                        className="block"
-                                    >
-                                        <div className="aspect-square mb-1.5 [perspective:1000px]">
-                                            <div
-                                                className="relative w-full h-full transition-transform duration-500 [transition-timing-function:cubic-bezier(0.4,0,0.2,1)] will-change-transform"
-                                                style={{
-                                                    transformStyle: 'preserve-3d',
-                                                    WebkitTransformStyle: 'preserve-3d',
-                                                    transform: flippedCategoryId === category.id ? 'rotateY(180deg)' : 'rotateY(0deg)'
-                                                }}
-                                            >
-                                                <div
-                                                    className="absolute inset-0 rounded-full p-2.5 flex items-center justify-center border border-[#1a6e2e]/20"
-                                                    style={{
-                                                        backgroundColor: "#ffffff",
-                                                        transform: 'rotateY(0deg)',
-                                                        backfaceVisibility: 'hidden',
-                                                        WebkitBackfaceVisibility: 'hidden'
-                                                    }}
-                                                >
-                                                    <img
-                                                        src={applyCloudinaryTransform(category.image)}
-                                                        alt={category.name}
-                                                        loading="lazy"
-                                                        className="w-full h-full rounded-full object-cover"
-                                                    />
-                                                </div>
- 
-                                                <div
-                                                    className="absolute inset-0 rounded-full bg-white text-[#1a6e2e] flex items-center justify-center p-2 text-center border border-[#1a6e2e]/20"
-                                                    style={{
-                                                        transform: 'rotateY(180deg)',
-                                                        backfaceVisibility: 'hidden',
-                                                        WebkitBackfaceVisibility: 'hidden'
-                                                    }}
-                                                >
-                                                    <span className="text-[10px] md:text-[12px] font-bold leading-tight">
-                                                        {category.name}
-                                                    </span>
-                                                </div>
-                                            </div>
+                    {/* Categories Grid */}
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-x-3.5 gap-y-4">
+                        {categories.map((category) => (
+                            <div key={category.id} className="flex flex-col group cursor-pointer">
+                                <Link
+                                    to={`/category/${category.id}`}
+                                    className="block"
+                                >
+                                    <div className="w-full rounded-[18px] bg-white border border-[#0d4f1c] flex flex-col items-center p-2 transition-transform active:scale-95 duration-200">
+                                        <div className="w-full aspect-square rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center mb-1.5 p-1">
+                                            <img
+                                                src={applyCloudinaryTransform(category.image)}
+                                                alt={category.name}
+                                                loading="lazy"
+                                                className="w-[85%] h-[85%] object-contain"
+                                            />
                                         </div>
-                                        <div className="text-center px-1">
-                                            <span className="text-[11px] md:text-[13px] font-bold text-slate-700 group-hover:text-[#1a6e2e] transition-colors block truncate max-w-full font-sans leading-tight">
+                                        <div className="text-center w-full flex flex-col items-center justify-center leading-none pb-0.5">
+                                            <span className="text-[9.5px] md:text-[11.5px] font-extrabold text-slate-900 tracking-tight block truncate max-w-full font-sans uppercase">
                                                 {category.name}
                                             </span>
+                                            {getTeluguCategoryName(category.name) && (
+                                                <span className="text-[8px] md:text-[10px] font-semibold text-slate-500 mt-1 block truncate max-w-full font-sans">
+                                                    {getTeluguCategoryName(category.name)}
+                                                </span>
+                                            )}
                                         </div>
-                                    </Link>
-                                </div>
-                            ))}
-                        </div>
+                                    </div>
+                                </Link>
+                            </div>
+                        ))}
                     </div>
-                ))}
+                </div>
             </div>
         </div>
     );

@@ -8,7 +8,7 @@ import { useAuth } from '@core/context/AuthContext';
 import { useSettings } from '@core/context/SettingsContext';
 import { customerApi } from '../services/customerApi';
 import { toast } from 'sonner';
-import LogoImage from "../../../assets/Logo.png";
+import LogoTransparent from "../../../assets/LogoTransparent.png";
 import {
     describePushSupport,
     ensureFcmTokenRegistered,
@@ -22,7 +22,7 @@ const ProfilePage = () => {
     const navigate = useNavigate();
     const { user, role, logout } = useAuth();
     const { settings } = useSettings();
-    const logoUrl = settings?.logoUrl || LogoImage;
+    const logoUrl = settings?.logoUrl || LogoTransparent;
     const appName = settings?.appName || 'App';
     const [isTestingPush, setIsTestingPush] = React.useState(false);
 

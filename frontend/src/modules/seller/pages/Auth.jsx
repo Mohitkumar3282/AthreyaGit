@@ -486,6 +486,7 @@ const Auth = () => {
                   src={logoUrl}
                   alt={`${appName} logo`}
                   className="w-14 h-14 object-contain"
+                  style={{ filter: "url(#logo-yellow-watch-green-rider)" }}
                 />
               ) : (
                 <Store size={30} className="text-slate-700" />

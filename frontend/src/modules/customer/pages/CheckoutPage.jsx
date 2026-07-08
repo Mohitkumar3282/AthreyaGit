@@ -37,7 +37,7 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@shared/components/ui/Toast";
 import { useSettings } from "@core/context/SettingsContext";
-import LogoImage from "../../../assets/Logo.png";
+import LogoTransparent from "../../../assets/LogoTransparent.png";
 import SlideToPay from "../components/shared/SlideToPay";
 import { AddressAutocompleteField } from "@/shared/components/AddressAutocompleteField";
 import { getCachedGeocode, setCachedGeocode } from "@/core/utils/geocodeCache";
@@ -931,16 +931,17 @@ const CheckoutPage = () => {
               <ChevronLeft size={28} className="text-[#1a6e2e]" />
             </button>
             <div className="flex flex-col items-center">
-              <div className="flex items-center gap-0 mb-1 cursor-pointer" onClick={() => navigate("/")}>
+              <div className="flex items-center gap-1.5 mb-1 cursor-pointer" onClick={() => navigate("/")}>
                 <img
-                  src={settings?.logoUrl || LogoImage}
-                  alt="Athreya Delivery Logo"
-                  className="h-10 md:h-12 w-auto object-contain -mr-1.5 md:-mr-3"
+                  src={settings?.logoUrl || LogoTransparent}
+                  alt="Athreya Delivery"
+                  className="h-10 md:h-12 w-auto object-contain"
+                  style={{ filter: "url(#logo-yellow-watch-green-rider)" }}
                 />
-                <span className="text-sm md:text-lg font-black tracking-tight flex gap-1">
-                  <span className="text-[#1a6e2e]">ATHREYA</span>
-                  <span className="text-[#1a6e2e]">DELIVERY</span>
-                </span>
+                <div className="flex flex-col items-start leading-none font-sans">
+                  <span className="text-[13px] md:text-[16px] font-black text-[#1a6e2e] tracking-wide uppercase">ATHREYA</span>
+                  <span className="text-[9px] md:text-[10px] font-bold text-[#1a6e2e] tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
+                </div>
               </div>
               <h1 className="text-xl md:text-2xl font-black text-[#1a6e2e] tracking-tight uppercase">Checkout</h1>
               <div className="flex items-center gap-2 mt-1">

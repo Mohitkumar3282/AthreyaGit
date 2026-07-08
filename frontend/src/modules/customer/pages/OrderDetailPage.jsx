@@ -142,6 +142,7 @@ const OrderDetailPage = () => {
   const { orderId } = useParams();
   const [showInvoice, setShowInvoice] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [isBillLightboxOpen, setIsBillLightboxOpen] = useState(false);
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [returnDetails, setReturnDetails] = useState(null);
@@ -924,6 +925,39 @@ const OrderDetailPage = () => {
           />
         )}
 
+        {/* Original Shop Bill verification */}
+        {order.orderType !== "custom_pickup" && order.shopBillImage && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-3xl p-5 border border-[#1a6e2e]/20 text-left"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-10 w-10 bg-green-50 rounded-xl flex items-center justify-center">
+                <Package className="w-5 h-5 text-green-700" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-[#1a6e2e] uppercase tracking-wider">Merchant Bill Uploaded</p>
+                <p className="text-xs text-slate-500">Please verify the bill photo before sharing delivery OTP</p>
+              </div>
+            </div>
+
+            <div 
+              onClick={() => setIsBillLightboxOpen(true)}
+              className="relative aspect-video max-w-sm rounded-2xl overflow-hidden border border-slate-100 shadow-sm cursor-zoom-in hover:brightness-95 transition-all group"
+            >
+              <img 
+                src={order.shopBillImage} 
+                alt="Original shop bill" 
+                className="w-full h-full object-cover" 
+              />
+              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">
+                🔍 Click to Zoom / Verify
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Proximity-based Delivery OTP Display */}
         <DeliveryOtpDisplay
           orderId={order?.orderId || orderId}
@@ -1602,6 +1636,31 @@ const OrderDetailPage = () => {
           </motion.div>
         </div>
       )}
+      {/* Bill Lightbox Modal */}
+      <AnimatePresence>
+        {isBillLightboxOpen && order?.shopBillImage && (
+          <div className="fixed inset-0 bg-black/90 z-[999] flex flex-col items-center justify-center p-4">
+            <button 
+              onClick={() => setIsBillLightboxOpen(false)}
+              className="absolute top-6 right-6 h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors border border-white/20"
+            >
+              <X size={24} />
+            </button>
+            
+            <div className="max-w-4xl max-h-[80vh] overflow-auto rounded-2xl shadow-2xl bg-black border border-white/10">
+              <img 
+                src={order.shopBillImage} 
+                alt="Shop Bill Original" 
+                className="max-w-full max-h-[80vh] object-contain mx-auto" 
+              />
+            </div>
+            
+            <p className="text-white/80 text-sm font-bold mt-4 tracking-wide text-center">
+              Original Merchant Shop Bill
+            </p>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

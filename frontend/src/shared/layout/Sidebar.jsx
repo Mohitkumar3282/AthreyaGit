@@ -228,7 +228,12 @@ const SidebarContent = ({ items, title, onClose, openMenu, handleToggle, hovered
         <div className="flex items-center space-x-2.5">
           {settings?.logoUrl ? (
             <div className="h-9 w-9 rounded-xl overflow-hidden shadow-sm ring-1 ring-blue-100 group-hover:scale-110 transition-all duration-500 ease-out">
-              <img src={settings.logoUrl} alt={appName} className="h-full w-full object-contain" />
+              <img 
+                src={settings.logoUrl} 
+                alt={appName} 
+                className="h-full w-full object-contain" 
+                style={{ filter: "url(#logo-yellow-watch-green-rider)" }}
+              />
             </div>
           ) : (
             <div className="h-9 w-9 rounded-xl bg-[#1e40af] flex items-center justify-center text-white shadow-sm transform -rotate-6 hover:rotate-0 transition-all duration-500 ease-out">
@@ -287,7 +292,12 @@ const SidebarContent = ({ items, title, onClose, openMenu, handleToggle, hovered
             <div className="relative group">
               {settings?.logoUrl ? (
                 <div className="h-8 w-8 rounded-lg overflow-hidden border border-blue-200 shadow-lg group-hover:scale-110 transition-all duration-500">
-                  <img src={settings.logoUrl} alt={appName} className="h-full w-full object-contain" />
+                  <img 
+                    src={settings.logoUrl} 
+                    alt={appName} 
+                    className="h-full w-full object-contain" 
+                    style={{ filter: "url(#logo-yellow-watch-green-rider)" }}
+                  />
                 </div>
               ) : (
                 <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#1e40af] via-brand-500 to-blue-600 flex items-center justify-center text-white font-black text-xs shadow-lg group-hover:scale-110 transition-all duration-500">

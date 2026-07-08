@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import heroVideo from '@/assets/hero_video.mp4';
 import LazyImage from '@/shared/components/LazyImage';
 import { useSettings } from '@/core/context/SettingsContext';
-import LogoImage from '@/assets/Logo.png';
+import LogoTransparent from '@/assets/LogoTransparent.png';
 
 
 const banners = [
@@ -145,8 +145,12 @@ const Hero = () => {
                             className="w-full h-full object-cover scale-[1.22] origin-top"
                         />
                         {/* Logo overlay on video */}
-                        <div className="absolute top-6 left-6 z-20 bg-white/90  px-3.5 py-2 rounded-2xl border border-[#1a6e2e]/20 border border-white/20 flex items-center justify-center max-h-16 pointer-events-none">
-                            <img src={settings?.logoUrl || LogoImage} alt="Logo" className="h-8 sm:h-10 w-auto object-contain" />
+                        <div className="absolute top-6 left-6 z-20 bg-white/90 px-3.5 py-2 rounded-2xl border border-white/20 flex items-center gap-1.5 max-h-16 pointer-events-none">
+                            <img src={settings?.logoUrl || LogoTransparent} alt="Logo" className="h-7 sm:h-9 w-auto object-contain" />
+                            <div className="flex flex-col items-start leading-none font-sans">
+                                <span className="text-[11.5px] font-black text-[#1a6e2e] tracking-wide uppercase">ATHREYA</span>
+                                <span className="text-[7.5px] font-bold text-[#1a6e2e] tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
+                            </div>
                         </div>
 
                         {/* Bottom Scrolling Marquee Overlay */}

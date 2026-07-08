@@ -5,12 +5,12 @@ import { customerApi } from '../services/customerApi';
 import { getOrderStatusLabel, getLegacyStatusFromOrder } from '@/shared/utils/orderStatus';
 import { applyCloudinaryTransform } from '@/core/utils/imageUtils';
 import { useSettings } from '@core/context/SettingsContext';
-import LogoImage from "../../../assets/Logo.png";
+import LogoTransparent from "../../../assets/LogoTransparent.png";
 
 const OrdersPage = () => {
     const navigate = useNavigate();
     const { settings } = useSettings();
-    const logoUrl = settings?.logoUrl || LogoImage;
+    const logoUrl = settings?.logoUrl || LogoTransparent;
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
 

@@ -1,11 +1,11 @@
 import React from 'react';
 import { Facebook, Twitter, Instagram, Youtube, Mail, MapPin, Phone } from 'lucide-react';
-import Logo from '@/assets/Logo.png';
+import LogoTransparent from '@/assets/LogoTransparent.png';
 import { useSettings } from '@core/context/SettingsContext';
 
 const Footer = () => {
     const { settings } = useSettings();
-    const logoUrl = settings?.logoUrl || Logo;
+    const logoUrl = settings?.logoUrl || LogoTransparent;
     const primaryColor = settings?.primaryColor || '#1a6e2e';
 
     return (
@@ -15,8 +15,12 @@ const Footer = () => {
 
                     {/* Brand Info */}
                     <div className="space-y-4 md:space-y-8">
-                        <div className="flex items-center">
-                            <img src={logoUrl} alt={`${settings?.appName || 'App'} Logo`} loading="lazy" className="h-16 md:h-24 w-auto object-contain scale-[1.2]" />
+                        <div className="flex items-center gap-2.5">
+                            <img src={logoUrl} alt={`${settings?.appName || 'App'} Logo`} loading="lazy" className="h-14 md:h-18 w-auto object-contain" />
+                            <div className="flex flex-col items-start leading-none font-sans">
+                                <span className="text-[17px] font-black text-[#1a6e2e] tracking-wide uppercase">ATHREYA</span>
+                                <span className="text-[11px] font-bold text-[#1a6e2e] tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
+                            </div>
                         </div>
                         <p className="text-sm leading-relaxed md:text-base md:leading-loose text-[#1a6e2e] md:max-w-xs transition-opacity hover:opacity-100 font-medium">
                             Your daily dose of fresh, organic, and healthy products delivered straight to your door. Freshness guaranteed.

@@ -23,6 +23,13 @@ function App() {
                             <SupportUnreadProvider>
                                 <LenisScroll />
                                 <AppRouter />
+                                <svg className="sr-only" width="0" height="0" style={{ position: 'absolute', width: 0, height: 0 }}>
+                                    <defs>
+                                        <filter id="logo-yellow-watch-green-rider">
+                                            <feColorMatrix type="matrix" values="1.3 0 -1.2 0 0  0 1.25 -0.82 0 0  0.28 0 -0.10 0 0  0 0 0 1.0 0" />
+                                        </filter>
+                                    </defs>
+                                </svg>
                                 {showSplash && (
                                     <SplashScreen onFinished={() => setShowSplash(false)} />
                                 )}

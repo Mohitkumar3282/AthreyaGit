@@ -237,6 +237,67 @@ const LocationDrawer = ({ isOpen, onClose }) => {
     if (!isSearchFocused) return;
 
     const query = searchQuery.trim();
+
+    // Check if query is a 6-digit PIN code
+    if (/^\d{6}$/.test(query)) {
+      latestPlacesRequestRef.current += 1;
+      const requestId = latestPlacesRequestRef.current;
+      const querySnapshot = query;
+
+      const timer = setTimeout(async () => {
+        const ready = await initGooglePlaces();
+        if (!ready || !geocoderRef.current) return;
+
+        setIsSearchingPlaces(true);
+        setPlacesError("");
+
+        geocoderRef.current.geocode(
+          { address: query, componentRestrictions: { country: "in" } },
+          (results, status) => {
+            // Ignore stale responses from older keystrokes.
+            if (
+              requestId !== latestPlacesRequestRef.current ||
+              querySnapshot !== searchQuery.trim()
+            ) {
+              return;
+            }
+
+            setIsSearchingPlaces(false);
+            if (status === "OK" && results && results[0]) {
+              const result = results[0];
+              const geometry = result.geometry?.location;
+              const components = result.address_components || [];
+              const city = getComponent(components, ["locality"]);
+              const state = getComponent(components, ["administrative_area_level_1"]);
+              const pincode = getComponent(components, ["postal_code"]) || query;
+              const sublocality = getComponent(components, ["sublocality"]) || 
+                getComponent(components, ["neighborhood"]) || 
+                getComponent(components, ["sublocality_level_1"]);
+              
+              const displayName = sublocality 
+                ? `${sublocality}, ${city || ''} ${pincode}` 
+                : result.formatted_address || `${city || ''} ${pincode}`;
+
+              const customPrediction = {
+                place_id: result.place_id,
+                description: displayName,
+                structured_formatting: {
+                  main_text: sublocality || city || `PIN Code ${pincode}`,
+                  secondary_text: `${state || ''}, India`
+                }
+              };
+              setPlacePredictions([customPrediction]);
+            } else {
+              setPlacePredictions([]);
+              setPlacesError("PIN Code not found");
+            }
+          }
+        );
+      }, SEARCH_DEBOUNCE_MS);
+
+      return () => clearTimeout(timer);
+    }
+
     if (query.length < MIN_QUERY_LENGTH) {
       latestPlacesRequestRef.current += 1;
       setPlacePredictions([]);
@@ -382,7 +443,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
                   onBlur={() => {
                     window.setTimeout(() => setIsSearchFocused(false), 120);
                   }}
-                  className="w-full bg-white rounded-2xl py-4 pl-12 pr-4 text-sm font-semibold placeholder:text-[#1A1A1A]/40 border border-[#1a6e2e]/20 focus:ring-2 focus:ring-[#1a6e2e]/20 transition-all outline-none"
+                  className="w-full bg-white text-[#1A1A1A] rounded-2xl py-4 pl-12 pr-4 text-sm font-semibold placeholder:text-[#1A1A1A]/40 border border-[#1a6e2e]/20 focus:ring-2 focus:ring-[#1a6e2e]/20 transition-all outline-none"
                 />
               </div>
               <p className="text-[11px] font-semibold text-slate-400 px-1">

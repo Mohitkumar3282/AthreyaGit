@@ -21,6 +21,7 @@ import {
   rejectReturnPickup,
   updateReturnStatus,
   uploadReturnPickupProof,
+  uploadBillImage,
 } from "../controller/orderController.js";
 import {
   createOrderWithFinancialSnapshot,
@@ -206,6 +207,12 @@ router.post(
   verifyToken,
   allowRoles("delivery", "admin"),
   confirmPickup,
+);
+router.post(
+  "/workflow/:orderId/bill/upload",
+  verifyToken,
+  allowRoles("delivery", "admin"),
+  uploadBillImage,
 );
 router.post(
   "/workflow/:orderId/pickup/ready",

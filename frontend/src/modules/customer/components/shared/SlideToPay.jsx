@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, useAnimation, useMotionValue, useTransform } from 'framer-motion';
 import { ChevronRight, Check, ChevronsRight } from 'lucide-react';
 
@@ -12,6 +12,7 @@ const SlideToPay = ({
     const [isCompleted, setIsCompleted] = useState(false);
     const controls = useAnimation();
     const x = useMotionValue(0);
+    const containerRef = useRef(null);
     const [containerWidth, setContainerWidth] = useState(0);
     const [sliderWidth, setSliderWidth] = useState(56); // Width of the sliding circle
 
@@ -55,16 +56,39 @@ const SlideToPay = ({
     };
 
     useEffect(() => {
-        if (isLoading) {
-            // Loading state if handled externally
-        }
-    }, [isLoading]);
+        if (!containerRef.current) return;
+        
+        const updateWidth = () => {
+            if (containerRef.current) {
+                const width = containerRef.current.offsetWidth;
+                if (width > 0) {
+                    setContainerWidth(width);
+                }
+            }
+        };
 
+        // Measure initially
+        updateWidth();
+
+        // Observe size changes
+        const observer = new ResizeObserver(() => {
+            updateWidth();
+        });
+        observer.observe(containerRef.current);
+
+        // Window resize fallback
+        window.addEventListener('resize', updateWidth);
+
+        return () => {
+            observer.disconnect();
+            window.removeEventListener('resize', updateWidth);
+        };
+    }, []);
 
     return (
         <div
+            ref={containerRef}
             className="relative h-16 w-full rounded-full overflow-hidden select-none touch-none bg-[#1a6e2e] border-none"
-            ref={(el) => el && setContainerWidth(el.offsetWidth)}
         >
             {/* Progress Fill */}
             <motion.div
@@ -91,7 +115,7 @@ const SlideToPay = ({
                 style={{ opacity: textOpacity }}
             >
                 <span className="text-white font-black text-sm md:text-[13px] tracking-[0.25em] uppercase flex items-center gap-2">
-                    {text} <span className="text-white/40">|</span> <span className="text-[#1a6e2e] font-extrabold">₹{amount}</span>
+                    {text} <span className="text-white/40">|</span> <span className="text-[#A3E635] font-extrabold">₹{amount}</span>
                 </span>
 
                 <div className="absolute right-4 animate-pulse text-white/70">
