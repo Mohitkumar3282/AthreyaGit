@@ -21,6 +21,7 @@ import {
 import { toast } from 'sonner';
 import { customerApi } from '../services/customerApi';
 import BgImage from '@/assets/image.png';
+import LogoTransparent from '@/assets/LogoTransparent.png';
 
 const CATEGORIES = [
     {
@@ -74,7 +75,7 @@ const CustomerAuth = () => {
     const { login } = useAuth();
     const { settings } = useSettings();
     const appName = settings?.appName || 'App';
-    const logoUrl = settings?.logoUrl || '';
+    const logoUrl = settings?.logoUrl || LogoTransparent;
     const navigate = useNavigate();
 
     const [formData, setFormData] = useState({
@@ -276,6 +277,7 @@ const CustomerAuth = () => {
                                                 alt={`${appName} logo`}
                                                 loading="lazy"
                                                 className="w-full h-full object-contain"
+                                                style={{ filter: "url(#logo-all-green)" }}
                                             />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center rounded-xl" style={{ backgroundColor: activeCategory.color }}>
@@ -478,6 +480,15 @@ const CustomerAuth = () => {
             <div className="hidden md:block absolute bottom-10 right-10 text-white/20 text-xs font-bold uppercase tracking-[4px]">
                 Adaptive Theme Simulator
             </div>
+
+            {/* SVG Filter for Logo All Green */}
+            <svg className="sr-only" width="0" height="0" style={{ position: 'absolute', width: 0, height: 0 }}>
+                <defs>
+                    <filter id="logo-all-green">
+                        <feColorMatrix type="matrix" values="-0.6 0.6 0.64 0 0   0 0.65 0.25 0 0   0 0.25 -0.05 0 0   0 0 0 1 0" />
+                    </filter>
+                </defs>
+            </svg>
         </div>
     );
 };
