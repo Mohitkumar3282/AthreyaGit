@@ -82,6 +82,7 @@ const HeaderCategories = () => {
     headerColor: "#FF1E1E",
     headerFontColor: "#111111",
     headerIconColor: "#111111",
+    sortOrder: "",
   });
 
   const [imageFile, setImageFile] = useState(null);
@@ -187,7 +188,7 @@ const HeaderCategories = () => {
       data.append("type", "header");
       Object.keys(formData).forEach((key) => {
         if (key === "type") return;
-        if (key === "adminCommission" || key === "handlingFees") {
+        if (key === "adminCommission" || key === "handlingFees" || key === "sortOrder") {
           data.append(key, formData[key] === "" ? "0" : String(formData[key]));
           return;
         }
@@ -249,6 +250,7 @@ const HeaderCategories = () => {
       headerColor: "#FF1E1E",
       headerFontColor: "#111111",
       headerIconColor: "#111111",
+      sortOrder: "",
     });
     setImageFile(null);
     setPreviewUrl(null);
@@ -272,6 +274,7 @@ const HeaderCategories = () => {
       headerColor: item.headerColor || "#FF1E1E",
       headerFontColor: item.headerFontColor || "#FFFFFF",
       headerIconColor: item.headerIconColor || "#111111",
+      sortOrder: item.sortOrder ?? "",
     });
     setPreviewUrl(item.image || null);
     setIsAddModalOpen(true);
@@ -795,6 +798,22 @@ const HeaderCategories = () => {
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                   </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Index / Sort Order
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.sortOrder}
+                    onChange={(e) =>
+                      setFormData({ ...formData, sortOrder: e.target.value })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+                    placeholder="0"
+                    min="0"
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
