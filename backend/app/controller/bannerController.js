@@ -5,9 +5,11 @@ import handleResponse from "../utils/helper.js";
 import { WORKFLOW_STATUS } from "../constants/orderWorkflow.js";
 import { getFirebaseRealtimeDb } from "../config/firebaseAdmin.js";
 
-// Helper to get time of day label
 const getTimeOfDay = () => {
-    const hours = new Date().getHours();
+    // Force Indian Standard Time (IST, UTC+5:30) for calculations
+    const utcDate = new Date();
+    const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
+    const hours = istDate.getUTCHours();
     if (hours >= 7 && hours < 11) return "morning";
     if (hours >= 11 && hours < 15) return "afternoon";
     if (hours >= 15 && hours < 19) return "evening";
