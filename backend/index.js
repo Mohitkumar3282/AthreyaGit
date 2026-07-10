@@ -183,8 +183,8 @@ function createApp() {
     }),
   );
 
-  app.use(express.json({ limit: process.env.API_JSON_LIMIT || "1mb" }));
-  app.use(express.urlencoded({ limit: process.env.API_URLENCODED_LIMIT || "1mb", extended: true }));
+  app.use(express.json({ limit: process.env.API_JSON_LIMIT || "50mb" }));
+  app.use(express.urlencoded({ limit: process.env.API_URLENCODED_LIMIT || "50mb", extended: true }));
 
   // Root endpoint
   app.get("/", (req, res) => {

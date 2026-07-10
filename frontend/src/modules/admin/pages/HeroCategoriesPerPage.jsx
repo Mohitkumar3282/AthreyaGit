@@ -35,6 +35,7 @@ export default function HeroCategoriesPerPage() {
   const [pageData, setPageData] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Existing Hero configuration states
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRow, setEditingRow] = useState(null);
   const [formBanners, setFormBanners] = useState([emptyBannerItem()]);
@@ -43,71 +44,96 @@ export default function HeroCategoriesPerPage() {
   const [footerUploading, setFooterUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // New Tab & Timing-based video configuration states
+  const [activeTab, setActiveTab] = useState("pages"); // "pages" | "timingVideos"
+  const [timingVideosData, setTimingVideosData] = useState([]);
+  const [timingModalOpen, setTimingModalOpen] = useState(false);
+  const [editingTiming, setEditingTiming] = useState(null);
+  const [timingForm, setTimingForm] = useState({
+    timeOfDay: "",
+    text: "",
+    subtitle: "",
+    cta: "Shop Now",
+    redirectUrl: "",
+    videos: []
+  });
+
+  const loadAllConfig = async (cancelled = false) => {
+    setLoading(true);
+    try {
+      // 1. Load Categories
+      const treeRes = await adminApi.getCategoryTree();
+      const tree = treeRes.data?.results || treeRes.data?.result || [];
+      const headerList = Array.isArray(tree) ? tree : [];
+      if (cancelled) return;
+      setHeaders(headerList);
+
+      const flatCategories = headerList.flatMap((h) => (h.children || []).map((c) => ({ ...c, headerName: h.name })));
+      setAllCategories(flatCategories);
+
+      // 2. Load Page Hero Configs
+      const homeRes = await adminApi.getHeroConfig({ pageType: "home" });
+      const homeResult = homeRes.data?.result || homeRes.data || {};
+      const homeBanners = homeResult.banners?.items || [];
+      const homeCatIds = homeResult.categoryIds || [];
+
+      const rows = [
+        {
+          id: "home",
+          label: "Home",
+          pageType: "home",
+          headerId: null,
+          bannerCount: homeBanners.length,
+          categoryCount: homeCatIds.length,
+        },
+      ];
+
+      await Promise.all(
+        headerList.map(async (h) => {
+          const res = await adminApi.getHeroConfig({
+            pageType: "header",
+            headerId: h._id,
+          });
+          if (cancelled) return;
+          const result = res.data?.result || res.data || {};
+          const items = result.banners?.items || [];
+          const catIds = result.categoryIds || [];
+          rows.push({
+            id: h._id,
+            label: h.name || "Unnamed",
+            pageType: "header",
+            headerId: h._id,
+            bannerCount: items.length,
+            categoryCount: catIds.length,
+          });
+        })
+      );
+
+      if (!cancelled) setPageData(rows);
+
+      // 3. Load dynamic time-of-day banner videos
+      try {
+        const timingRes = await adminApi.getTimingBannerVideos();
+        const timingResult = timingRes.data?.result || timingRes.data?.results || [];
+        if (!cancelled) setTimingVideosData(timingResult);
+      } catch (timingErr) {
+        console.error("Failed to load timing configurations:", timingErr);
+      }
+    } catch (e) {
+      if (!cancelled) console.error(e);
+      showToast("Failed to load configuration data", "error");
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
-
-    const load = async () => {
-      setLoading(true);
-      try {
-        const treeRes = await adminApi.getCategoryTree();
-        const tree = treeRes.data?.results || treeRes.data?.result || [];
-        const headerList = Array.isArray(tree) ? tree : [];
-        if (cancelled) return;
-        setHeaders(headerList);
-
-        const flatCategories = headerList.flatMap((h) => (h.children || []).map((c) => ({ ...c, headerName: h.name })));
-        setAllCategories(flatCategories);
-
-        const homeRes = await adminApi.getHeroConfig({ pageType: "home" });
-        const homeResult = homeRes.data?.result || homeRes.data || {};
-        const homeBanners = homeResult.banners?.items || [];
-        const homeCatIds = homeResult.categoryIds || [];
-
-        const rows = [
-          {
-            id: "home",
-            label: "Home",
-            pageType: "home",
-            headerId: null,
-            bannerCount: homeBanners.length,
-            categoryCount: homeCatIds.length,
-          },
-        ];
-
-        await Promise.all(
-          headerList.map(async (h) => {
-            const res = await adminApi.getHeroConfig({
-              pageType: "header",
-              headerId: h._id,
-            });
-            if (cancelled) return;
-            const result = res.data?.result || res.data || {};
-            const items = result.banners?.items || [];
-            const catIds = result.categoryIds || [];
-            rows.push({
-              id: h._id,
-              label: h.name || "Unnamed",
-              pageType: "header",
-              headerId: h._id,
-              bannerCount: items.length,
-              categoryCount: catIds.length,
-            });
-          })
-        );
-
-        if (!cancelled) setPageData(rows);
-      } catch (e) {
-        if (!cancelled) console.error(e);
-        showToast("Failed to load hero config", "error");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    load();
+    loadAllConfig(cancelled);
     return () => { cancelled = true; };
   }, [showToast]);
 
+  // --- Normal Page Config Edit Flow ---
   const openEdit = async (row) => {
     setEditingRow(row);
     setFormCategoryIds([]);
@@ -236,95 +262,283 @@ export default function HeroCategoriesPerPage() {
     }
   };
 
+  // --- Dynamic Timing-based Video Edit Flow ---
+  const openEditTiming = (item) => {
+    setEditingTiming(item);
+    setTimingForm({
+      timeOfDay: item.timeOfDay,
+      text: item.text || "",
+      subtitle: item.subtitle || "",
+      cta: item.cta || "Shop Now",
+      redirectUrl: item.redirectUrl || "",
+      videos: Array.isArray(item.videos) ? item.videos.map(v => ({ ...v, isUploading: false })) : []
+    });
+    setTimingModalOpen(true);
+  };
+
+  const updateTimingVideoItem = (idx, changes) => {
+    setTimingForm((prev) => {
+      const nextVideos = [...prev.videos];
+      nextVideos[idx] = { ...nextVideos[idx], ...changes };
+      return { ...prev, videos: nextVideos };
+    });
+  };
+
+  const addTimingVideoItem = () => {
+    setTimingForm((prev) => ({
+      ...prev,
+      videos: [...prev.videos, { name: "", url: "", isUploading: false }]
+    }));
+  };
+
+  const removeTimingVideoItem = (idx) => {
+    setTimingForm((prev) => ({
+      ...prev,
+      videos: prev.videos.filter((_, i) => i !== idx)
+    }));
+  };
+
+  const handleTimingVideoFileChange = async (idx, file) => {
+    if (!file) return;
+    updateTimingVideoItem(idx, { isUploading: true });
+    try {
+      const fd = new FormData();
+      fd.append("image", file); // Backend uploadExperienceBanner controller expects "image" name
+      const res = await adminApi.uploadExperienceBanner(fd);
+      const url = res.data?.result?.url || res.data?.url;
+      if (!url) throw new Error("Upload failed");
+      updateTimingVideoItem(idx, { url, isUploading: false });
+      showToast("Timing banner video uploaded", "success");
+    } catch (e) {
+      console.error(e);
+      updateTimingVideoItem(idx, { isUploading: false });
+      showToast("Failed to upload timing video", "error");
+    }
+  };
+
+  const handleSaveTiming = async () => {
+    if (!timingForm.text) {
+      showToast("Text title is required", "error");
+      return;
+    }
+    setSaving(true);
+    try {
+      const cleanVideos = timingForm.videos.filter(v => v.url).map(v => ({
+        name: v.name || "",
+        url: v.url
+      }));
+
+      await adminApi.setTimingBannerVideo({
+        timeOfDay: timingForm.timeOfDay,
+        text: timingForm.text,
+        subtitle: timingForm.subtitle,
+        cta: timingForm.cta,
+        redirectUrl: timingForm.redirectUrl,
+        videos: cleanVideos
+      });
+
+      showToast("Timing configuration saved", "success");
+      
+      // Reload configurations to refresh state
+      await loadAllConfig(false);
+      
+      setTimingModalOpen(false);
+      setEditingTiming(null);
+    } catch (e) {
+      console.error(e);
+      showToast(e.response?.data?.message || "Failed to save timing configuration", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 max-w-4xl">
-      <div className="mb-6">
-        <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
-          Hero & categories per page
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Configure the <strong>separate</strong> hero banners and categories strip at the top of each page.
-          If a header page has no config, the storefront shows the home page hero and categories.
-          Create Sections are for the main content area only.
-        </p>
+      <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+            Hero & categories per page
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Configure sliding hero banners and custom promotional timing videos for storefront layout.
+          </p>
+        </div>
+
+        {/* Tab Switcher */}
+        <div className="flex bg-slate-100 p-1.5 rounded-xl self-start shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab("pages")}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-xs font-black transition-all",
+              activeTab === "pages"
+                ? "bg-white text-slate-800 shadow-sm"
+                : "text-slate-500 hover:text-slate-800"
+            )}
+          >
+            Page Hero configs
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("timingVideos")}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-xs font-black transition-all",
+              activeTab === "timingVideos"
+                ? "bg-white text-slate-800 shadow-sm"
+                : "text-slate-500 hover:text-slate-800"
+            )}
+          >
+            Timing-based Videos
+          </button>
+        </div>
       </div>
 
-      <Card className="p-4 md:p-6 border border-slate-100 bg-white rounded-xl shadow-sm">
-        {loading ? (
-          <div className="py-12 text-center text-slate-400 font-bold">Loading…</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b border-slate-100">
-                  <th className="pb-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Page
-                  </th>
-                  <th className="pb-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Hero (top banners)
-                  </th>
-                  <th className="pb-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Categories below hero
-                  </th>
-                  <th className="pb-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {pageData.map((row) => (
-                  <tr
-                    key={row.id}
-                    className={cn(
-                      "border-b border-slate-50 last:border-0",
-                      "hover:bg-slate-50/50 transition-colors"
-                    )}
-                  >
-                    <td className="py-4 pr-4">
-                      <span className="font-bold text-slate-800">{row.label}</span>
-                    </td>
-                    <td className="py-4 pr-4">
-                      {row.bannerCount > 0 ? (
-                        <span className="text-xs font-semibold text-slate-600">
-                          {row.bannerCount} banner(s)
-                        </span>
-                      ) : (
-                        <span className="text-xs text-slate-400 italic">Not set</span>
-                      )}
-                    </td>
-                    <td className="py-4 pr-4">
-                      {row.categoryCount > 0 ? (
-                        <span className="text-xs font-semibold text-slate-600">
-                          {row.categoryCount} categor
-                          {row.categoryCount === 1 ? "y" : "ies"}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-slate-400 italic">Not set</span>
-                      )}
-                    </td>
-                    <td className="py-4">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(row)}
-                        className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:underline"
-                      >
-                        <HiOutlinePencilSquare className="w-3.5 h-3.5" />
-                        Edit
-                      </button>
-                    </td>
+      {activeTab === "pages" ? (
+        // PAGE CONFIGS VIEW
+        <Card className="p-4 md:p-6 border border-slate-100 bg-white rounded-xl shadow-sm">
+          {loading ? (
+            <div className="py-12 text-center text-slate-400 font-bold">Loading…</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-slate-100">
+                    <th className="pb-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Page
+                    </th>
+                    <th className="pb-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Hero (top banners)
+                    </th>
+                    <th className="pb-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Categories below hero
+                    </th>
+                    <th className="pb-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Action
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+                </thead>
+                <tbody>
+                  {pageData.map((row) => (
+                    <tr
+                      key={row.id}
+                      className={cn(
+                        "border-b border-slate-50 last:border-0",
+                        "hover:bg-slate-50/50 transition-colors"
+                      )}
+                    >
+                      <td className="py-4 pr-4">
+                        <span className="font-bold text-slate-800">{row.label}</span>
+                      </td>
+                      <td className="py-4 pr-4">
+                        {row.bannerCount > 0 ? (
+                          <span className="text-xs font-semibold text-slate-600">
+                            {row.bannerCount} banner(s)
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400 italic">Not set</span>
+                        )}
+                      </td>
+                      <td className="py-4 pr-4">
+                        {row.categoryCount > 0 ? (
+                          <span className="text-xs font-semibold text-slate-600">
+                            {row.categoryCount} categor
+                            {row.categoryCount === 1 ? "y" : "ies"}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400 italic">Not set</span>
+                        )}
+                      </td>
+                      <td className="py-4">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(row)}
+                          className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:underline"
+                        >
+                          <HiOutlinePencilSquare className="w-3.5 h-3.5" />
+                          Edit
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      ) : (
+        // TIMING BANNER VIDEOS VIEW
+        <Card className="p-4 md:p-6 border border-slate-100 bg-white rounded-xl shadow-sm">
+          {loading ? (
+            <div className="py-12 text-center text-slate-400 font-bold">Loading…</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-slate-100">
+                    <th className="pb-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Slot (Time Period)
+                    </th>
+                    <th className="pb-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Text Title
+                    </th>
+                    <th className="pb-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      CTA text
+                    </th>
+                    <th className="pb-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Videos
+                    </th>
+                    <th className="pb-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {timingVideosData.map((row) => (
+                    <tr
+                      key={row.timeOfDay}
+                      className={cn(
+                        "border-b border-slate-50 last:border-0",
+                        "hover:bg-slate-50/50 transition-colors"
+                      )}
+                    >
+                      <td className="py-4 pr-4 capitalize">
+                        <span className="font-bold text-slate-800">{row.timeOfDay}</span>
+                      </td>
+                      <td className="py-4 pr-4">
+                        <span className="text-xs font-semibold text-slate-700">{row.text}</span>
+                      </td>
+                      <td className="py-4 pr-4">
+                        <span className="text-xs text-slate-500 font-bold">{row.cta || "Shop Now"}</span>
+                      </td>
+                      <td className="py-4 pr-4">
+                        {row.videos?.length > 0 ? (
+                          <span className="text-xs text-slate-600 font-semibold">
+                            {row.videos.length} video(s)
+                          </span>
+                        ) : (
+                          <span className="text-xs text-rose-500 italic font-bold">No videos (Using mock defaults)</span>
+                        )}
+                      </td>
+                      <td className="py-4">
+                        <button
+                          type="button"
+                          onClick={() => openEditTiming(row)}
+                          className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:underline"
+                        >
+                          <HiOutlinePencilSquare className="w-3.5 h-3.5" />
+                          Edit
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      )}
 
-      <p className="mt-4 text-xs text-slate-400">
-        This is a <strong>separate</strong> hero section. Experience sections in Create Sections
-        are unchanged and used for the main content area below.
-      </p>
-
+      {/* MODAL 1: Edit Page Config */}
       <Modal
         isOpen={modalOpen}
         onClose={() => !saving && setModalOpen(false)}
@@ -396,70 +610,67 @@ export default function HeroCategoriesPerPage() {
                           <div className="flex-1 min-w-0 space-y-1">
                             <input
                               type="file"
-                              accept="image/*"
+                              accept="image/*,video/*"
                               className="hidden"
                               id={`hero-banner-image-file-${idx}`}
                               onChange={(e) => handleBannerFileChange(idx, e.target.files?.[0])}
                             />
-                            <input
-                              type="file"
-                              accept="video/*"
-                              className="hidden"
-                              id={`hero-banner-video-file-${idx}`}
-                              onChange={(e) => handleBannerFileChange(idx, e.target.files?.[0])}
-                            />
-                            <div className="flex gap-2">
+                            <div className="flex items-center gap-1">
                               <label
                                 htmlFor={`hero-banner-image-file-${idx}`}
-                                className="inline-block px-2 py-1 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-600 cursor-pointer hover:bg-slate-200"
+                                className="inline-block px-3 py-1.5 rounded-xl bg-slate-100 text-xs font-bold text-slate-600 cursor-pointer hover:bg-slate-200"
                               >
-                                {item.isUploading ? "Uploading…" : item.imageUrl ? "Change Image" : "Upload Image"}
+                                {item.isUploading ? "Uploading…" : item.imageUrl ? "Change File" : "Upload File"}
                               </label>
-                              <label
-                                htmlFor={`hero-banner-video-file-${idx}`}
-                                className="inline-block px-2 py-1 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-600 cursor-pointer hover:bg-slate-200"
-                              >
-                                {item.isUploading ? "Uploading…" : item.imageUrl ? "Change Video" : "Upload Video"}
-                              </label>
+                              {item.imageUrl && (
+                                <button
+                                  type="button"
+                                  onClick={() => updateBannerItem(idx, { imageUrl: "" })}
+                                  className="px-3 py-1.5 rounded-xl bg-rose-50 text-rose-600 text-xs font-bold hover:bg-rose-100 transition-colors"
+                                >
+                                  Remove
+                                </button>
+                              )}
                             </div>
-                            <input
-                              value={item.title || ""}
-                              onChange={(e) => updateBannerItem(idx, { title: e.target.value })}
-                              className="w-full p-2 bg-slate-50 rounded-xl text-xs font-bold border-none outline-none"
-                              placeholder="Title (optional)"
-                            />
-                            <input
-                              value={item.subtitle || ""}
-                              onChange={(e) => updateBannerItem(idx, { subtitle: e.target.value })}
-                              className="w-full p-2 bg-slate-50 rounded-xl text-xs font-bold border-none outline-none"
-                              placeholder="Subtitle (optional)"
-                            />
                           </div>
                         </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="text"
+                            placeholder="Title"
+                            value={item.title || ""}
+                            onChange={(e) => updateBannerItem(idx, { title: e.target.value })}
+                            className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-slate-50 focus:bg-white outline-none"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Subtitle"
+                            value={item.subtitle || ""}
+                            onChange={(e) => updateBannerItem(idx, { subtitle: e.target.value })}
+                            className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-slate-50 focus:bg-white outline-none"
+                          />
+                        </div>
                       </div>
-                      {formBanners.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeBannerItem(idx)}
-                          className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
-                        >
-                          <HiOutlineXMark className="w-4 h-4" />
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeBannerItem(idx)}
+                        className="text-slate-400 hover:text-rose-500 shrink-0"
+                      >
+                        <HiOutlineXMark className="w-5 h-5" />
+                      </button>
                     </div>
                   </Card>
                 ))}
               </div>
             </div>
 
-            {/* Mobile Footer Section (Only for Home Page) */}
             {editingRow.pageType === "home" && (
-              <div className="border-t border-slate-100 pt-6">
+              <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
-                  Mobile Application Footer Banner (Image / Video)
+                  Mobile Footer Banner config (Unsplash image or video)
                 </label>
-                <div className="flex items-start gap-4">
-                  <div className="w-24 h-24 rounded-xl bg-slate-50 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0 shadow-inner">
+                <div className="flex gap-4 items-center">
+                  <div className="w-20 h-20 rounded-xl bg-slate-50 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
                     {formMobileFooterUrl ? (
                       isVideoUrl(formMobileFooterUrl) ? (
                         <video
@@ -476,27 +687,25 @@ export default function HeroCategoriesPerPage() {
                         />
                       )
                     ) : (
-                      <HiOutlinePhoto className="h-8 w-8 text-slate-300" />
+                      <HiOutlinePhoto className="h-6 w-6 text-slate-300" />
                     )}
                   </div>
-                  <div className="flex-1 space-y-3">
+                  <div className="flex-1 space-y-2">
                     <input
                       type="file"
                       accept="image/*"
-                      className="hidden"
                       id="mobile-footer-image-file"
+                      className="hidden"
                       onChange={(e) => handleFooterFileChange(e.target.files?.[0])}
-                      disabled={footerUploading}
                     />
                     <input
                       type="file"
                       accept="video/*"
-                      className="hidden"
                       id="mobile-footer-video-file"
+                      className="hidden"
                       onChange={(e) => handleFooterFileChange(e.target.files?.[0])}
-                      disabled={footerUploading}
                     />
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex items-center gap-1.5">
                       <label
                         htmlFor="mobile-footer-image-file"
                         className="inline-block px-3 py-1.5 rounded-xl bg-slate-100 text-xs font-bold text-slate-600 cursor-pointer hover:bg-slate-200"
@@ -558,7 +767,176 @@ export default function HeroCategoriesPerPage() {
           </div>
         )}
       </Modal>
+
+      {/* MODAL 2: Edit Timing-based Videos */}
+      <Modal
+        isOpen={timingModalOpen}
+        onClose={() => !saving && setTimingModalOpen(false)}
+        title={editingTiming ? `Configure Timing Banner — ${editingTiming.timeOfDay}` : "Edit"}
+        size="xl"
+        footer={
+          <div className="flex gap-2 justify-end">
+            <button
+              type="button"
+              onClick={() => setTimingModalOpen(false)}
+              disabled={saving}
+              className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveTiming}
+              disabled={saving}
+              className="px-4 py-2 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Save Timing Configuration"}
+            </button>
+          </div>
+        }
+      >
+        {editingTiming && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+                  Text Title
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Popular Lunch Specials"
+                  value={timingForm.text}
+                  onChange={(e) => setTimingForm(prev => ({ ...prev, text: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:bg-white outline-none font-bold"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+                  Subtitle
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Freshly Prepared • Fast Delivery"
+                  value={timingForm.subtitle}
+                  onChange={(e) => setTimingForm(prev => ({ ...prev, subtitle: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:bg-white outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+                  CTA button text
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Shop Now"
+                  value={timingForm.cta}
+                  onChange={(e) => setTimingForm(prev => ({ ...prev, cta: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:bg-white outline-none font-bold"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+                  Redirect URL / Path
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. /product/667d... or https://..."
+                  value={timingForm.redirectUrl || ""}
+                  onChange={(e) => setTimingForm(prev => ({ ...prev, redirectUrl: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:bg-white outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Video List */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  Videos configuration
+                </label>
+                <button
+                  type="button"
+                  onClick={addTimingVideoItem}
+                  className="flex items-center gap-1 text-[10px] font-bold text-primary"
+                >
+                  <HiOutlinePlus className="h-3 w-3" />
+                  Add Video
+                </button>
+              </div>
+              <div className="space-y-3 max-h-60 overflow-y-auto">
+                {timingForm.videos.map((item, idx) => (
+                  <Card key={idx} className="p-3 bg-white border-slate-100">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-20 h-16 rounded-xl bg-slate-50 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+                            {item.url ? (
+                              <video
+                                src={item.url}
+                                className="w-full h-full object-cover"
+                                muted
+                                playsInline
+                              />
+                            ) : (
+                              <HiOutlinePhoto className="h-6 w-6 text-slate-300" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <input
+                              type="file"
+                              accept="video/*"
+                              className="hidden"
+                              id={`timing-video-file-${idx}`}
+                              onChange={(e) => handleTimingVideoFileChange(idx, e.target.files?.[0])}
+                            />
+                            <div className="flex items-center gap-1">
+                              <label
+                                htmlFor={`timing-video-file-${idx}`}
+                                className="inline-block px-3 py-1.5 rounded-xl bg-slate-100 text-xs font-bold text-slate-600 cursor-pointer hover:bg-slate-200"
+                              >
+                                {item.isUploading ? "Uploading…" : item.url ? "Change Video" : "Upload Video File"}
+                              </label>
+                              {item.url && (
+                                <button
+                                  type="button"
+                                  onClick={() => updateTimingVideoItem(idx, { url: "" })}
+                                  className="px-3 py-1.5 rounded-xl bg-rose-50 text-rose-600 text-xs font-bold hover:bg-rose-100 transition-colors"
+                                >
+                                  Remove
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Video Label (e.g. Chicken Biryani)"
+                          value={item.name || ""}
+                          onChange={(e) => updateTimingVideoItem(idx, { name: e.target.value })}
+                          className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-slate-50 focus:bg-white outline-none"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeTimingVideoItem(idx)}
+                        className="text-slate-400 hover:text-rose-500 shrink-0"
+                      >
+                        <HiOutlineXMark className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </Card>
+                ))}
+                {timingForm.videos.length === 0 && (
+                  <p className="text-xs text-slate-400 italic">No videos configured. Please click 'Add Video' to upload a promotional clip.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
-

@@ -162,7 +162,7 @@ describe('deliveryOtpService', () => {
       const result = await generateDeliveryOtp(validOrderId, validDeliveryLocation);
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('within 0-120 meters');
+      expect(result.error).toContain('within 0-1000 meters');
       expect(result.error).toContain('250m');
       expect(result.otp).toBeUndefined();
     });

@@ -421,11 +421,11 @@ export const cancelOrder = async (req, res) => {
       }
     }
 
-    if (order.status !== "pending") {
+    if (order.status === "delivered" || order.status === "cancelled") {
       return handleResponse(
         res,
         400,
-        "Order cannot be cancelled after confirmation",
+        "Order cannot be cancelled after delivery or if already cancelled",
       );
     }
 

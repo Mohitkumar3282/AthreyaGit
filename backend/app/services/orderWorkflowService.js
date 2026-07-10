@@ -723,8 +723,8 @@ export async function customerCancelV2(customerId, orderId, reason) {
   }
 
   const ws = resolveWorkflowStatus(order);
-  if (ws !== WORKFLOW_STATUS.SELLER_PENDING) {
-    const err = new Error("Order cannot be cancelled after confirmation");
+  if (ws === WORKFLOW_STATUS.DELIVERED || ws === WORKFLOW_STATUS.CANCELLED) {
+    const err = new Error("Order cannot be cancelled after delivery or if already cancelled");
     err.statusCode = 400;
     throw err;
   }
@@ -733,7 +733,7 @@ export async function customerCancelV2(customerId, orderId, reason) {
     {
       orderId,
       customer: customerId,
-      workflowStatus: WORKFLOW_STATUS.SELLER_PENDING,
+      workflowStatus: { $nin: [WORKFLOW_STATUS.DELIVERED, WORKFLOW_STATUS.CANCELLED] },
     },
     {
       $set: {

@@ -34,6 +34,12 @@ export const adminContentApi = {
     setHeroConfig: (data) =>
         axiosInstance.put('/admin/experience/hero', data),
 
+    // Timing Banner Videos (dynamic Morning, Afternoon, Evening, Night)
+    getTimingBannerVideos: () =>
+        axiosInstance.get('/admin/banner/videos'),
+    setTimingBannerVideo: (data) =>
+        axiosInstance.put('/admin/banner/videos', data),
+
     // Offers Management
     getOffers: (params) => axiosInstance.get('/admin-offers', { params }),
     createOffer: (data) => axiosInstance.post('/admin-offers', data),

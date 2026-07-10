@@ -652,16 +652,11 @@ const OrderDetailPage = () => {
   };
 
   const canCancelDirectly = () => {
-    return order && order.status === "pending";
+    return order && order.status !== "delivered" && order.status !== "cancelled";
   };
 
   const canRequestCancellation = () => {
-    if (!order) return false;
-    if (order.status === "pending" || order.status === "cancelled" || order.status === "delivered") return false;
-    if (cancellationDetails && cancellationDetails.status !== "CANCELLED" && cancellationDetails.status !== "SELLER_REJECTED") {
-      return false;
-    }
-    return true;
+    return false;
   };
 
   const handleCancelDirectly = async (reason) => {

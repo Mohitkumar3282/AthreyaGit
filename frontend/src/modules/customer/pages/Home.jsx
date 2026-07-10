@@ -26,6 +26,7 @@ import { customerApi } from "../services/customerApi";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
 import { getAreaName, getTeluguAreaName } from "../components/shared/MainLocationHeader";
 import { getLegacyStatusFromOrder, getOrderStatusLabel } from "@/shared/utils/orderStatus";
+import LiveBanner from "../components/banner/LiveBanner";
 
 // Module-level variable to track if the brand animation has played in this SPA session
 let hasBikePlayedGlobal = false;
@@ -359,72 +360,9 @@ const Home = () => {
       </div>
 
       {/* 4. Active Live Orders Widget / Promotion */}
-      {liveOrder && (
-        <div className="flex gap-3 px-4 py-2">
-          {/* Left Live Order Card */}
-          <div 
-            onClick={() => navigate(`/orders/${liveOrder.orderId}`)}
-            className="flex-1 min-h-[175px] rounded-2xl relative overflow-hidden border border-[#0d4f1c] bg-cover bg-center cursor-pointer" 
-            style={{ backgroundImage: `url('https://images.unsplash.com/photo-1578916171728-46686eac8d58?q=80&w=400&fit=crop')` }}
-          >
-            <div className="absolute inset-0 bg-black/65 z-0" />
-            <div className="relative z-10 p-3.5 flex flex-col justify-between h-full">
-              
-              {/* Header info */}
-              <div className="flex justify-between items-start">
-                {/* Store Circle Logo */}
-                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-[#A3E635] shadow-md">
-                  <div className="w-7 h-7 rounded-full bg-green-900 flex items-center justify-center text-white text-[8px] font-black">
-                    {liveOrder.seller?.shopName ? liveOrder.seller.shopName.substring(0, 2).toUpperCase() : 'SR'}
-                  </div>
-                </div>
-                
-                {/* ETA / Live */}
-                <div className="flex items-center gap-1">
-                  <span className="text-[9px] font-black text-white bg-black/50 px-2 py-0.5 rounded-full border border-white/20">
-                    ETA: {liveOrder.seller?.storeTimings || '20-30 min'}
-                  </span>
-                  <span className="flex items-center gap-1 bg-red-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md">
-                    <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
-                    LIVE
-                  </span>
-                </div>
-              </div>
-              
-              {/* Wording exactly like screenshot */}
-              <div className="mt-1.5">
-                <p className="text-[9px] text-white/80 font-bold uppercase tracking-wider">Live Order in progress</p>
-                <h4 className="text-[14px] font-black text-white leading-tight">{liveOrder.seller?.shopName || 'Store'}</h4>
-                <p className="text-[9px] text-slate-355 font-bold mt-0.5 leading-tight">
-                  Status: {getOrderStatusLabel(liveOrder).toUpperCase()} <br />
-                  <span className="text-[#A3E635]">Order #{liveOrder.orderId.slice(-6)}</span>
-                </p>
-              </div>
-
-              <button className="mt-2.5 w-max px-3 py-1.5 bg-white text-black font-black rounded-lg text-[10px] uppercase shadow-sm">
-                View Live Order
-              </button>
-            </div>
-          </div>
-
-          {/* Right Safe Delivery Card */}
-          <div 
-            className="w-[36%] rounded-2xl relative overflow-hidden border border-[#0d4f1c] bg-cover bg-center flex flex-col justify-end" 
-            style={{ backgroundImage: `url('https://images.unsplash.com/photo-1619191168248-906fe35555bb?q=80&w=400&fit=crop')` }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-0" />
-            <div className="relative z-10 bg-black/70 p-2 text-center flex flex-col items-center justify-center gap-1 border-t border-white/10">
-              <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center text-white shrink-0 shadow-sm border border-white/20">
-                <span className="text-[10px] font-black">✓</span>
-              </div>
-              <p className="text-[8.5px] font-black leading-tight text-white">
-                సురక్షిత డెలివరీ <br />
-                మీ ఇంటికి వరకు
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="px-4 py-2" id="live-banner-section">
+        <LiveBanner />
+      </div>
 
       {/* 5. TODAY'S NEEDS (ఈరోజు అవసరాలు) */}
       <div className="px-4 py-3">
