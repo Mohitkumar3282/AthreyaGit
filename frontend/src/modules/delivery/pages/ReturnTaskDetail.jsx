@@ -205,7 +205,7 @@ const ReturnTaskDetail = () => {
 
     const order = task.order_id || {};
     const customer = task.customer_id || {};
-    const seller = order.seller || {};
+    const seller = task.seller_id || order.seller || {};
 
     return (
         <div className="bg-slate-50 min-h-screen pb-24 font-sans">
@@ -276,17 +276,17 @@ const ReturnTaskDetail = () => {
                                         Send OTP to Customer
                                     </Button>
                                     <label className="text-xs font-bold text-slate-600 block">Enter Pickup OTP from Customer</label>
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-col sm:flex-row gap-2">
                                         <input
                                             type="text"
                                             maxLength={4}
                                             placeholder="4-digit OTP"
                                             value={otpCode}
                                             onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-                                            className="flex-1 border-2 border-slate-200 rounded-xl px-4 py-2 text-center text-lg font-black tracking-widest outline-none focus:border-primary"
+                                            className="w-full sm:flex-1 border-2 border-slate-200 rounded-xl px-4 py-2 text-center text-lg font-black tracking-widest outline-none focus:border-primary"
                                         />
                                         <Button
-                                            className="bg-slate-900 px-6 font-bold"
+                                            className="w-full sm:w-auto bg-slate-900 px-6 font-bold"
                                             onClick={handleVerifyPickupOtp}
                                             isLoading={verifyingOtp}
                                             disabled={otpCode.length !== 4 || verifyingOtp}
@@ -373,17 +373,17 @@ const ReturnTaskDetail = () => {
                                     Send OTP to Seller
                                 </Button>
                                 <label className="text-xs font-bold text-slate-600 block">Enter Drop OTP from Seller Store</label>
-                                <div className="flex gap-2">
+                                <div className="flex flex-col sm:flex-row gap-2">
                                     <input
                                         type="text"
                                         maxLength={4}
                                         placeholder="4-digit OTP"
                                         value={otpCode}
                                         onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-                                        className="flex-1 border-2 border-slate-200 rounded-xl px-4 py-2 text-center text-lg font-black tracking-widest outline-none focus:border-primary"
+                                        className="w-full sm:flex-1 border-2 border-slate-200 rounded-xl px-4 py-2 text-center text-lg font-black tracking-widest outline-none focus:border-primary"
                                     />
                                     <Button
-                                        className="bg-slate-900 px-6 font-bold"
+                                        className="w-full sm:w-auto bg-slate-900 px-6 font-bold"
                                         onClick={handleVerifyDropOtp}
                                         isLoading={verifyingOtp || delivering}
                                         disabled={otpCode.length !== 4 || verifyingOtp || delivering}

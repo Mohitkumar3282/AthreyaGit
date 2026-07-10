@@ -1,6 +1,7 @@
 import Order from "../models/order.js";
 import Delivery from "../models/delivery.js";
 import Seller from "../models/seller.js";
+import mongoose from "mongoose";
 import CheckoutGroup from "../models/checkoutGroup.js";
 import OrderOtp from "../models/orderOtp.js";
 import { WORKFLOW_STATUS } from "../constants/orderWorkflow.js";
@@ -25,12 +26,18 @@ function refToIdString(ref) {
 }
 
 function normalizeSellerStatusFilter(statusParam) {
-  if (!statusParam || statusParam === "all") {
+  if (!statusParam) {
     return {};
   }
 
   if (statusParam === "pending") {
     return { status: "pending" };
+  }
+  if (statusParam === "confirmed") {
+    return { status: "confirmed" };
+  }
+  if (statusParam === "packed") {
+    return { status: "packed" };
   }
   if (statusParam === "processed") {
     return { status: { $in: ["confirmed", "packed"] } };
@@ -79,7 +86,7 @@ export function buildSellerOrdersQuery({
   startDate,
   endDate,
 }) {
-  const base = role === "admin" ? {} : { seller: userId };
+  const base = role === "admin" ? {} : { seller: new mongoose.Types.ObjectId(userId) };
   const withStatus = {
     ...base,
     ...normalizeSellerStatusFilter(statusParam),
@@ -104,6 +111,14 @@ export async function fetchSellerOrdersPage({
     endDate,
   });
 
+  const summaryQuery = buildSellerOrdersQuery({
+    role,
+    userId,
+    statusParam: undefined,
+    startDate,
+    endDate,
+  });
+
   const [orders, total, summaryRows] = await Promise.all([
     Order.find(query)
       .sort({ createdAt: -1, _id: -1 })
@@ -116,7 +131,7 @@ export async function fetchSellerOrdersPage({
       .lean(),
     Order.countDocuments(query),
     Order.aggregate([
-      { $match: query },
+      { $match: summaryQuery },
       {
         $group: {
           _id: null,

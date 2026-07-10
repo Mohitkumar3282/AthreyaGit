@@ -340,7 +340,6 @@ export const requestReturnPickupOtp = async (req, res) => {
               await sendSmsIndiaHubOtp({
                 phone,
                 otp: result.otp,
-                message: `Your return pickup OTP for order #${orderId} is ${result.otp}. Noyo-kart.`,
               });
             }
           } catch (smsErr) {
@@ -492,7 +491,6 @@ export const requestReturnDropOtp = async (req, res) => {
               await sendSmsIndiaHubOtp({
                 phone: sellerPhone,
                 otp: result.otp,
-                message: `Return drop OTP for order #${orderId} is ${result.otp}. Noyo-kart.`,
               });
             }
           } catch (smsErr) {
@@ -630,7 +628,6 @@ export const requestCancellationPickupOtp = async (req, res) => {
               await sendSmsIndiaHubOtp({
                 phone,
                 otp: result.otp,
-                message: `Your cancellation pickup OTP for order #${orderId} is ${result.otp}. Noyo-kart.`,
               });
             }
           } catch (smsErr) {
@@ -787,7 +784,6 @@ export const requestCancellationDropOtp = async (req, res) => {
               await sendSmsIndiaHubOtp({
                 phone: sellerPhone,
                 otp: result.otp,
-                message: `Cancellation drop OTP for order #${orderId} is ${result.otp}. Noyo-kart.`,
               });
             }
           } catch (smsErr) {

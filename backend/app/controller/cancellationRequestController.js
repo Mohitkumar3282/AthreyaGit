@@ -1,6 +1,7 @@
 import CancellationRequest from "../models/cancellationRequest.js";
 import Order from "../models/order.js";
 import DeliveryBoy from "../models/deliveryBoy.js";
+import Delivery from "../models/delivery.js";
 import handleResponse from "../utils/helper.js";
 import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
 import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
@@ -99,7 +100,7 @@ export const getCancellationRequestDetail = async (req, res) => {
     const cancellationRequest = await CancellationRequest.findById(cancellationRequestId)
       .populate("order_id")
       .populate("customer_id", "name phone")
-      .populate("seller_id", "shopName address name")
+      .populate("seller_id", "shopName address name location phone")
       .populate("delivery_boy_id", "name phone rating");
 
     if (!cancellationRequest) {
@@ -290,11 +291,18 @@ export const getAvailableDeliveryBoys = async (req, res) => {
     console.log("Total boys for seller (Cancellations):", allBoys.length);
     console.log("Boys data:", JSON.stringify(allBoys));
 
+    // Fetch online delivery riders
+    const onlineRiders = await Delivery.find({ isOnline: true }).select("_id").lean();
+    const onlineRiderIds = onlineRiders.map((r) => r._id);
+
     // Query active/available boys near customer coordinates
     let availableBoys = await DeliveryBoy.find({
       seller_id: sellerId,
       is_active: true,
-      is_available: true,
+      $or: [
+        { is_available: true },
+        { _id: { $in: onlineRiderIds } }
+      ],
       current_location: {
         $nearSphere: {
           $geometry: { type: "Point", coordinates: [customerLng, customerLat] },
@@ -310,7 +318,10 @@ export const getAvailableDeliveryBoys = async (req, res) => {
       availableBoys = await DeliveryBoy.find({
         seller_id: sellerId,
         is_active: true,
-        is_available: true
+        $or: [
+          { is_available: true },
+          { _id: { $in: onlineRiderIds } }
+        ]
       });
       console.log("Fallback available boys:", availableBoys.length);
     }
@@ -378,7 +389,9 @@ export const assignDeliveryBoy = async (req, res) => {
       return handleResponse(res, 404, "Delivery boy not found or doesn't belong to you");
     }
 
-    if (!deliveryBoy.is_active || !deliveryBoy.is_available) {
+    const delivery = await Delivery.findById(deliveryBoy._id).lean();
+    const isOnline = delivery?.isOnline === true;
+    if (!deliveryBoy.is_active || (!deliveryBoy.is_available && !isOnline)) {
       return handleResponse(res, 400, "Delivery boy is offline or busy");
     }
 
@@ -445,7 +458,9 @@ export const reassignDeliveryBoy = async (req, res) => {
       return handleResponse(res, 404, "New delivery boy not found or doesn't belong to you");
     }
 
-    if (!newBoy.is_active || !newBoy.is_available) {
+    const delivery = await Delivery.findById(newBoy._id).lean();
+    const isOnline = delivery?.isOnline === true;
+    if (!newBoy.is_active || (!newBoy.is_available && !isOnline)) {
       return handleResponse(res, 400, "New delivery boy is offline or busy");
     }
 

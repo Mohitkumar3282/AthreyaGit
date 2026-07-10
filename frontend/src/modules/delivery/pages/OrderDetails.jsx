@@ -160,6 +160,49 @@ const estimateMinutesFromDistance = (meters) => {
   return (meters * 60) / (DEFAULT_CITY_SPEED_KMPH * 1000);
 };
 
+const mergeOrderUpdates = (prev, updated) => {
+  if (!prev) return updated;
+  if (!updated) return prev;
+
+  const merged = { ...prev, ...updated };
+
+  // If prev has populated objects, but updated has raw strings/IDs, preserve the populated objects from prev
+  const populateFields = ["customer", "seller", "deliveryBoy", "returnDeliveryBoy"];
+  for (const field of populateFields) {
+    if (
+      prev[field] &&
+      typeof prev[field] === "object" &&
+      updated[field] &&
+      (typeof updated[field] === "string" || typeof updated[field] === "number")
+    ) {
+      merged[field] = prev[field];
+    }
+  }
+
+  // Preserve items details if prev items is populated but updated has raw product strings
+  if (
+    prev.items &&
+    prev.items.length > 0 &&
+    updated.items &&
+    updated.items.length > 0
+  ) {
+    const prevFirstItem = prev.items[0];
+    const updatedFirstItem = updated.items[0];
+    if (
+      prevFirstItem &&
+      prevFirstItem.product &&
+      typeof prevFirstItem.product === "object" &&
+      updatedFirstItem &&
+      updatedFirstItem.product &&
+      (typeof updatedFirstItem.product === "string" || typeof updatedFirstItem.product === "number")
+    ) {
+      merged.items = prev.items;
+    }
+  }
+
+  return merged;
+};
+
 const OrderDetails = () => {
   const { orderId } = useParams();
   const { user } = useAuth();
@@ -461,7 +504,7 @@ const OrderDetails = () => {
       } else {
         const location = await new Promise((resolve, reject) => {
           getCurrentPositionWithCache(resolve, reject, {
-            maxCacheAgeMs: 20 * 60 * 1000,
+            maxCacheAgeMs: 5 * 60 * 1000,
           });
         });
 
@@ -471,7 +514,7 @@ const OrderDetails = () => {
             lng: location.lng,
           });
           const updated = res.data.result;
-          setOrder((prev) => ({ ...(prev || {}), ...updated }));
+          setOrder((prev) => mergeOrderUpdates(prev, updated));
           setStep(2);
           toast.success(`${currentStep.action} Confirmed!`);
         } else if (step === 2) {
@@ -486,7 +529,7 @@ const OrderDetails = () => {
             lng: location.lng,
           });
           const updated = res.data.result;
-          setOrder((prev) => ({ ...(prev || {}), ...updated }));
+          setOrder((prev) => mergeOrderUpdates(prev, updated));
           setStep(3);
           toast.success(`${currentStep.action} Confirmed!`);
         } else if (step === 3) {
@@ -555,7 +598,10 @@ const OrderDetails = () => {
   };
 
   const handleOtpValidationSuccess = (data) => {
-    const updatedOrder = data?.result || data?.data?.result;
+    let updatedOrder = data?.result || data?.data?.result;
+    if (updatedOrder && updatedOrder.order) {
+      updatedOrder = updatedOrder.order;
+    }
 
     setShowOtpInput(false);
     setPickupProofSubmitted(false);
@@ -565,14 +611,14 @@ const OrderDetails = () => {
     if (isReturn) {
       // Return pickup OTP → navigate to seller for drop-off
       setStep(3);
-      if (updatedOrder) setOrder(updatedOrder);
+      if (updatedOrder) setOrder((prev) => mergeOrderUpdates(prev, updatedOrder));
       window.scrollTo({ top: 0, behavior: "smooth" });
       toast.success("✅ Pickup verified! Navigate to seller for drop-off.");
     } else {
       // Standard delivery OTP → order is delivered, hide map immediately
       setStep(4);
       if (updatedOrder) {
-        setOrder({ ...updatedOrder, status: "delivered", workflowStatus: "DELIVERED" });
+        setOrder((prev) => mergeOrderUpdates(prev, { ...updatedOrder, status: "delivered", workflowStatus: "DELIVERED" }));
       } else {
         setOrder((prev) => prev ? { ...prev, status: "delivered", workflowStatus: "DELIVERED" } : prev);
       }
@@ -590,7 +636,7 @@ const OrderDetails = () => {
       setAccepting(true);
       const res = await deliveryApi.acceptReturnPickup(order.orderId);
       const updated = res.data.result;
-      setOrder(updated);
+      setOrder((prev) => mergeOrderUpdates(prev, updated));
       toast.success("Return pickup task accepted!");
       setStep(1);
     } catch (error) {
@@ -1300,7 +1346,7 @@ const OrderDetails = () => {
                 isReturnDrop={true}
                 onSuccess={(data) => {
                   const updatedOrder = data?.result || data?.data?.result;
-                  if (updatedOrder) setOrder(updatedOrder);
+                  if (updatedOrder) setOrder((prev) => mergeOrderUpdates(prev, updatedOrder));
                   setStep(5);
                   toast.success("✅ Return complete! Commission credited to your wallet.");
                   setTimeout(() => navigate("/delivery/dashboard"), 1800);

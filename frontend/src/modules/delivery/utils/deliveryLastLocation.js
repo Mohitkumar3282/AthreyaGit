@@ -53,15 +53,31 @@ export function getCachedDeliveryPartnerLocation(
 export function getCurrentPositionWithCache(onSuccess, onHardFail, options = {}) {
   const maxCacheAgeMs =
     options.maxCacheAgeMs ?? DEFAULT_MAX_CACHE_AGE_MS;
+
+  // Check cache first for faster slider transactions
+  const cached = getCachedDeliveryPartnerLocation(maxCacheAgeMs);
+  if (cached) {
+    onSuccess({ lat: cached.lat, lng: cached.lng, fromCache: true });
+    // Still trigger geolocation in background to keep cache fresh, but do not block the UI
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => saveDeliveryPartnerLocation(pos.coords.latitude, pos.coords.longitude),
+        () => {},
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+      );
+    }
+    return;
+  }
+
   const strictOpts = options.geoOptions ?? {
     enableHighAccuracy: true,
     maximumAge: 10000,
-    timeout: 20000,
+    timeout: 5000,
   };
   const looseOpts = {
     enableHighAccuracy: false,
     maximumAge: 120000,
-    timeout: 15000,
+    timeout: 4000,
   };
 
   const finishLive = (pos) => {

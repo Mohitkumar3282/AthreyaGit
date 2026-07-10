@@ -73,15 +73,27 @@ const Orders = () => {
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+ 
+    const mapTabToStatusParam = (tab) => {
+        switch (tab) {
+            case 'Pending': return 'pending';
+            case 'Confirmed': return 'confirmed';
+            case 'Packed': return 'packed';
+            case 'Out for Delivery': return 'out-for-delivery';
+            case 'Delivered': return 'delivered';
+            case 'Cancelled': return 'cancelled';
+            default: return undefined;
+        }
+    };
 
-    // Subsequent changes (page, date filters): update data without full page "refresh"
+    // Subsequent changes (page, date filters, activeTab): update data without full page "refresh"
     useEffect(() => {
         if (!hasMountedRef.current) return;
         fetchOrders(page, false);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page, startDate, endDate]);
+    }, [page, startDate, endDate, activeTab]);
 
-    const fetchOrders = async (requestedPage = 1, showPageLoader = false) => {
+    const fetchOrders = async (requestedPage = 1, showPageLoader = false, tab = activeTab) => {
         try {
             if (showPageLoader) {
                 setLoading(true);
@@ -89,6 +101,8 @@ const Orders = () => {
             const params = { page: requestedPage };
             if (startDate) params.startDate = startDate;
             if (endDate) params.endDate = endDate;
+            const statusParam = mapTabToStatusParam(tab);
+            if (statusParam) params.status = statusParam;
 
             const response = await sellerApi.getOrders(params);
 
@@ -340,7 +354,10 @@ const Orders = () => {
                                     {tabs.map((tab) => (
                                         <button
                                             key={tab}
-                                            onClick={() => setActiveTab(tab)}
+                                            onClick={() => {
+                                                setPage(1);
+                                                setActiveTab(tab);
+                                            }}
                                             className={cn(
                                                 "relative py-3 sm:py-4 px-2.5 sm:px-4 text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-300",
                                                 activeTab === tab
