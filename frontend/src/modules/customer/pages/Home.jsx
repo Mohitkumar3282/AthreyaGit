@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Menu, 
@@ -41,6 +41,122 @@ const Home = () => {
   const [headerCategories, setHeaderCategories] = useState([]);
   const [shops, setShops] = useState([]);
   const [liveOrder, setLiveOrder] = useState(null);
+
+  // Search & Voice Search States on Home Page
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [isSearchView, setIsSearchView] = useState(false);
+  const [allProducts, setAllProducts] = useState([]);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
+
+  // Voice Search Logic (Direct on Home Page)
+  const handleVoiceSearch = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Voice search is not supported in your browser. Please try Chrome.');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-IN'; 
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setSearchQuery('');
+      setIsSearchView(true);
+    };
+    
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+    
+    recognition.onresult = (event) => {
+      let transcript = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        transcript += event.results[i][0].transcript;
+      }
+      if (transcript) {
+        setSearchQuery(transcript);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+    };
+
+    try {
+      recognition.start();
+    } catch (e) {
+      console.error('Recognition start error:', e);
+      setIsListening(false);
+    }
+  };
+
+  // Fetch search products lazily when search view is opened
+  useEffect(() => {
+    if (!isSearchView || allProducts.length > 0) return;
+    
+    const fetchProducts = async () => {
+      const hasValidLocation =
+        Number.isFinite(currentLocation?.latitude) &&
+        Number.isFinite(currentLocation?.longitude);
+      if (!hasValidLocation) return;
+      
+      setIsSearchLoading(true);
+      try {
+        const response = await customerApi.getProducts({
+          limit: 100,
+          lat: currentLocation.latitude,
+          lng: currentLocation.longitude,
+        });
+        if (response.data.success) {
+          const rawResult = response.data.result;
+          const dbProds = Array.isArray(response.data.results)
+            ? response.data.results
+            : Array.isArray(rawResult?.items)
+            ? rawResult.items
+            : Array.isArray(rawResult)
+            ? rawResult
+            : [];
+          const formattedProds = dbProds.map(p => ({
+            ...p,
+            id: p._id,
+            image: p.mainImage || p.image || "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=400&h=400",
+            price: p.salePrice || p.price,
+            originalPrice: p.price,
+            weight: p.weight || '1 unit',
+            deliveryTime: '8-15 mins'
+          }));
+          setAllProducts(formattedProds);
+        }
+      } catch (error) {
+        console.error('Error fetching search products:', error);
+      } finally {
+        setIsSearchLoading(false);
+      }
+    };
+    
+    fetchProducts();
+  }, [isSearchView, currentLocation, allProducts.length]);
+
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    return allProducts.filter(p =>
+      p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.categoryId?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery, allProducts]);
+
+  const filteredShops = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    return shops.filter(s =>
+      s.shopName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.locality?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery, shops]);
 
   useEffect(() => {
     customerApi.getMyOrders()
@@ -318,228 +434,358 @@ const Home = () => {
 
       {/* 2. Search Bar */}
       <div className="mx-4 my-2.5 relative flex items-center bg-[#021f0b] rounded-full border border-[#0d4f1c] px-3.5 py-2">
-        <Search className="w-4.5 h-4.5 text-slate-400 mr-2" />
+        {isSearchView ? (
+          <button 
+            onClick={() => {
+              setIsSearchView(false);
+              setSearchQuery("");
+            }}
+            className="text-slate-400 mr-2 bg-transparent border-0 cursor-pointer hover:text-white flex items-center justify-center font-bold"
+          >
+            ←
+          </button>
+        ) : (
+          <Search className="w-4.5 h-4.5 text-slate-400 mr-2" />
+        )}
         <input 
           type="text" 
           placeholder="Search Aswapuram stores... (అశ్వాపురం స్టోర్లలో వెతకండి...)" 
           className="bg-transparent border-none outline-none text-white text-[12.5px] font-bold w-full placeholder-slate-400"
-          onClick={() => navigate('/search')}
-          readOnly
+          value={isSearchView ? searchQuery : ""}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onClick={() => {
+            if (!isSearchView) {
+              setIsSearchView(true);
+            }
+          }}
+          autoFocus={isSearchView}
         />
+        {isSearchView && searchQuery ? (
+          <button 
+            onClick={() => setSearchQuery("")}
+            className="text-slate-400 mr-2 bg-transparent border-0 cursor-pointer hover:text-white flex items-center justify-center font-bold"
+          >
+            ✕
+          </button>
+        ) : null}
         <button 
-          onClick={() => navigate('/search')}
+          onClick={handleVoiceSearch}
           className="w-7 h-7 rounded-full bg-[#A3E635] flex items-center justify-center text-[#042A0F] cursor-pointer hover:opacity-90 active:scale-95 transition-transform"
         >
           <Mic className="w-4 h-4 text-[#042A0F]" />
         </button>
       </div>
 
-      {/* 3. Quick Categories Row */}
-      <div className="flex justify-start md:justify-center gap-4 md:gap-8 items-start px-4 py-3 overflow-x-auto no-scrollbar">
-        {quickCategoriesList.map((cat, idx) => (
-          <div 
-            key={idx} 
-            onClick={() => navigate(cat.path)} 
-            className="flex flex-col items-center gap-1.5 cursor-pointer shrink-0 min-w-[58px]"
-          >
-            <div className="w-[50px] h-[50px] rounded-[14px] bg-white flex items-center justify-center overflow-hidden border border-[#0d4f1c] shadow-sm transition-transform active:scale-95">
-              {cat.isMore ? (
-                <div className="grid grid-cols-2 gap-1 w-6 h-6">
-                  <div className="w-2.5 h-2.5 bg-[#042A0F] rounded-sm" />
-                  <div className="w-2.5 h-2.5 bg-[#042A0F] rounded-sm" />
-                  <div className="w-2.5 h-2.5 bg-[#042A0F] rounded-sm" />
-                  <div className="w-2.5 h-2.5 bg-[#042A0F] rounded-sm" />
+      {isSearchView ? (
+        <div className="px-4 py-3 min-h-[50vh]">
+          <h3 className="text-[14px] font-black text-[#A3E635] mb-4 uppercase tracking-wide">
+            Search Results for "{searchQuery || '...'}"
+          </h3>
+
+          {isSearchLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2">
+              <span className="text-sm font-semibold text-slate-300">Searching products and stores...</span>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* 1. Stores matching query */}
+              {filteredShops.length > 0 && (
+                <div>
+                  <h4 className="text-[12px] font-bold text-slate-300 mb-2.5 uppercase">Matching Stores</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    {filteredShops.map((shop, idx) => (
+                      <div 
+                        key={idx}
+                        onClick={() => navigate(`/shops/${shop._id || shop.id}`)}
+                        className="bg-white rounded-2xl overflow-hidden shadow-md cursor-pointer active:scale-95 transition-transform p-2 flex flex-col justify-between leading-none"
+                      >
+                        <div className="w-full h-24 rounded-xl overflow-hidden mb-2">
+                          <img src={applyCloudinaryTransform(shop.shopLogo || shop.shopBanner)} alt={shop.shopName} className="w-full h-full object-cover" />
+                        </div>
+                        <div>
+                          <h5 className="text-[11px] font-black text-slate-800 line-clamp-1">{shop.shopName}</h5>
+                          <p className="text-[9px] font-bold text-slate-500 line-clamp-1 mt-1">{shop.locality || "Aswapuram"}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ) : (
-                <img src={applyCloudinaryTransform(cat.image)} alt={cat.label} className="w-full h-full object-cover" />
+              )}
+
+              {/* 2. Products matching query */}
+              {filteredProducts.length > 0 && (
+                <div>
+                  <h4 className="text-[12px] font-bold text-slate-300 mb-2.5 uppercase">Matching Products</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    {filteredProducts.map((product, idx) => (
+                      <div 
+                        key={idx}
+                        onClick={() => navigate(`/products/${product._id || product.id}`)}
+                        className="bg-[#021f0b] border border-[#0d4f1c] rounded-2xl p-2.5 flex flex-col justify-between cursor-pointer active:scale-95 transition-transform"
+                      >
+                        <div className="w-full aspect-square rounded-xl overflow-hidden bg-white mb-2">
+                          <img src={applyCloudinaryTransform(product.image)} alt={product.name} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex flex-col leading-tight">
+                          <span className="text-[11px] font-black text-white line-clamp-1">{product.name}</span>
+                          <span className="text-[9px] font-bold text-slate-300 mt-0.5">{product.weight}</span>
+                          <div className="flex justify-between items-center mt-2">
+                            <span className="text-[11px] font-black text-[#A3E635]">₹{product.price}</span>
+                            {product.originalPrice > product.price && (
+                              <span className="text-[9px] font-bold text-slate-400 line-through">₹{product.originalPrice}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {filteredShops.length === 0 && filteredProducts.length === 0 && searchQuery.trim() !== "" && (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <span className="text-3xl">🔍</span>
+                  <p className="text-sm font-black text-white mt-3">No products or stores found</p>
+                  <p className="text-xs text-slate-400 mt-1">Try checking your spelling or searching for another term</p>
+                </div>
               )}
             </div>
-            <div className="flex flex-col items-center leading-none text-center">
-              <span className="text-[9.5px] font-black text-white">{cat.label}</span>
-              <span className="text-[8.5px] font-bold text-slate-300 mt-0.5">{cat.teluguLabel}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* 4. Active Live Orders Widget / Promotion */}
-      <div className="px-4 py-2" id="live-banner-section">
-        <LiveBanner />
-      </div>
-
-      {/* 5. TODAY'S NEEDS (ఈరోజు అవసరాలు) */}
-      <div className="px-4 py-3">
-        <div className="flex justify-between items-center mb-2.5">
-          <h3 className="text-[12.5px] font-black text-[#A3E635] tracking-wide uppercase">
-            TODAYS NEEDS (ఈరోజు అవసరాలు)
-          </h3>
-          <button onClick={() => navigate('/categories')} className="text-[10.5px] font-black text-[#A3E635] hover:underline">
-            See All
-          </button>
+          )}
         </div>
-        <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
-          {todaysNeedsList.map((item, idx) => (
-            <div 
-              key={idx} 
-              onClick={() => navigate(item.path)} 
-              className="w-[84px] shrink-0 bg-[#021f0b] border border-[#0d4f1c] rounded-2xl p-2 flex flex-col items-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
-            >
-              <div className="w-16 h-16 rounded-xl overflow-hidden bg-white">
-                <img src={applyCloudinaryTransform(item.image)} alt={item.label} className="w-full h-full object-cover" />
-              </div>
-              <div className="flex flex-col items-center text-center leading-none">
-                <span className="text-[9.5px] font-black text-white">{item.label}</span>
-                <span className="text-[8.5px] font-bold text-slate-300 mt-0.5">{item.teluguLabel}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 6. Combo & Deals & Orders Promo Row */}
-      <div className="grid grid-cols-3 gap-2 px-4 py-2">
-        {/* Combo Offers Card */}
-        <div 
-          onClick={() => navigate('/offers')} 
-          className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md min-w-0"
-        >
-          <div className="text-xl">🎁</div>
-          <div className="flex flex-col leading-tight min-w-0 text-center sm:text-left">
-            <span className="text-[7.5px] sm:text-[8px] font-black text-orange-600 uppercase tracking-tight line-clamp-1">COMBO OFFERS</span>
-            <span className="text-[8.5px] sm:text-[9.5px] font-black text-slate-800 tracking-tight line-clamp-2">Best Deals & Savings</span>
-            <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-500 tracking-tight line-clamp-1">ఉత్తమ ఆఫర్లు & ఆదా</span>
-          </div>
-        </div>
-
-        {/* Today's Deals Card */}
-        <div 
-          onClick={() => navigate('/offers')} 
-          className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md min-w-0"
-        >
-          <div className="text-xl">🏷️</div>
-          <div className="flex flex-col leading-tight min-w-0 text-center sm:text-left">
-            <span className="text-[7.5px] sm:text-[8px] font-black text-blue-600 uppercase tracking-tight line-clamp-1">TODAY'S DEALS</span>
-            <span className="text-[8.5px] sm:text-[9.5px] font-black text-slate-800 tracking-tight line-clamp-2">Limited Time Offers</span>
-            <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-500 tracking-tight line-clamp-1">పరిమిత సమయ ఆఫర్లు</span>
-          </div>
-        </div>
-
-        {/* My Orders Card */}
-        <div 
-          onClick={() => navigate('/orders')} 
-          className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md min-w-0"
-        >
-          <div className="text-xl">📋</div>
-          <div className="flex flex-col leading-tight min-w-0 text-center sm:text-left">
-            <span className="text-[7.5px] sm:text-[8px] font-black text-green-600 uppercase tracking-tight line-clamp-1">MY ORDERS</span>
-            <span className="text-[8.5px] sm:text-[9.5px] font-black text-slate-800 tracking-tight line-clamp-2">Track your orders</span>
-            <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-500 tracking-tight line-clamp-1">మీ ఆర్డర్లు ట్రాక్ చేయండి</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 7. ATHREYA EXCLUSIVE PARTNERS (ప్రత్యేక భాగస్వాములు) */}
-      {shops.length > 0 && (
-        <div className="px-4 py-3">
-          <div className="flex justify-between items-center mb-2.5">
-            <h3 className="text-[12.5px] font-black text-[#A3E635] tracking-wide uppercase">
-              ATHREYA EXCLUSIVE PARTNERS (ప్రత్యేక భాగస్వాములు)
-            </h3>
-            <button onClick={() => navigate('/shop-by-store')} className="text-[10.5px] font-black text-[#A3E635] hover:underline">
-              See All
-            </button>
-          </div>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
-            {partnerStores.map((store, idx) => (
+      ) : (
+        <>
+          {/* 3. Quick Categories Row */}
+          <div className="flex justify-start md:justify-center gap-4 md:gap-8 items-start px-4 py-3 overflow-x-auto no-scrollbar">
+            {quickCategoriesList.map((cat, idx) => (
               <div 
                 key={idx} 
-                onClick={() => navigate(store.path)} 
-                className="w-[145px] shrink-0 bg-white rounded-2xl overflow-hidden shadow-md cursor-pointer active:scale-95 transition-transform flex flex-col"
+                onClick={() => navigate(cat.path)} 
+                className="flex flex-col items-center gap-1.5 cursor-pointer shrink-0 min-w-[58px]"
               >
-                <div className="w-full h-[95px] relative">
-                  <img src={store.image} alt={store.name} className="w-full h-full object-cover" />
+                <div className="w-[50px] h-[50px] rounded-[14px] bg-white flex items-center justify-center overflow-hidden border border-[#0d4f1c] shadow-sm transition-transform active:scale-95">
+                  {cat.isMore ? (
+                    <div className="grid grid-cols-2 gap-1 w-6 h-6">
+                      <div className="w-2.5 h-2.5 bg-[#042A0F] rounded-sm" />
+                      <div className="w-2.5 h-2.5 bg-[#042A0F] rounded-sm" />
+                      <div className="w-2.5 h-2.5 bg-[#042A0F] rounded-sm" />
+                      <div className="w-2.5 h-2.5 bg-[#042A0F] rounded-sm" />
+                    </div>
+                  ) : (
+                    <img src={applyCloudinaryTransform(cat.image)} alt={cat.label} className="w-full h-full object-cover" />
+                  )}
                 </div>
-                <div className="p-2 flex flex-col justify-between flex-1 leading-none">
-                  <div>
-                    <h4 className="text-[10.5px] font-black text-slate-800 line-clamp-1">{store.name}</h4>
-                    {store.teluguName && (
-                      <p className="text-[8.5px] font-bold text-slate-500 line-clamp-1 mt-0.5">{store.teluguName}</p>
-                    )}
-                  </div>
-                  <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-slate-100">
-                    <span className="text-[9px] font-black text-slate-700 flex items-center gap-0.5">
-                      {store.rating} <span className="text-yellow-500 text-[8px]">★</span>
-                    </span>
-                    <span className="text-[8.5px] font-bold text-slate-500">
-                      {store.time}
-                    </span>
-                  </div>
+                <div className="flex flex-col items-center leading-none text-center">
+                  <span className="text-[9.5px] font-black text-white">{cat.label}</span>
+                  <span className="text-[8.5px] font-bold text-slate-300 mt-0.5">{cat.teluguLabel}</span>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+
+          {/* 4. Active Live Orders Widget / Promotion */}
+          <div className="px-4 py-2" id="live-banner-section">
+            <LiveBanner />
+          </div>
+
+          {/* 5. TODAY'S NEEDS (ఈరోజు అవసరాలు) */}
+          <div className="px-4 py-3">
+            <div className="flex justify-between items-center mb-2.5">
+              <h3 className="text-[12.5px] font-black text-[#A3E635] tracking-wide uppercase">
+                TODAYS NEEDS (ఈరోజు అవసరాలు)
+              </h3>
+              <button onClick={() => navigate('/categories')} className="text-[10.5px] font-black text-[#A3E635] hover:underline">
+                See All
+              </button>
+            </div>
+            <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
+              {todaysNeedsList.map((item, idx) => (
+                <div 
+                  key={idx} 
+                  onClick={() => navigate(item.path)} 
+                  className="w-[84px] shrink-0 bg-[#021f0b] border border-[#0d4f1c] rounded-2xl p-2 flex flex-col items-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
+                >
+                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-white">
+                    <img src={applyCloudinaryTransform(item.image)} alt={item.label} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex flex-col items-center text-center leading-none">
+                    <span className="text-[9.5px] font-black text-white">{item.label}</span>
+                    <span className="text-[8.5px] font-bold text-slate-300 mt-0.5">{item.teluguLabel}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 6. Combo & Deals & Orders Promo Row */}
+          <div className="grid grid-cols-3 gap-2 px-4 py-2">
+            {/* Combo Offers Card */}
+            <div 
+              onClick={() => navigate('/offers')} 
+              className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md min-w-0"
+            >
+              <div className="text-xl">🎁</div>
+              <div className="flex flex-col leading-tight min-w-0 text-center sm:text-left">
+                <span className="text-[7.5px] sm:text-[8px] font-black text-orange-600 uppercase tracking-tight line-clamp-1">COMBO OFFERS</span>
+                <span className="text-[8.5px] sm:text-[9.5px] font-black text-slate-800 tracking-tight line-clamp-2">Best Deals & Savings</span>
+                <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-500 tracking-tight line-clamp-1">ఉత్తమ ఆఫర్లు & ఆదా</span>
+              </div>
+            </div>
+
+            {/* Today's Deals Card */}
+            <div 
+              onClick={() => navigate('/offers')} 
+              className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md min-w-0"
+            >
+              <div className="text-xl">🏷️</div>
+              <div className="flex flex-col leading-tight min-w-0 text-center sm:text-left">
+                <span className="text-[7.5px] sm:text-[8px] font-black text-blue-600 uppercase tracking-tight line-clamp-1">TODAY'S DEALS</span>
+                <span className="text-[8.5px] sm:text-[9.5px] font-black text-slate-800 tracking-tight line-clamp-2">Limited Time Offers</span>
+                <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-500 tracking-tight line-clamp-1">పరిమిత సమయ ఆఫర్లు</span>
+              </div>
+            </div>
+
+            {/* My Orders Card */}
+            <div 
+              onClick={() => navigate('/orders')} 
+              className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md min-w-0"
+            >
+              <div className="text-xl">📋</div>
+              <div className="flex flex-col leading-tight min-w-0 text-center sm:text-left">
+                <span className="text-[7.5px] sm:text-[8px] font-black text-green-600 uppercase tracking-tight line-clamp-1">MY ORDERS</span>
+                <span className="text-[8.5px] sm:text-[9.5px] font-black text-slate-800 tracking-tight line-clamp-2">Track your orders</span>
+                <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-500 tracking-tight line-clamp-1">మీ ఆర్డర్లు ట్రాక్ చేయండి</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 7. ATHREYA EXCLUSIVE PARTNERS (ప్రత్యేక భాగస్వాములు) */}
+          {shops.length > 0 && (
+            <div className="px-4 py-3">
+              <div className="flex justify-between items-center mb-2.5">
+                <h3 className="text-[12.5px] font-black text-[#A3E635] tracking-wide uppercase">
+                  ATHREYA EXCLUSIVE PARTNERS (ప్రత్యేక భాగస్వాములు)
+                </h3>
+                <button onClick={() => navigate('/shop-by-store')} className="text-[10.5px] font-black text-[#A3E635] hover:underline">
+                  See All
+                </button>
+              </div>
+              <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+                {partnerStores.map((store, idx) => (
+                  <div 
+                    key={idx} 
+                    onClick={() => navigate(store.path)} 
+                    className="w-[145px] shrink-0 bg-white rounded-2xl overflow-hidden shadow-md cursor-pointer active:scale-95 transition-transform flex flex-col"
+                  >
+                    <div className="w-full h-[95px] relative">
+                      <img src={store.image} alt={store.name} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="p-2 flex flex-col justify-between flex-1 leading-none">
+                      <div>
+                        <h4 className="text-[10.5px] font-black text-slate-800 line-clamp-1">{store.name}</h4>
+                        {store.teluguName && (
+                          <p className="text-[8.5px] font-bold text-slate-500 line-clamp-1 mt-0.5">{store.teluguName}</p>
+                        )}
+                      </div>
+                      <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-slate-100">
+                        <span className="text-[9px] font-black text-slate-700 flex items-center gap-0.5">
+                          {store.rating} <span className="text-yellow-500 text-[8px]">★</span>
+                        </span>
+                        <span className="text-[8.5px] font-bold text-slate-500">
+                          {store.time}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 8. PARCEL PICKUP (పార్సెల్ పికప్) Section */}
+          <div className="mx-4 my-3 bg-[#03210b] border border-[#0d4f1c] rounded-2xl p-4 flex gap-4 items-center shadow-md">
+            {/* Cardboard Box 3D-like representation */}
+            <div className="w-16 h-16 shrink-0 bg-[#A3E635]/10 border border-[#0d4f1c] rounded-2xl flex items-center justify-center text-4xl">
+              📦
+            </div>
+            
+            <div className="flex-1 flex flex-col gap-2 min-w-0">
+              <div>
+                <h4 className="text-[12px] font-black text-[#A3E635] tracking-wide uppercase">
+                  PARCEL PICKUP (పార్సెల్ పికప్)
+                </h4>
+                <p className="text-[10px] font-black text-white mt-0.5 leading-tight">
+                  Send anything, anywhere <br />
+                  <span className="text-slate-300 font-bold text-[9px]">Fast & Safe Delivery</span>
+                </p>
+              </div>
+
+              <div className="flex gap-1.5 mt-0.5 overflow-x-auto no-scrollbar">
+                <button 
+                  onClick={() => navigate('/pickup-delivery')} 
+                  className="px-2.5 py-1 bg-[#042A0F] border border-[#0d4f1c] text-white rounded-full text-[8.5px] font-black flex items-center gap-1 shrink-0 active:scale-95"
+                >
+                  🛵 Request Pickup
+                </button>
+                <button 
+                  onClick={() => navigate('/pickup-delivery')} 
+                  className="px-2.5 py-1 bg-[#042A0F] border border-[#0d4f1c] text-white rounded-full text-[8.5px] font-black flex items-center gap-1 shrink-0 active:scale-95"
+                >
+                  📋 Add List
+                </button>
+                <button 
+                  onClick={() => navigate('/pickup-delivery')} 
+                  className="px-2.5 py-1 bg-[#042A0F] border border-[#0d4f1c] text-white rounded-full text-[8.5px] font-black flex items-center gap-1 shrink-0 active:scale-95"
+                >
+                  📷 Upload Photo
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 9. Extra links row on dark green background */}
+          <div className="flex gap-2.5 overflow-x-auto no-scrollbar px-4 py-3 bg-[#031d0b] border-y border-[#0c4c1a] my-2">
+            {bottomQuickLinks.map((link, idx) => (
+              <div 
+                key={idx} 
+                onClick={() => navigate(link.path)} 
+                className="flex items-center gap-2.5 bg-[#042A0F] border border-[#0d4f1c] px-3.5 py-2 rounded-2xl cursor-pointer shrink-0 active:scale-95 transition-transform"
+              >
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white shrink-0 ${link.bgColor} shadow-sm border border-white/10`}>
+                  {link.icon}
+                </div>
+                <div className="flex flex-col leading-none">
+                  <span className="text-[10px] font-black text-white">{link.label}</span>
+                  <span className="text-[8px] font-bold text-slate-355 mt-0.5">{link.teluguLabel}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
-      {/* 8. PARCEL PICKUP (పార్సెల్ పికప్) Section */}
-      <div className="mx-4 my-3 bg-[#03210b] border border-[#0d4f1c] rounded-2xl p-4 flex gap-4 items-center shadow-md">
-        {/* Cardboard Box 3D-like representation */}
-        <div className="w-16 h-16 shrink-0 bg-[#A3E635]/10 border border-[#0d4f1c] rounded-2xl flex items-center justify-center text-4xl">
-          📦
-        </div>
-        
-        <div className="flex-1 flex flex-col gap-2 min-w-0">
-          <div>
-            <h4 className="text-[12px] font-black text-[#A3E635] tracking-wide uppercase">
-              PARCEL PICKUP (పార్సెల్ పికప్)
-            </h4>
-            <p className="text-[10px] font-black text-white mt-0.5 leading-tight">
-              Send anything, anywhere <br />
-              <span className="text-slate-300 font-bold text-[9px]">Fast & Safe Delivery</span>
-            </p>
+      {/* Voice Listening Overlay */}
+      {isListening && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[600] flex flex-col items-center justify-center gap-6 text-white animate-in fade-in duration-300">
+          <div className="w-24 h-24 rounded-full bg-[#A3E635] flex items-center justify-center animate-pulse shadow-[0_0_30px_rgba(163,230,53,0.5)]">
+            <Mic className="w-10 h-10 text-[#042A0F]" />
           </div>
-
-          <div className="flex gap-1.5 mt-0.5 overflow-x-auto no-scrollbar">
-            <button 
-              onClick={() => navigate('/pickup-delivery')} 
-              className="px-2.5 py-1 bg-[#042A0F] border border-[#0d4f1c] text-white rounded-full text-[8.5px] font-black flex items-center gap-1 shrink-0 active:scale-95"
-            >
-              🛵 Request Pickup
-            </button>
-            <button 
-              onClick={() => navigate('/pickup-delivery')} 
-              className="px-2.5 py-1 bg-[#042A0F] border border-[#0d4f1c] text-white rounded-full text-[8.5px] font-black flex items-center gap-1 shrink-0 active:scale-95"
-            >
-              📋 Add List
-            </button>
-            <button 
-              onClick={() => navigate('/pickup-delivery')} 
-              className="px-2.5 py-1 bg-[#042A0F] border border-[#0d4f1c] text-white rounded-full text-[8.5px] font-black flex items-center gap-1 shrink-0 active:scale-95"
-            >
-              📷 Upload Photo
-            </button>
+          <div className="flex flex-col items-center gap-1.5 text-center">
+            <h3 className="text-lg font-black text-[#A3E635] uppercase tracking-wide">Listening...</h3>
+            <p className="text-xs text-slate-300 font-bold px-6">Speak now to search products or stores</p>
           </div>
-        </div>
-      </div>
-
-      {/* 9. Extra links row on dark green background */}
-      <div className="flex gap-2.5 overflow-x-auto no-scrollbar px-4 py-3 bg-[#031d0b] border-y border-[#0c4c1a] my-2">
-        {bottomQuickLinks.map((link, idx) => (
-          <div 
-            key={idx} 
-            onClick={() => navigate(link.path)} 
-            className="flex items-center gap-2.5 bg-[#042A0F] border border-[#0d4f1c] px-3.5 py-2 rounded-2xl cursor-pointer shrink-0 active:scale-95 transition-transform"
+          {searchQuery && (
+            <div className="bg-white/10 px-4 py-2.5 rounded-2xl border border-white/20 max-w-[80%] text-center">
+              <span className="text-sm font-semibold italic text-[#A3E635]">"{searchQuery}"</span>
+            </div>
+          )}
+          <button 
+            onClick={() => setIsListening(false)}
+            className="mt-4 px-6 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-500 rounded-full border border-red-500/30 text-xs font-black uppercase active:scale-95 transition-transform"
           >
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white shrink-0 ${link.bgColor} shadow-sm border border-white/10`}>
-              {link.icon}
-            </div>
-            <div className="flex flex-col leading-none">
-              <span className="text-[10px] font-black text-white">{link.label}</span>
-              <span className="text-[8px] font-bold text-slate-355 mt-0.5">{link.teluguLabel}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+            Cancel
+          </button>
+        </div>
+      )}
 
       {/* Drawer selector for location confirmation */}
       <LocationDrawer 
