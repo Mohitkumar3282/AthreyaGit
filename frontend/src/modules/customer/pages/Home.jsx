@@ -70,7 +70,7 @@ const Home = () => {
     }
   }, [showBikeAnimation]);
 
-  // Fetch real data to bind navigation dynamically if stores/categories exist
+  // Fetch categories once on mount
   useEffect(() => {
     customerApi.getCategories({ tree: true })
       .then(res => {
@@ -99,7 +99,10 @@ const Home = () => {
         }
       })
       .catch(e => console.error("Error fetching categories:", e));
+  }, []);
 
+  // Fetch nearby sellers when coordinates change
+  useEffect(() => {
     if (currentLocation?.latitude && currentLocation?.longitude) {
       customerApi.getNearbySellers({ lat: currentLocation.latitude, lng: currentLocation.longitude })
         .then(res => {
@@ -109,7 +112,7 @@ const Home = () => {
         })
         .catch(e => console.error("Error fetching shops:", e));
     }
-  }, [currentLocation]);
+  }, [currentLocation?.latitude, currentLocation?.longitude]);
 
 
   // Helper to map category navigation to database IDs if found
@@ -225,7 +228,7 @@ const Home = () => {
     <div className="min-h-screen bg-[#042A0F] text-white font-sans pb-4 overflow-x-hidden">
       
       {/* 1. Header Row */}
-      <div className="flex items-center justify-between px-4 pt-3 pb-2 bg-[#042A0F] relative overflow-hidden">
+      <div className="flex items-center justify-between px-4 pt-[calc(12px+env(safe-area-inset-top,0px))] pb-2 bg-[#042A0F] relative overflow-hidden">
         
         {/* Left Section: Menu, Logo, Divider, Location */}
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
@@ -235,7 +238,7 @@ const Home = () => {
           
           <div onClick={() => navigate("/")} className="cursor-pointer shrink-0 flex items-center gap-1.5">
             <img src={LogoTransparent} alt="Athreya Delivery" className="h-9 w-auto object-contain" />
-            <div className="flex flex-col items-start leading-none font-sans">
+            <div className="hidden min-[400px]:flex flex-col items-start leading-none font-sans">
               <span className="text-[12.5px] font-black text-white tracking-wide uppercase">ATHREYA</span>
               <span className="text-[8.5px] font-bold text-white tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
             </div>
@@ -398,39 +401,39 @@ const Home = () => {
         {/* Combo Offers Card */}
         <div 
           onClick={() => navigate('/offers')} 
-          className="bg-white rounded-2xl p-2 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md"
+          className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md min-w-0"
         >
           <div className="text-xl">🎁</div>
-          <div className="flex flex-col leading-tight min-w-0">
-            <span className="text-[7.5px] font-black text-orange-600 uppercase tracking-tight truncate">COMBO OFFERS</span>
-            <span className="text-[8.5px] font-black text-slate-800 tracking-tight truncate">Best Deals & Savings</span>
-            <span className="text-[7.5px] font-bold text-slate-500 tracking-tight truncate">ఉత్తమ ఆఫర్లు & ఆదా</span>
+          <div className="flex flex-col leading-tight min-w-0 text-center sm:text-left">
+            <span className="text-[7.5px] sm:text-[8px] font-black text-orange-600 uppercase tracking-tight line-clamp-1">COMBO OFFERS</span>
+            <span className="text-[8.5px] sm:text-[9.5px] font-black text-slate-800 tracking-tight line-clamp-2">Best Deals & Savings</span>
+            <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-500 tracking-tight line-clamp-1">ఉత్తమ ఆఫర్లు & ఆదా</span>
           </div>
         </div>
 
         {/* Today's Deals Card */}
         <div 
           onClick={() => navigate('/offers')} 
-          className="bg-white rounded-2xl p-2 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md"
+          className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md min-w-0"
         >
           <div className="text-xl">🏷️</div>
-          <div className="flex flex-col leading-tight min-w-0">
-            <span className="text-[7.5px] font-black text-blue-600 uppercase tracking-tight truncate">TODAY'S DEALS</span>
-            <span className="text-[8.5px] font-black text-slate-800 tracking-tight truncate">Limited Time Offers</span>
-            <span className="text-[7.5px] font-bold text-slate-500 tracking-tight truncate">పరిమిత సమయ ఆఫర్లు</span>
+          <div className="flex flex-col leading-tight min-w-0 text-center sm:text-left">
+            <span className="text-[7.5px] sm:text-[8px] font-black text-blue-600 uppercase tracking-tight line-clamp-1">TODAY'S DEALS</span>
+            <span className="text-[8.5px] sm:text-[9.5px] font-black text-slate-800 tracking-tight line-clamp-2">Limited Time Offers</span>
+            <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-500 tracking-tight line-clamp-1">పరిమిత సమయ ఆఫర్లు</span>
           </div>
         </div>
 
         {/* My Orders Card */}
         <div 
           onClick={() => navigate('/orders')} 
-          className="bg-white rounded-2xl p-2 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md"
+          className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md min-w-0"
         >
           <div className="text-xl">📋</div>
-          <div className="flex flex-col leading-tight min-w-0">
-            <span className="text-[7.5px] font-black text-green-600 uppercase tracking-tight truncate">MY ORDERS</span>
-            <span className="text-[8.5px] font-black text-slate-800 tracking-tight truncate">Track your orders</span>
-            <span className="text-[7.5px] font-bold text-slate-500 tracking-tight truncate">మీ ఆర్డర్లు ట్రాక్ చేయండి</span>
+          <div className="flex flex-col leading-tight min-w-0 text-center sm:text-left">
+            <span className="text-[7.5px] sm:text-[8px] font-black text-green-600 uppercase tracking-tight line-clamp-1">MY ORDERS</span>
+            <span className="text-[8.5px] sm:text-[9.5px] font-black text-slate-800 tracking-tight line-clamp-2">Track your orders</span>
+            <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-500 tracking-tight line-clamp-1">మీ ఆర్డర్లు ట్రాక్ చేయండి</span>
           </div>
         </div>
       </div>

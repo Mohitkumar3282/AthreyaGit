@@ -114,7 +114,7 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
                 </>
             )}
 
-            <main className={cn("flex-1 md:pb-0", !showHeader && "pt-0", !fullHeight && "pb-16")}>
+            <main className={cn("flex-1 md:pb-0", !showHeader && "pt-0", !fullHeight && "main-mobile-bottom-padding")}>
                 <motion.div
                     key={location.pathname}
                     initial={{ opacity: 0, y: 15 }}

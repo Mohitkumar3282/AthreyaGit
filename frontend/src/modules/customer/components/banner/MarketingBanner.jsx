@@ -4,6 +4,13 @@ import { ArrowRight, Tag, Sparkles, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import VideoBanner from "./VideoBanner";
 
+const POSTER_IMAGES = {
+    morning: "https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?q=80&w=600&auto=format&fit=crop",
+    afternoon: "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?q=80&w=600&auto=format&fit=crop",
+    evening: "https://images.unsplash.com/photo-1544787219-7f47ccb76574?q=80&w=600&auto=format&fit=crop",
+    night: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600&auto=format&fit=crop"
+};
+
 const MarketingBanner = memo(({ videoData, offers = [] }) => {
     const navigate = useNavigate();
     const [currentVideoIdx, setCurrentVideoIdx] = useState(0);
@@ -31,11 +38,12 @@ const MarketingBanner = memo(({ videoData, offers = [] }) => {
     }, [offers]);
 
     const activeOffer = offers[currentOfferIdx] || null;
+    const activePoster = POSTER_IMAGES[videoData?.timeOfDay] || POSTER_IMAGES.night;
 
     return (
         <div className="relative w-full rounded-2xl overflow-hidden border border-[#0d4f1c] bg-[#021f0b] shadow-lg aspect-[21/9] md:aspect-[3/1] min-h-[175px]">
             {/* Background Video */}
-            {activeVideo && <VideoBanner videoUrl={activeVideo.url} />}
+            {activeVideo && <VideoBanner videoUrl={activeVideo.url} posterUrl={activePoster} />}
 
             {/* Content Overlay */}
             <div className="absolute inset-0 z-20 p-4 md:p-6 flex flex-col justify-between text-white">

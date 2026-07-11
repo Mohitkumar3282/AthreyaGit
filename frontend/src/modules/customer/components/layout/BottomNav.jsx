@@ -20,11 +20,15 @@ const BottomNav = () => {
     return (
         <div 
             className={cn(
-                "fixed bottom-0 left-0 right-0 z-[500] flex items-center justify-around h-[70px] md:hidden px-4 pb-[env(safe-area-inset-bottom)] transition-colors duration-300",
+                "fixed bottom-0 left-0 right-0 z-[500] flex items-center justify-around md:hidden px-4 transition-colors duration-300",
                 isGreenTheme 
                     ? "bg-[#042A0F] border-t border-[#063A16]/40" 
                     : "bg-white border-t border-[#1a6e2e]/20"
             )}
+            style={{
+                height: "calc(65px + env(safe-area-inset-bottom, 0px))",
+                paddingBottom: "env(safe-area-inset-bottom, 0px)"
+            }}
         >
             {navItems.map((item) => {
                 const isActive = location.pathname === item.path ||
