@@ -13,8 +13,9 @@ const navItems = [
 
 const BottomNav = () => {
     const location = useLocation();
-    const isHome = location.pathname === '/';
-    const isCategories = location.pathname === '/categories';
+    const path = location.pathname.replace(/\/$/, '') || '/';
+    const isHome = path === '/';
+    const isCategories = path === '/categories';
     const isGreenTheme = isHome || isCategories;
 
     return (

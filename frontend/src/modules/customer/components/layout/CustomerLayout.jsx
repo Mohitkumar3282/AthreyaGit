@@ -92,6 +92,8 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
     // Condition to hide the MobileFooterMessage ("India's last minute app") on specific pages
     const showFooterMessage = path === '/';
 
+    const isGreenTheme = path === '/' || path === '/categories';
+
     // Hide elements on mobile only when product detail is open
     // On desktop, we want to keep the header visible even if the modal is open
     const finalShowHeaderMobile = showHeader && !isProductDetailOpen;
@@ -99,7 +101,10 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
     const finalShowFooterMessageMobile = showFooterMessage && !isProductDetailOpen;
 
     return (
-        <div className="customer-panel min-h-screen bg-white flex flex-col font-sans">
+        <div className={cn(
+            "customer-panel min-h-screen flex flex-col font-sans transition-colors duration-300",
+            isGreenTheme ? "bg-[#042A0F]" : "bg-white"
+        )}>
             {/* Header logic: Always show on desktop if showHeader is true. On mobile, hide if product detail is open. */}
             {showHeader && (
                 <>
@@ -114,7 +119,12 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
                 </>
             )}
 
-            <main className={cn("flex-1 md:pb-0", !showHeader && "pt-0", !fullHeight && "main-mobile-bottom-padding")}>
+            <main className={cn(
+                "flex-1 md:pb-0 transition-colors duration-300", 
+                !showHeader && "pt-0", 
+                !fullHeight && "main-mobile-bottom-padding",
+                isGreenTheme ? "bg-[#042A0F]" : "bg-white"
+            )}>
                 <motion.div
                     key={location.pathname}
                     initial={{ opacity: 0, y: 15 }}
