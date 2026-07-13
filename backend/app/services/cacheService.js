@@ -2,6 +2,53 @@ import { getRedisClient } from "../config/redis.js";
 import * as logger from "./logger.js";
 import { incrementCounter } from "./metrics.js";
 
+const memoryCache = new Map();
+
+function memoryGet(key) {
+  const item = memoryCache.get(key);
+  if (!item) return null;
+  if (item.expiresAt < Date.now()) {
+    memoryCache.delete(key);
+    return null;
+  }
+  return item.value;
+}
+
+function memorySet(key, value, ttlSeconds) {
+  if (ttlSeconds <= 0) {
+    memoryCache.delete(key);
+    return;
+  }
+  memoryCache.set(key, {
+    value,
+    expiresAt: Date.now() + (ttlSeconds * 1000),
+  });
+}
+
+function memoryDel(key) {
+  memoryCache.delete(key);
+}
+
+function memoryDelPattern(pattern) {
+  const cleanPattern = String(pattern || "").trim();
+  if (!cleanPattern) return 0;
+
+  const regexStr = "^" + cleanPattern
+    .replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+    .replace(/\\\*/g, ".*")
+    + "$";
+  const regex = new RegExp(regexStr);
+
+  let deletedCount = 0;
+  for (const key of memoryCache.keys()) {
+    if (regex.test(key)) {
+      memoryCache.delete(key);
+      deletedCount++;
+    }
+  }
+  return deletedCount;
+}
+
 /**
  * Cache Service
  * 
@@ -83,7 +130,15 @@ export async function get(key) {
   
   try {
     const redis = getRedisClient();
-    if (!redis) return null;
+    if (!redis) {
+      const localData = memoryGet(key);
+      if (localData !== null) {
+        logger.debug(`[Cache] (Memory) Hit: ${key}`);
+        return localData;
+      }
+      logger.debug(`[Cache] (Memory) Miss: ${key}`);
+      return null;
+    }
     
     const data = await redis.get(key);
     
@@ -119,7 +174,11 @@ export async function set(key, value, ttlSeconds) {
   
   try {
     const redis = getRedisClient();
-    if (!redis) return;
+    if (!redis) {
+      memorySet(key, value, ttlSeconds);
+      logger.debug(`[Cache] (Memory) Set: ${key}, TTL: ${ttlSeconds}s`);
+      return;
+    }
     
     if (ttlSeconds <= 0) {
       await redis.del(key);
@@ -152,7 +211,11 @@ export async function del(key) {
   
   try {
     const redis = getRedisClient();
-    if (!redis) return;
+    if (!redis) {
+      memoryDel(key);
+      logger.debug(`[Cache] (Memory) Deleted: ${key}`);
+      return;
+    }
     
     await redis.del(key);
     logger.debug(`[Cache] Deleted: ${key}`);
@@ -178,7 +241,11 @@ export async function delPattern(pattern) {
   
   try {
     const redis = getRedisClient();
-    if (!redis) return 0;
+    if (!redis) {
+      const count = memoryDelPattern(pattern);
+      logger.info(`[Cache] (Memory) Deleted ${count} keys matching pattern: ${pattern}`);
+      return count;
+    }
     
     let cursor = "0";
     let deletedCount = 0;
@@ -253,7 +320,14 @@ export async function invalidate(key) {
   
   try {
     const redis = getRedisClient();
-    if (!redis) return;
+    if (!redis) {
+      if (key.includes("*")) {
+        memoryDelPattern(key);
+      } else {
+        memoryDel(key);
+      }
+      return;
+    }
     
     const patterns = [key];
     if (

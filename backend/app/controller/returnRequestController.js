@@ -654,6 +654,13 @@ export const reassignDeliveryBoy = async (req, res) => {
       payload: { returnRequestId: returnRequest.id, deliveryBoyName: newBoy.name }
     });
 
+    emitNotificationEvent(NOTIFICATION_EVENTS.RETURN_PICKUP_ASSIGNED, {
+      deliveryId: newBoy._id,
+      orderId: returnRequest.order_id,
+      customerId: returnRequest.customer_id,
+      data: { commission: 15 } // Mock commission
+    });
+
     return handleResponse(res, 200, "Delivery boy reassigned successfully", returnRequest);
   } catch (error) {
     return handleResponse(res, 500, error.message);

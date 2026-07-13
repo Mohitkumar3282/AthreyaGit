@@ -79,7 +79,7 @@ export function normalizeNotificationRole(role) {
   if (value === "user") return NOTIFICATION_ROLES.CUSTOMER;
   if (value === "customer") return NOTIFICATION_ROLES.CUSTOMER;
   if (value === "seller") return NOTIFICATION_ROLES.SELLER;
-  if (value === "delivery") return NOTIFICATION_ROLES.DELIVERY;
+  if (value === "delivery" || value === "delivery_boy") return NOTIFICATION_ROLES.DELIVERY;
   if (value === "admin") return NOTIFICATION_ROLES.ADMIN;
   return null;
 }
@@ -88,7 +88,7 @@ export function roleFromRecipientModel(recipientModel) {
   const model = String(recipientModel || "").trim().toLowerCase();
   if (model === "user" || model === "customer") return NOTIFICATION_ROLES.CUSTOMER;
   if (model === "seller") return NOTIFICATION_ROLES.SELLER;
-  if (model === "delivery") return NOTIFICATION_ROLES.DELIVERY;
+  if (model === "delivery" || model === "deliveryboy" || model === "delivery_boy") return NOTIFICATION_ROLES.DELIVERY;
   if (model === "admin") return NOTIFICATION_ROLES.ADMIN;
   return null;
 }

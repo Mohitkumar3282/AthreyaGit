@@ -483,6 +483,16 @@ export const requestReturnDropOtp = async (req, res) => {
           },
         });
 
+        // ── Send Push Notification to Seller ──
+        emitNotificationEvent(NOTIFICATION_EVENTS.RETURN_DROP_OTP, {
+          sellerId,
+          orderId,
+          data: {
+            otp: result.otp,
+            expiresAt: result.expiresAt,
+          },
+        });
+
         // ── Send SMS to seller (BACKGROUND) ──
         setImmediate(async () => {
           try {

@@ -1418,7 +1418,7 @@ const OrderDetailPage = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="relative z-10 w-full max-w-md bg-white rounded-3xl border border-[#1a6e2e]/20 p-6 space-y-4"
+            className="relative z-10 w-full max-w-md max-h-[85vh] overflow-y-auto bg-white rounded-3xl border border-[#1a6e2e]/20 p-6 space-y-4"
           >
             <h3 className="text-lg font-black text-slate-900">
               Request Return
@@ -1570,7 +1570,7 @@ const OrderDetailPage = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="relative z-10 w-full max-w-md bg-white rounded-3xl border border-[#1a6e2e]/20 p-6 space-y-4 font-sans"
+            className="relative z-10 w-full max-w-md max-h-[85vh] overflow-y-auto bg-white rounded-3xl border border-[#1a6e2e]/20 p-6 space-y-4 font-sans"
           >
             <h3 className="text-lg font-black text-slate-900">
               {canCancelDirectly() ? "Cancel Order" : "Request Cancellation"}

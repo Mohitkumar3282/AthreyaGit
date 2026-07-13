@@ -243,13 +243,13 @@ router.post(
 router.post(
   "/workflow/:orderId/return-otp/request",
   verifyToken,
-  allowRoles("delivery", "admin"),
+  allowRoles("delivery", "delivery_boy", "admin"),
   requestReturnPickupOtp,
 );
 router.post(
   "/workflow/:orderId/return-otp/verify",
   verifyToken,
-  allowRoles("delivery", "admin"),
+  allowRoles("delivery", "delivery_boy", "admin"),
   verifyReturnPickupOtp,
 );
 
@@ -257,13 +257,13 @@ router.post(
 router.post(
   "/workflow/:orderId/return-drop-otp/request",
   verifyToken,
-  allowRoles("delivery", "admin"),
+  allowRoles("delivery", "delivery_boy", "admin"),
   requestReturnDropOtp,
 );
 router.post(
   "/workflow/:orderId/return-drop-otp/verify",
   verifyToken,
-  allowRoles("delivery", "admin"),
+  allowRoles("delivery", "delivery_boy", "admin"),
   verifyReturnDropOtp,
 );
 

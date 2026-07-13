@@ -332,7 +332,7 @@ export async function generateReturnPickupOtp(orderId, requester = {}) {
     const requesterId = requester?.id || requester?._id || null;
     const requesterRole = String(requester?.role || '').toLowerCase();
     if (
-      requesterRole === 'delivery' &&
+      (requesterRole === 'delivery' || requesterRole === 'delivery_boy') &&
       requesterId &&
       order.returnDeliveryBoy &&
       String(order.returnDeliveryBoy) !== String(requesterId)

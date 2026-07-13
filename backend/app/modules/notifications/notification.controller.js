@@ -8,6 +8,7 @@ import User from "../../models/customer.js";
 import Seller from "../../models/seller.js";
 import Delivery from "../../models/delivery.js";
 import Admin from "../../models/admin.js";
+import DeliveryBoy from "../../models/deliveryBoy.js";
 import {
   normalizeNotificationRole,
   ROLE_TO_USER_MODEL,
@@ -108,6 +109,7 @@ async function fetchLoginUser(userModelName, userId) {
     Seller,
     Delivery,
     Admin,
+    DeliveryBoy,
   };
 
   const model = MODEL_MAP[userModelName];
@@ -119,10 +121,20 @@ async function fetchLoginUser(userModelName, userId) {
     User: `${baseProjection} walletBalance isActive`,
     Seller: `${baseProjection} isActive isVerified applicationStatus`,
     Delivery: `${baseProjection} isOnline isVerified`,
+    DeliveryBoy: `${baseProjection} is_active is_available`,
     Admin: `${baseProjection} isVerified`,
   };
 
-  return model.findById(userId).select(projectionByModel[userModelName] || baseProjection).lean();
+  let user = await model.findById(userId).select(projectionByModel[userModelName] || baseProjection).lean();
+  if (!user && userModelName === "Delivery") {
+    user = await DeliveryBoy.findById(userId).select(projectionByModel.DeliveryBoy || baseProjection).lean();
+    if (user) {
+      user.role = "delivery";
+      user.isOnline = user.is_available;
+      user.isVerified = user.is_active;
+    }
+  }
+  return user;
 }
 
 export const registerPushToken = async (req, res) => {

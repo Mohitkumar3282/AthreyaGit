@@ -3,6 +3,7 @@ import Transaction from "../models/transaction.js";
 import { handleResponse, calculateDistance } from "../utils/helper.js";
 import mongoose from "mongoose";
 import { invalidateSellerName } from "../services/entityNameCache.js";
+import { buildKey, getOrSet, getTTL } from "../services/cacheService.js";
 
 /* ===============================
    GET NEARBY SELLERS
@@ -12,11 +13,18 @@ export const getNearbySellers = async (req, res) => {
     const { lat, lng } = req.query;
 
     if (!lat || !lng) {
-      const sellers = await Seller.find({
-        isActive: true,
-        isOpen: true,
-        isVerified: true
-      }).lean();
+      const cacheKey = buildKey("sellers", "all_active");
+      const sellers = await getOrSet(
+        cacheKey,
+        async () => {
+          return Seller.find({
+            isActive: true,
+            isOpen: true,
+            isVerified: true
+          }).lean();
+        },
+        getTTL("nearbySellers")
+      );
       return handleResponse(
         res,
         200,
@@ -28,40 +36,46 @@ export const getNearbySellers = async (req, res) => {
     const customerLat = Number(lat);
     const customerLng = Number(lng);
 
-    // Fetch all active/verified sellers
-    // We could use $geoNear, but to strictly follow the requirement of individual radii,
-    // we'll fetch sellers within a reasonable max distance (e.g. 100km) and then filter.
-    const sellers = await Seller.find({
-      isActive: true,
-      isOpen: true,
-      isVerified: true,
-      location: {
-        $near: {
-          $geometry: {
-            type: "Point",
-            coordinates: [customerLng, customerLat],
+    const rLat = customerLat.toFixed(4);
+    const rLng = customerLng.toFixed(4);
+    const cacheKey = buildKey("sellers", "nearby_full", `${rLat}:${rLng}`);
+
+    const nearbySellers = await getOrSet(
+      cacheKey,
+      async () => {
+        const sellers = await Seller.find({
+          isActive: true,
+          isOpen: true,
+          isVerified: true,
+          location: {
+            $near: {
+              $geometry: {
+                type: "Point",
+                coordinates: [customerLng, customerLat],
+              },
+              $maxDistance: 100000, // 100km max search area for performance
+            },
           },
-          $maxDistance: 100000, // 100km max search area for performance
-        },
+        }).lean();
+
+        return sellers.filter((seller) => {
+          const sellerLng = seller.location.coordinates[0];
+          const sellerLat = seller.location.coordinates[1];
+          const distance = calculateDistance(
+            customerLat,
+            customerLng,
+            sellerLat,
+            sellerLng,
+          );
+
+          // Add distance to seller object for frontend
+          seller.distance = distance;
+
+          return distance <= (seller.serviceRadius || 5);
+        });
       },
-    }).lean();
-
-    // Filter based on individual service radius
-    const nearbySellers = sellers.filter((seller) => {
-      const sellerLng = seller.location.coordinates[0];
-      const sellerLat = seller.location.coordinates[1];
-      const distance = calculateDistance(
-        customerLat,
-        customerLng,
-        sellerLat,
-        sellerLng,
-      );
-
-      // Add distance to seller object for frontend
-      seller.distance = distance;
-
-      return distance <= (seller.serviceRadius || 5);
-    });
+      getTTL("nearbySellers")
+    );
 
     return handleResponse(
       res,
