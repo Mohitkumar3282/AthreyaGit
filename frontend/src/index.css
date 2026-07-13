@@ -52,17 +52,34 @@
   --customer-mini-cart-color: #0284c7;
 }
 
-body {
+html, body, #root {
   margin: 0;
   font-family: "Georgia", serif !important;
-  background-color: #ffffff !important;
-
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation; /* Disable double-tap to zoom */
+  -webkit-text-size-adjust: 100%; /* Prevent automatic text resizing */
+}
+
+body {
+  background-color: #ffffff !important;
   font-size: 13px;
-  overscroll-behavior-y: none; /* Prevent pull-to-refresh feel if not needed, or use bounce sparingly */
-  -webkit-tap-highlight-color: transparent; /* Remove the gray tap highlight for a cleaner feel */
-  touch-action: manipulation; /* Faster taps */
+}
+
+/* Prevent iOS auto-zoom on input focus by forcing minimum 16px font-size */
+@media (max-width: 767px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="search"],
+  input[type="email"],
+  input[type="password"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }
 
 * {
