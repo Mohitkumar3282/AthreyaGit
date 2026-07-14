@@ -880,10 +880,10 @@ export const markDeliveredToSeller = async (req, res) => {
         await order.save({ session });
 
         let returnCommission = order.returnDeliveryCommission;
-        if (returnCommission === undefined || returnCommission === null) {
+        if (!returnCommission) {
           try {
             const settings = await getOrCreateFinanceSettings({ session });
-            returnCommission = settings?.returnDeliveryCommission ?? 0;
+            returnCommission = settings?.returnDeliveryCommission || 15;
           } catch (err) {
             returnCommission = 15;
           }

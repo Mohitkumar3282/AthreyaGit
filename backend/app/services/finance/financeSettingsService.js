@@ -16,6 +16,7 @@ const DEFAULT_FINANCE_SETTINGS = {
   handlingFeeStrategy: HANDLING_FEE_STRATEGY.HIGHEST_CATEGORY_FEE,
   codEnabled: true,
   onlineEnabled: true,
+  returnDeliveryCommission: 15,
 };
 
 export function normalizeFinanceSettings(raw = {}) {
@@ -53,6 +54,10 @@ export function normalizeFinanceSettings(raw = {}) {
   const handlingFeeStrategy =
     raw.handlingFeeStrategy || DEFAULT_FINANCE_SETTINGS.handlingFeeStrategy;
 
+  const returnDeliveryCommission = roundCurrency(
+    raw.returnDeliveryCommission ?? DEFAULT_FINANCE_SETTINGS.returnDeliveryCommission ?? 15,
+  );
+
   return {
     deliveryPricingMode,
     pricingMode: deliveryPricingMode,
@@ -69,6 +74,7 @@ export function normalizeFinanceSettings(raw = {}) {
     handlingFeeStrategy,
     codEnabled: raw.codEnabled ?? DEFAULT_FINANCE_SETTINGS.codEnabled,
     onlineEnabled: raw.onlineEnabled ?? DEFAULT_FINANCE_SETTINGS.onlineEnabled,
+    returnDeliveryCommission,
   };
 }
 
