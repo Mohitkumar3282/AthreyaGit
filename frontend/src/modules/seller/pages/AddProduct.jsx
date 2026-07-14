@@ -54,6 +54,7 @@ const AddProduct = () => {
     tags: "",
     weight: "",
     brand: "",
+    gst: "",
     mainImage: null,
     galleryImages: [],
     variants: [
@@ -144,6 +145,7 @@ const AddProduct = () => {
       data.append("sku", formData.sku);
       data.append("description", formData.description);
       data.append("brand", formData.brand);
+      data.append("gst", formData.gst || 0);
       data.append("weight", formData.weight);
       data.append("status", formData.status);
 
@@ -358,6 +360,20 @@ const AddProduct = () => {
                     }
                     className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-md text-sm font-mono font-bold outline-none ring-primary/5 focus:ring-2 transition-all"
                     placeholder="AUTO-GENERATED"
+                  />
+                </div>
+                <div className="space-y-1.5 flex flex-col">
+                  <label className="text-[10px] sm:text-xs font-bold text-slate-600 uppercase tracking-widest ml-1">
+                    GST Tax (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.gst}
+                    onChange={(e) =>
+                      setFormData({ ...formData, gst: e.target.value })
+                    }
+                    className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-md text-sm font-semibold outline-none ring-primary/5 focus:ring-2 transition-all"
+                    placeholder="e.g. 18"
                   />
                 </div>
               </div>

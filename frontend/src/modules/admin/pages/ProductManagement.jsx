@@ -76,6 +76,7 @@ const ProductManagement = () => {
         tags: '',
         weight: '',
         brand: '',
+        gst: '',
         mainImage: null,
         galleryImages: [],
         variants: [
@@ -166,6 +167,7 @@ const ProductManagement = () => {
             data.append('status', formData.status);
             data.append('isFeatured', formData.isFeatured);
             data.append('brand', formData.brand);
+            data.append('gst', formData.gst || 0);
             data.append('weight', formData.weight);
             data.append('tags', formData.tags);
             data.append('variants', JSON.stringify(formData.variants));
@@ -304,6 +306,7 @@ const ProductManagement = () => {
                 tags: Array.isArray(item.tags) ? item.tags.join(', ') : item.tags || '',
                 weight: item.weight || '',
                 brand: item.brand || '',
+                gst: item.gst !== undefined ? item.gst : '',
                 mainImage: item.mainImage || null,
                 galleryImages: item.galleryImages || item.images || [],
                 variants: (item.variants && item.variants.length > 0) ? item.variants.map(v => ({ ...v, id: v._id || Date.now() })) : [
@@ -323,7 +326,7 @@ const ProductManagement = () => {
                 name: '', slug: '', sku: '', description: '', price: '',
                 salePrice: '', stock: '', lowStockAlert: 5, unit: 'packet',
                 header: '', categoryId: '', subcategoryId: '', status: 'active',
-                isFeatured: false, tags: '', weight: '', brand: '',
+                isFeatured: false, tags: '', weight: '', brand: '', gst: '',
                 mainImage: null, galleryImages: [],
                 variants: [
                     { id: Date.now(), name: 'Default', price: '', salePrice: '', stock: '', sku: '' }
@@ -810,6 +813,16 @@ const ProductManagement = () => {
                                                         onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                                                         className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-xl text-sm font-mono font-bold outline-none ring-primary/5 focus:ring-2"
                                                         placeholder="AUTO-GENERATED"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1.5 flex flex-col">
+                                                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">GST Tax (%)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={formData.gst}
+                                                        onChange={(e) => setFormData({ ...formData, gst: e.target.value })}
+                                                        className="w-full px-4 py-2.5 bg-slate-100 border-none rounded-xl text-sm font-semibold outline-none ring-primary/5 focus:ring-2"
+                                                        placeholder="e.g. 18"
                                                     />
                                                 </div>
                                             </div>

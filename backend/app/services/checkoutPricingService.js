@@ -449,11 +449,17 @@ export async function buildCheckoutPricingSnapshot({
     // `applyWalletAllocationToSellerBreakdowns` so it can clamp against
     // the post-tip grandTotal — matching the customer-facing clamp on the
     // frontend. We deliberately do NOT pass walletAmount through here.
+    const sellerTax = round2(sellerItems.reduce((sum, item) => {
+      const itemGst = Number(item.gst || 0);
+      const itemTax = (item.price || 0) * (itemGst / 100) * (item.quantity || 1);
+      return sum + itemTax;
+    }, 0));
+
     const breakdown = await generateOrderPaymentBreakdown({
       preHydratedItems: sellerItems,
       distanceKm,
       discountTotal: sellerDiscount,
-      taxTotal: 0,
+      taxTotal: sellerTax,
       session,
     });
     sellerBreakdownEntries.push({

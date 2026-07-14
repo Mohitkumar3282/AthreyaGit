@@ -46,6 +46,10 @@ const productSchema = new mongoose.Schema(
             type: String,
             trim: true,
         },
+        gst: {
+            type: Number,
+            default: 0,
+        },
         weight: {
             type: String,
             trim: true,

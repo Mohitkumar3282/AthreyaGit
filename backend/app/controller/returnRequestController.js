@@ -13,6 +13,7 @@ import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.const
 import { emitToSeller, emitToCustomer, emitToDelivery } from "../services/orderSocketEmitter.js";
 import * as walletService from "../services/finance/walletService.js";
 import { LEDGER_TRANSACTION_TYPE, OWNER_TYPE } from "../constants/finance.js";
+import { getOrCreateFinanceSettings } from "../services/finance/financeSettingsService.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
@@ -833,57 +834,146 @@ export const markPickedUp = async (req, res) => {
   }
 };
 
-// POST /api/delivery-boy/return-tasks/:returnRequestId/delivered-to-seller
 export const markDeliveredToSeller = async (req, res) => {
+  const session = await mongoose.startSession();
   try {
     const { returnRequestId } = req.params;
+    let resultRequest = null;
 
-    const returnRequest = await ReturnRequest.findOne({
-      _id: returnRequestId,
-      delivery_boy_id: req.user.id
+    await session.withTransaction(async () => {
+      const returnRequest = await ReturnRequest.findOne({
+        _id: returnRequestId,
+        delivery_boy_id: req.user.id
+      }).session(session);
+
+      if (!returnRequest) {
+        throw new Error("Return task not found");
+      }
+
+      if (!isValidTransition(returnRequest.status, "DELIVERED_TO_SELLER")) {
+        throw new Error("Invalid status transition");
+      }
+
+      const deliveryBoy = await DeliveryBoy.findById(req.user.id).session(session);
+      if (deliveryBoy) {
+        deliveryBoy.is_available = true;
+        deliveryBoy.total_pickups += 1;
+        await deliveryBoy.save({ session });
+      }
+
+      returnRequest.status = "DELIVERED_TO_SELLER";
+      returnRequest.delivered_to_seller_at = new Date();
+      returnRequest.status_history.push({
+        status: "DELIVERED_TO_SELLER",
+        changed_by: "delivery_boy",
+        note: "Returned package delivered to seller store"
+      });
+      await returnRequest.save({ session });
+
+      const order = await Order.findById(returnRequest.order_id).session(session);
+      if (order) {
+        order.returnStatus = "returned";
+        order.returnDeliveredBackAt = new Date();
+        if (!order.returnDeliveryBoy) {
+          order.returnDeliveryBoy = req.user.id;
+        }
+        await order.save({ session });
+
+        let returnCommission = order.returnDeliveryCommission;
+        if (returnCommission === undefined || returnCommission === null) {
+          try {
+            const settings = await getOrCreateFinanceSettings({ session });
+            returnCommission = settings?.returnDeliveryCommission ?? 0;
+          } catch (err) {
+            returnCommission = 15;
+          }
+        }
+
+        if (returnCommission > 0) {
+          const txnReference = `RET-DEL-${returnRequest.id}`;
+
+          await walletService.creditWallet({
+            ownerType: OWNER_TYPE.DELIVERY_PARTNER,
+            ownerId: req.user.id,
+            amount: returnCommission,
+            bucket: "available",
+            session,
+            ledgerType: LEDGER_TRANSACTION_TYPE.RIDER_PAYOUT_PROCESSED,
+            ledgerReference: txnReference,
+            ledgerDescription: `Return-pickup commission credited to delivery partner for ReturnRequest #${returnRequest.id}`,
+            idempotencyKey: `RET-DEL-CREDIT-${returnRequest.id}`,
+            metadata: { source: "mark_delivered_to_seller" }
+          });
+
+          await Transaction.create(
+            [
+              {
+                user: req.user.id,
+                userModel: "Delivery",
+                order: order._id,
+                type: "Delivery Earning",
+                amount: returnCommission,
+                status: "Settled",
+                reference: `${txnReference}-DEL`,
+                meta: { orderId: order._id, type: "return_commission" }
+              }
+            ],
+            { session }
+          );
+
+          await walletService.debitWallet({
+            ownerType: OWNER_TYPE.SELLER,
+            ownerId: returnRequest.seller_id,
+            amount: returnCommission,
+            bucket: "available",
+            session,
+            ledgerType: LEDGER_TRANSACTION_TYPE.ADJUSTMENT,
+            ledgerReference: txnReference,
+            ledgerDescription: `Return commission debited to seller for ReturnRequest #${returnRequest.id}`,
+            idempotencyKey: `RET-SELL-DEBIT-${returnRequest.id}`,
+            allowNegative: true,
+            metadata: { commission: returnCommission }
+          });
+
+          await Transaction.create(
+            [
+              {
+                user: returnRequest.seller_id,
+                userModel: "Seller",
+                order: order._id,
+                type: "Refund",
+                amount: -returnCommission,
+                status: "Settled",
+                reference: `${txnReference}-SELL`,
+                meta: { orderId: order._id, type: "return_commission" }
+              }
+            ],
+            { session }
+          );
+        }
+      }
+
+      resultRequest = returnRequest;
     });
 
-    if (!returnRequest) {
-      return handleResponse(res, 404, "Return task not found");
+    if (resultRequest) {
+      emitToSeller(resultRequest.seller_id.toString(), {
+        event: "return:delivered_to_seller",
+        payload: { returnRequestId: resultRequest.id }
+      });
+
+      return handleResponse(res, 200, "Task marked as delivered to seller", resultRequest);
     }
-
-    if (!isValidTransition(returnRequest.status, "DELIVERED_TO_SELLER")) {
-      return handleResponse(res, 400, "Invalid status transition");
-    }
-
-    const deliveryBoy = await DeliveryBoy.findById(req.user.id);
-    if (deliveryBoy) {
-      deliveryBoy.is_available = true;
-      deliveryBoy.total_pickups += 1;
-      await deliveryBoy.save();
-    }
-
-    returnRequest.status = "DELIVERED_TO_SELLER";
-    returnRequest.delivered_to_seller_at = new Date();
-    returnRequest.status_history.push({
-      status: "DELIVERED_TO_SELLER",
-      changed_by: "delivery_boy",
-      note: "Returned package delivered to seller store"
-    });
-    await returnRequest.save();
-
-    // Also update parent Order
-    const order = await Order.findById(returnRequest.order_id);
-    if (order) {
-      order.returnStatus = "returned";
-      order.returnDeliveredBackAt = new Date();
-      await order.save();
-    }
-
-    // Notify seller
-    emitToSeller(returnRequest.seller_id.toString(), {
-      event: "return:delivered_to_seller",
-      payload: { returnRequestId: returnRequest.id }
-    });
-
-    return handleResponse(res, 200, "Task marked as delivered to seller", returnRequest);
   } catch (error) {
+    if (error.message === "Return task not found") {
+      return handleResponse(res, 404, error.message);
+    }
+    if (error.message === "Invalid status transition") {
+      return handleResponse(res, 400, error.message);
+    }
     return handleResponse(res, 500, error.message);
+  } finally {
+    session.endSession();
   }
 };
 
