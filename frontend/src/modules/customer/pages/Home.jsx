@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  Menu, 
   Search, 
   Mic, 
   ChevronDown, 
@@ -413,17 +412,13 @@ const Home = () => {
       {/* 1. Header Row */}
       <div className="flex items-center justify-between px-4 pt-[calc(12px+env(safe-area-inset-top,0px))] pb-2 bg-[#042A0F] relative overflow-hidden">
         
-        {/* Left Section: Menu, Logo, Divider, Location */}
-        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          <button className="text-white hover:opacity-80 active:scale-95 transition-transform bg-transparent border-0 cursor-pointer p-1 shrink-0">
-            <Menu size={26} />
-          </button>
-          
+        {/* Left Section: Logo, Divider, Location */}
+        <div className="flex items-center gap-1.5 min-w-0 flex-1 pl-1">
           <div onClick={() => navigate("/")} className="cursor-pointer shrink-0 flex items-center gap-1.5">
-            <img src={LogoTransparent} alt="Athreya Delivery" className="h-9 w-auto object-contain" />
-            <div className="hidden min-[400px]:flex flex-col items-start leading-none font-sans">
-              <span className="text-[12.5px] font-black text-white tracking-wide uppercase">ATHREYA</span>
-              <span className="text-[8.5px] font-bold text-white tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
+            <img src={LogoTransparent} alt="Athreya Delivery" className="h-8 sm:h-9 w-auto object-contain" />
+            <div className="flex flex-col items-start leading-none font-sans">
+              <span className="text-[10.5px] sm:text-[12.5px] font-black text-white tracking-wide uppercase">ATHREYA</span>
+              <span className="text-[7.5px] sm:text-[8.5px] font-extrabold text-amber-400 tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
             </div>
           </div>
 
