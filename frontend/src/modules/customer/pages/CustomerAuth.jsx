@@ -112,13 +112,19 @@ const CustomerAuth = () => {
             if (isLogin) {
                 await customerApi.sendLoginOtp({ phone: formData.phone });
             } else {
+                if (!formData.name?.trim()) {
+                    toast.error('Please enter your name to sign up');
+                    setIsLoading(false);
+                    return;
+                }
                 await customerApi.sendSignupOtp({ name: formData.name, phone: formData.phone });
             }
             setShowOtp(true);
             setTimer(30);
             toast.success('OTP sent!');
         } catch (error) {
-            toast.error('Failed to send OTP');
+            const apiMessage = error?.response?.data?.message;
+            toast.error(apiMessage || 'Failed to send OTP');
         } finally {
             setIsLoading(false);
         }

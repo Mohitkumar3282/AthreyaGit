@@ -112,17 +112,20 @@ export async function issueCustomerOtp({
     "+otpHash +otpExpiresAt +otpFailedAttempts +otpLockedUntil +otpLastSentAt +otpSessionVersion +otp +otpExpiry",
   );
 
-  if (flow === "login" && (!customer || !customer.isVerified)) {
-    if (useRealSMS()) {
-      otpAuditLog("customer_otp_login_generic_response", {
-        phone: maskPhone(phone),
-        ipAddress,
-        accountExists: !!customer,
-      });
-      return { sent: true, phone };
+  if (flow === "login") {
+    if (!customer || !customer.isVerified) {
+      const err = new Error("User does not exist. Please sign up first.");
+      err.statusCode = 404;
+      throw err;
     }
+  }
 
-    // In mock/dev mode, allow login OTP issuance so local testing works end-to-end.
+  if (flow === "signup") {
+    if (customer && customer.isVerified) {
+      const err = new Error("Account already exists. Please log in.");
+      err.statusCode = 409;
+      throw err;
+    }
     if (!customer) {
       customer = await Customer.create({
         name: name || "Customer",
@@ -136,14 +139,9 @@ export async function issueCustomerOtp({
   }
 
   if (!customer) {
-    customer = await Customer.create({
-      name: name || "Customer",
-      phone,
-      isVerified: false,
-    });
-    customer = await Customer.findById(customer._id).select(
-      "+otpHash +otpExpiresAt +otpFailedAttempts +otpLockedUntil +otpLastSentAt +otpSessionVersion +otp +otpExpiry",
-    );
+    const err = new Error("User does not exist. Please sign up first.");
+    err.statusCode = 404;
+    throw err;
   }
 
   if (customer.otpLockedUntil && customer.otpLockedUntil > now) {
