@@ -141,6 +141,10 @@ const DeliveryLayout = () => {
     if (!payload?.orderId) return false;
     if (activeOrderRef.current) return true;
     if (shownOrderIdsRef.current.has(payload.orderId)) return true;
+
+    shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(payload.orderId);
+    markIncomingOrderHandled(payload.orderId);
+
     const p = payload.preview;
     if (
       !p ||
@@ -154,7 +158,6 @@ const DeliveryLayout = () => {
     if (exp && secondsLeftUntilDeliveryExpiry(exp) <= 0) {
       return false;
     }
-    shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(payload.orderId);
     const total = typeof p.total === "number" ? p.total : Number(p.total) || 0;
     const dropLabel = typeof p.drop === "string" ? p.drop : String(p.drop);
     const earnings = typeof p.earnings === "number" ? p.earnings : Math.round(total * 0.1);
@@ -189,6 +192,7 @@ const DeliveryLayout = () => {
     });
     if (!newOrder) return;
     shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(newOrder.orderId);
+    markIncomingOrderHandled(newOrder.orderId);
     const total = newOrder.pricing?.total || 0;
     const isReturnPickup = newOrder.isReturnPickup || false;
     const earnings = newOrder.riderEarnings || Math.round(total * 0.1);
@@ -645,6 +649,9 @@ const DeliveryLayout = () => {
           if (!isIncomingOrderType || n.isRead || !n.data?.orderId) continue;
           const oid = n.data.orderId;
           if (shownOrderIdsRef.current.has(oid)) continue;
+          shownOrderIdsRef.current = new Set(shownOrderIdsRef.current).add(oid);
+          markIncomingOrderHandled(oid);
+
           const fromStored = applyFromBroadcastPayload({
             orderId: oid,
             preview: n.data.preview,

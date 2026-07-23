@@ -28,7 +28,6 @@ const orderSchema = new mongoose.Schema(
         product: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "Product",
-          required: true,
         },
         name: String,
         quantity: {
@@ -561,7 +560,7 @@ const orderSchema = new mongoose.Schema(
     },
     orderType: {
       type: String,
-      enum: ["regular", "custom_pickup"],
+      enum: ["regular", "custom_pickup", "whatsapp_order"],
       default: "regular",
     },
     parcelDetails: {

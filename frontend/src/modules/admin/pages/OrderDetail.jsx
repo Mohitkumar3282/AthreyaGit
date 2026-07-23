@@ -39,7 +39,30 @@ const OrderDetail = () => {
     const { settings } = useSettings();
     const [order, setOrder] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [availableRiders, setAvailableRiders] = useState([]);
+    const [isAssigningRider, setIsAssigningRider] = useState(false);
     const invoiceRef = useRef(null);
+
+    useEffect(() => {
+        adminApi.getDeliveryPartners({ limit: 100 }).then(res => {
+            const riders = res.data?.result || res.data?.data || res.data?.deliveryPartners || [];
+            setAvailableRiders(Array.isArray(riders) ? riders : []);
+        }).catch(() => {});
+    }, []);
+
+    const handleAssignRider = async (deliveryBoyId) => {
+        if (!deliveryBoyId) return;
+        setIsAssigningRider(true);
+        try {
+            await adminApi.assignRiderToOrder(orderId, { deliveryBoyId });
+            showToast("Delivery Partner assigned successfully!", "success");
+            fetchDetail();
+        } catch (err) {
+            showToast(err.response?.data?.message || "Failed to assign rider", "error");
+        } finally {
+            setIsAssigningRider(false);
+        }
+    };
 
     const fetchDetail = async () => {
         setIsLoading(true);
@@ -350,12 +373,22 @@ const OrderDetail = () => {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                             <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-left">
                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Rider Assignment</p>
-                                <p className="text-xs font-bold text-slate-800">
-                                    {order.deliveryBoy ? "Assigned" : "Searching..."}
-                                </p>
+                                <select
+                                    disabled={isAssigningRider}
+                                    value={order.deliveryBoy?._id || order.deliveryBoy || ""}
+                                    onChange={(e) => handleAssignRider(e.target.value)}
+                                    className="w-full text-xs font-bold text-slate-800 bg-white border border-slate-200 rounded-lg p-1 mt-1 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                >
+                                    <option value="">-- {order.deliveryBoy ? "Change Rider" : "Assign Rider"} --</option>
+                                    {availableRiders.map((r) => (
+                                        <option key={r._id || r.id} value={r._id || r.id}>
+                                            {r.name} ({r.phone || 'Rider'})
+                                        </option>
+                                    ))}
+                                </select>
                                 {order.assignedAt && (
                                     <p className="text-[9px] text-slate-400 font-semibold mt-1">
-                                        {new Date(order.assignedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        Assigned at {new Date(order.assignedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </p>
                                 )}
                             </div>

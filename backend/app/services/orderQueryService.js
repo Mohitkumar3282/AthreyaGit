@@ -314,9 +314,22 @@ export async function fetchAvailableOrdersForDelivery({
   if (showDeliveries) {
     const v2OrdersRaw = await Order.find({
       workflowVersion: { $gte: 2 },
-      workflowStatus: WORKFLOW_STATUS.DELIVERY_SEARCH,
-      deliveryBoy: null,
-      seller: { $in: sellerIds },
+      $or: [
+        {
+          deliveryBoy: userId,
+          workflowStatus: {
+            $in: [
+              WORKFLOW_STATUS.DELIVERY_ASSIGNED,
+              WORKFLOW_STATUS.DELIVERY_SEARCH,
+            ],
+          },
+        },
+        {
+          deliveryBoy: null,
+          workflowStatus: WORKFLOW_STATUS.DELIVERY_SEARCH,
+          seller: { $in: sellerIds },
+        },
+      ],
       skippedBy: { $nin: [userId] },
     })
       .sort({ createdAt: -1, _id: -1 })

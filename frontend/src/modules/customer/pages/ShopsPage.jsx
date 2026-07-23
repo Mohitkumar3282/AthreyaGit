@@ -8,78 +8,7 @@ import { useLocation } from '../context/LocationContext';
 import MiniCart from '../components/shared/MiniCart';
 import LogoTransparent from '@/assets/LogoTransparent.png';
 
-const MOCK_SHOPS = [
-    {
-        _id: "mock-shop-1",
-        shopName: "Sri Sai Vegetables",
-        shopLogo: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=200",
-        rating: "4.6",
-        storeTimings: "20-25 mins",
-        minimumOrderAmount: 50,
-        products: [
-            { id: "p1", name: "Tomato", price: 25, weight: "1 kg", image: "https://images.unsplash.com/photo-1595855759920-86582396756a?auto=format&fit=crop&q=80&w=200" },
-            { id: "p2", name: "Potato", price: 20, weight: "1 kg", image: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&q=80&w=200" },
-            { id: "p3", name: "Onion", price: 28, weight: "1 kg", image: "https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&q=80&w=200" },
-            { id: "p4", name: "Carrot", price: 30, weight: "1 kg", image: "https://images.unsplash.com/photo-1444731961956-751edd90465a?auto=format&fit=crop&q=80&w=200" }
-        ]
-    },
-    {
-        _id: "mock-shop-2",
-        shopName: "Fresh Veggies Store",
-        shopLogo: "https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&q=80&w=200",
-        rating: "4.5",
-        storeTimings: "15-20 mins",
-        minimumOrderAmount: 60,
-        products: [
-            { id: "p5", name: "Spinach", price: 15, weight: "1 bunch", image: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?auto=format&fit=crop&q=80&w=200" },
-            { id: "p6", name: "Beans", price: 40, weight: "1 kg", image: "https://images.unsplash.com/photo-1567375699076-2448b1a724c0?auto=format&fit=crop&q=80&w=200" },
-            { id: "p7", name: "Capsicum", price: 50, weight: "1 kg", image: "https://images.unsplash.com/photo-1563565088989-410095220414?auto=format&fit=crop&q=80&w=200" },
-            { id: "p8", name: "Cabbage", price: 20, weight: "1 kg", image: "https://images.unsplash.com/photo-1550142413-05c2434d7829?auto=format&fit=crop&q=80&w=200" }
-        ]
-    },
-    {
-        _id: "mock-shop-3",
-        shopName: "Green Land Vegetables",
-        shopLogo: "https://images.unsplash.com/photo-1583258292688-d0213df4a3a8?auto=format&fit=crop&q=80&w=200",
-        rating: "4.4",
-        storeTimings: "20-30 mins",
-        minimumOrderAmount: 50,
-        products: [
-            { id: "p9", name: "Lady Finger", price: 40, weight: "1 kg", image: "https://images.unsplash.com/photo-1425543103975-343004115f85?auto=format&fit=crop&q=80&w=200" },
-            { id: "p10", name: "Brinjal", price: 30, weight: "1 kg", image: "https://images.unsplash.com/photo-1528825871115-3581a5387919?auto=format&fit=crop&q=80&w=200" },
-            { id: "p11", name: "Bitter Gourd", price: 35, weight: "1 kg", image: "https://images.unsplash.com/photo-1582515073490-39981397c445?auto=format&fit=crop&q=80&w=200" },
-            { id: "p12", name: "Bottle Gourd", price: 25, weight: "1 kg", image: "https://images.unsplash.com/photo-1592417817098-8f3d6eb19675?auto=format&fit=crop&q=80&w=200" }
-        ]
-    },
-    {
-        _id: "mock-shop-4",
-        shopName: "Natural Veggies",
-        shopLogo: "https://images.unsplash.com/photo-1534723452862-4c874018d66d?auto=format&fit=crop&q=80&w=200",
-        rating: "4.7",
-        storeTimings: "15-20 mins",
-        minimumOrderAmount: 60,
-        products: [
-            { id: "p13", name: "Cauliflower", price: 25, weight: "1 pc", image: "https://images.unsplash.com/photo-1568584711291-75be79402b9f?auto=format&fit=crop&q=80&w=200" },
-            { id: "p14", name: "Beetroot", price: 30, weight: "1 kg", image: "https://images.unsplash.com/photo-1528137871380-6069a42f030d?auto=format&fit=crop&q=80&w=200" },
-            { id: "p15", name: "Cucumber", price: 20, weight: "1 kg", image: "https://images.unsplash.com/photo-1449300079323-02e209d9d3a6?auto=format&fit=crop&q=80&w=200" },
-            { id: "p16", name: "Radish", price: 20, weight: "1 kg", image: "https://images.unsplash.com/photo-1587486913049-53fc88980cfc?auto=format&fit=crop&q=80&w=200" }
-        ]
-    },
-    {
-        _id: "mock-shop-5",
-        shopName: "Aswapuram Veg Mart",
-        shopLogo: "https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&q=80&w=200",
-        rating: "4.3",
-        storeTimings: "25-30 mins",
-        minimumOrderAmount: 50,
-        products: [
-            { id: "p17", name: "Drumstick", price: 40, weight: "1 kg", image: "https://images.unsplash.com/photo-1587486913049-53fc88980cfc?auto=format&fit=crop&q=80&w=200" },
-            { id: "p18", name: "Pumpkin", price: 20, weight: "1 kg", image: "https://images.unsplash.com/photo-1506976785307-8732e854ad03?auto=format&fit=crop&q=80&w=200" },
-            { id: "p19", name: "Green Chili", price: 60, weight: "1 kg", image: "https://images.unsplash.com/photo-1588252398513-fb2167d40a2a?auto=format&fit=crop&q=80&w=200" },
-            { id: "p20", name: "Coriander", price: 10, weight: "1 bunch", image: "https://images.unsplash.com/photo-1608797178974-15b35a61d121?auto=format&fit=crop&q=80&w=200" }
-        ]
-    }
-];
+
 
 const ShopsPage = () => {
     const navigate = useNavigate();
@@ -133,14 +62,14 @@ const ShopsPage = () => {
                         })
                     );
                     
-                    // Combine database sellers with the mock sellers from the screenshot so that the page is never empty
-                    setShops([...sellersWithProducts, ...MOCK_SHOPS]);
+                    // Set database sellers only (no mock shops)
+                    setShops(sellersWithProducts);
                 } else {
-                    setShops(MOCK_SHOPS);
+                    setShops([]);
                 }
             } catch (error) {
                 console.error("Error loading shops page data:", error);
-                setShops(MOCK_SHOPS);
+                setShops([]);
             } finally {
                 setIsLoading(false);
             }

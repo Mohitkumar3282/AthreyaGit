@@ -4,6 +4,7 @@ import {
   formatSellerApplication,
   formatSellerDocuments,
 } from "./shared/sellerAdminUtils.js";
+import { buildKey, delPattern } from "../../services/cacheService.js";
 
 export async function getPendingSellerApplications({
   q = "",
@@ -115,6 +116,11 @@ export async function approveSellerApplicationById({ sellerId, reviewedBy }) {
     return null;
   }
 
+  // Invalidate nearby sellers cache so changes reflect immediately
+  delPattern(buildKey("sellers", "nearby_full", "*")).catch((err) => {
+    console.warn("[Admin approval] Cache invalidation failed:", err.message);
+  });
+
   return formatSellerApplication(seller);
 }
 
@@ -141,6 +147,11 @@ export async function rejectSellerApplicationById({
   if (!seller) {
     return null;
   }
+
+  // Invalidate nearby sellers cache so changes reflect immediately
+  delPattern(buildKey("sellers", "nearby_full", "*")).catch((err) => {
+    console.warn("[Admin rejection] Cache invalidation failed:", err.message);
+  });
 
   return formatSellerApplication(seller);
 }

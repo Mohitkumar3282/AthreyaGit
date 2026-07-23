@@ -11,6 +11,10 @@ export const adminOrdersApi = {
         axiosInstance.get(`/orders/details/${orderId}`),
     updateOrderStatus: (orderId, data) =>
         axiosInstance.put(`/orders/status/${orderId}`, data),
+    createManualOrder: (data) =>
+        axiosInstance.post('/orders/manual', data),
+    assignRiderToOrder: (orderId, data) =>
+        axiosInstance.put(`/orders/${orderId}/assign-rider`, data),
 
     getReturns: (params) =>
         axiosInstance.get('/orders/seller-returns', { params }),

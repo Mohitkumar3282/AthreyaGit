@@ -203,7 +203,7 @@ const sellerSchema = new mongoose.Schema(
       },
       coordinates: {
         type: [Number],
-        default: [0, 0],
+        default: [75.9001552518043, 22.711140989838025], // Default to Indore coordinates to ensure visibility in default area
       },
     },
     serviceRadius: {

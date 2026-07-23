@@ -36,6 +36,7 @@ import {
   emitReturnBroadcastForCustomer,
   emitToCustomer,
   emitToOrder,
+  emitToDelivery,
   retractDeliveryBroadcastForOrder,
 } from "./orderSocketEmitter.js";
 import { distanceMeters } from "../utils/geoUtils.js";
@@ -187,27 +188,56 @@ export async function sellerAcceptAtomic(sellerId, orderId) {
   await removeSellerTimeoutJob(orderId);
   await scheduleDeliveryTimeoutJob(orderId, 1);
 
-  await DeliveryAssignment.create({
-    orderMongoId: updated._id,
-    orderId: updated.orderId,
-    status: "broadcasting",
-    radiusMeters: INITIAL_DELIVERY_RADIUS_M(),
-    attempt: 1,
-    expiresAt: updated.deliverySearchExpiresAt,
-  });
+  if (updated.deliveryBoy) {
+    const riderIdStr = updated.deliveryBoy.toString();
+    updated.workflowStatus = WORKFLOW_STATUS.DELIVERY_ASSIGNED;
+    updated.status = "confirmed";
+    await updated.save();
 
-  emitOrderStatusUpdate(
-    updated.orderId,
-    {
-      workflowStatus: WORKFLOW_STATUS.DELIVERY_SEARCH,
-      deliverySearchExpiresAt: updated.deliverySearchExpiresAt,
-    },
-    updated.customer?._id || updated.customer,
-  );
-  await emitDeliveryBroadcastForSeller(
-    updated.seller,
-    deliveryBroadcastPayloadFromOrder(updated),
-  );
+    emitOrderStatusUpdate(
+      updated.orderId,
+      {
+        workflowStatus: WORKFLOW_STATUS.DELIVERY_ASSIGNED,
+        deliveryBoy: updated.deliveryBoy,
+      },
+      updated.customer?._id || updated.customer,
+    );
+
+    emitNotificationEvent(NOTIFICATION_EVENTS.DELIVERY_ASSIGNED, {
+      orderId: updated.orderId,
+      deliveryId: riderIdStr,
+      sellerId: updated.seller?._id || updated.seller,
+      customerId: updated.customer?._id || updated.customer,
+    });
+
+    emitToDelivery(riderIdStr, {
+      event: "order_assigned",
+      payload: { order: updated },
+    });
+  } else {
+    await DeliveryAssignment.create({
+      orderMongoId: updated._id,
+      orderId: updated.orderId,
+      status: "broadcasting",
+      radiusMeters: INITIAL_DELIVERY_RADIUS_M(),
+      attempt: 1,
+      expiresAt: updated.deliverySearchExpiresAt,
+    });
+
+    emitOrderStatusUpdate(
+      updated.orderId,
+      {
+        workflowStatus: WORKFLOW_STATUS.DELIVERY_SEARCH,
+        deliverySearchExpiresAt: updated.deliverySearchExpiresAt,
+      },
+      updated.customer?._id || updated.customer,
+    );
+
+    await emitDeliveryBroadcastForSeller(
+      updated.seller,
+      deliveryBroadcastPayloadFromOrder(updated),
+    );
+  }
 
   emitNotificationEvent(NOTIFICATION_EVENTS.ORDER_CONFIRMED, {
     orderId: updated.orderId,
@@ -715,7 +745,7 @@ export async function processReturnPickupTimeoutJob({ orderId, attempt }) {
 
 export async function customerCancelV2(customerId, orderId, reason) {
   orderId = await requireCanonicalOrderId(orderId);
-  const order = await Order.findOne({ orderId, customer: customerId });
+  const order = await Order.findOne({ orderId });
   if (!order) {
     const err = new Error("Order not found");
     err.statusCode = 404;
@@ -732,7 +762,6 @@ export async function customerCancelV2(customerId, orderId, reason) {
   const updated = await Order.findOneAndUpdate(
     {
       orderId,
-      customer: customerId,
       workflowStatus: { $nin: [WORKFLOW_STATUS.DELIVERED, WORKFLOW_STATUS.CANCELLED] },
     },
     {

@@ -20,6 +20,7 @@ import deliveryRiding from "@/assets/Delivery Riding.json";
 import { useLocation } from "../context/LocationContext";
 import { useCart } from "../context/CartContext";
 import { useSettings } from "@core/context/SettingsContext";
+import { useAuth } from "@core/context/AuthContext";
 import LocationDrawer from "../components/shared/LocationDrawer";
 import LogoTransparent from "@/assets/LogoTransparent.png";
 import { customerApi } from "../services/customerApi";
@@ -34,8 +35,9 @@ let hasBikePlayedGlobal = false;
 const Home = () => {
   const navigate = useNavigate();
   const { currentLocation } = useLocation();
-  const { cartCount } = useCart();
+  const { cartCount, cart } = useCart();
   const { settings } = useSettings();
+  const { user } = useAuth();
   const [isLocationOpen, setIsLocationOpen] = useState(false);
   const [categories, setCategories] = useState([]);
   const [headerCategories, setHeaderCategories] = useState([]);
@@ -335,10 +337,75 @@ const Home = () => {
   const bottomQuickLinks = [
     { label: "Parcel Pickup", teluguLabel: "పార్సెల్ పికప్", icon: <Package size={18} />, bgColor: "bg-[#16a34a]", path: "/pickup-delivery" },
     { label: "RTC / Cargo", teluguLabel: "ఆర్టీసీ / కార్గో", icon: <Bus size={18} />, bgColor: "bg-[#2563eb]", path: "/pickup-delivery" },
-    { label: "Voice Order", teluguLabel: "వాయిస్ ఆర్డర్", icon: <Volume2 size={18} />, bgColor: "bg-[#8b5cf6]", path: "/search" },
+    { 
+      label: "WhatsApp Order", 
+      teluguLabel: "వాట్సాప్ ఆర్డర్", 
+      icon: (
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+          <path d="M12.012 2c-5.506 0-9.989 4.478-9.99 9.984 0 1.762.459 3.48 1.332 5.001L2 22l5.12-1.335c1.472.802 3.134 1.226 4.887 1.227h.005c5.505 0 9.988-4.478 9.989-9.985 0-2.668-1.038-5.176-2.925-7.062A9.927 9.927 0 0012.012 2zm5.827 14.17c-.244.688-1.42 1.314-1.96 1.396-.54.083-1.222.115-3.525-.806-2.772-1.11-4.545-3.92-4.683-4.103-.138-.184-1.127-1.498-1.127-2.859 0-1.36.711-2.03.963-2.305.253-.276.552-.345.736-.345.184 0 .368.002.529.01.172.008.402-.065.629.478.23.542.782 1.908.851 2.046.069.138.115.3.023.483-.092.184-.138.299-.276.46-.138.161-.29.36-.414.483-.138.138-.282.288-.121.564.161.276.715 1.18 1.534 1.91 1.05.936 1.936 1.226 2.212 1.364.276.138.437.115.598-.069.161-.184.69-.805.874-1.081.184-.276.368-.23.62-.138.253.092 1.609.759 1.885.897.276.138.46.207.529.322.069.115.069.667-.175 1.355z"/>
+        </svg>
+      ), 
+      bgColor: "bg-[#25D366]", 
+      isWhatsApp: true 
+    },
     { label: "My Orders", teluguLabel: "నా ఆర్డర్లు", icon: <FileText size={18} />, bgColor: "bg-[#d97706]", path: "/orders" },
     { label: "Offers", teluguLabel: "ఆఫర్లు", icon: <Tag size={18} />, bgColor: "bg-[#ec4899]", path: "/offers" }
   ];
+
+  const handleWhatsAppOrder = () => {
+    const numberCandidate = settings?.whatsappNumber || settings?.supportPhone || "";
+    const rawNumber = String(numberCandidate).replace(/[^\d]/g, "");
+    
+    let targetNumber = "";
+    if (rawNumber.length === 10) {
+      targetNumber = `91${rawNumber}`;
+    } else if (rawNumber.length > 10) {
+      targetNumber = rawNumber;
+    }
+
+    if (!targetNumber) {
+      alert("WhatsApp number is not configured in settings yet. Please set it in Admin Settings.");
+      return;
+    }
+
+    const customerAddress =
+      currentLocation?.name ||
+      currentLocation?.address ||
+      currentLocation?.formattedAddress ||
+      currentLocation?.locationName ||
+      (currentLocation?.city ? `${currentLocation.city}${currentLocation.pincode ? `, ${currentLocation.pincode}` : ''}` : "") ||
+      "Not specified";
+
+    const customerName = user?.name || user?.fullName || "";
+    const customerPhone = user?.phone || user?.phoneNumber || user?.mobile || "";
+
+    let itemsText = "- ";
+    if (Array.isArray(cart) && cart.length > 0) {
+      itemsText = cart.map((item) => {
+        const title = item.name || item.title || "Item";
+        const qty = item.quantity || 1;
+        const price = item.salePrice || item.price ? ` (₹${item.salePrice || item.price})` : "";
+        return `• ${title} x ${qty}${price}`;
+      }).join("\n");
+    }
+
+    let message = `Hello Athreya Delivery,\nI would like to place an order.`;
+
+    if (customerName || customerPhone) {
+      message += `\n\nCustomer: ${customerName}${customerPhone ? ` (${customerPhone})` : ''}`;
+    }
+
+    message += `\n\nDelivery Location:\n${customerAddress}`;
+    message += `\n\nMy Order Details:\n${itemsText}`;
+
+    const encodedText = encodeURIComponent(message);
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      window.location.href = `whatsapp://send?phone=${targetNumber}&text=${encodedText}`;
+    } else {
+      window.open(`https://web.whatsapp.com/send?phone=${targetNumber}&text=${encodedText}`, "_blank");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#042A0F] text-white font-sans pb-4 overflow-x-hidden">
@@ -665,7 +732,7 @@ const Home = () => {
                 <h3 className="text-[12.5px] font-black text-[#A3E635] tracking-wide uppercase">
                   ATHREYA EXCLUSIVE PARTNERS (ప్రత్యేక భాగస్వాములు)
                 </h3>
-                <button onClick={() => navigate('/shop-by-store')} className="text-[10.5px] font-black text-[#A3E635] hover:underline">
+                <button onClick={() => navigate('/shops')} className="text-[10.5px] font-black text-[#A3E635] hover:underline">
                   See All
                 </button>
               </div>
@@ -747,7 +814,7 @@ const Home = () => {
             {bottomQuickLinks.map((link, idx) => (
               <div 
                 key={idx} 
-                onClick={() => navigate(link.path)} 
+                onClick={() => link.isWhatsApp ? handleWhatsAppOrder() : navigate(link.path)} 
                 className="flex items-center gap-2.5 bg-[#042A0F] border border-[#0d4f1c] px-3.5 py-2 rounded-2xl cursor-pointer shrink-0 active:scale-95 transition-transform"
               >
                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white shrink-0 ${link.bgColor} shadow-sm border border-white/10`}>

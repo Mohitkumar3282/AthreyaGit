@@ -19,7 +19,12 @@ import {
     ShoppingBag,
     Clock,
     CheckCircle2,
-    XCircle
+    XCircle,
+    Plus,
+    X,
+    User,
+    Store,
+    MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@shared/components/ui/Toast';
@@ -54,6 +59,97 @@ const OrdersList = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isExporting, setIsExporting] = useState(false);
     const [isDateMenuOpen, setIsDateMenuOpen] = useState(false);
+
+    // WhatsApp Manual Order Creation State
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isSubmittingManual, setIsSubmittingManual] = useState(false);
+    const [isLoadingDropdowns, setIsLoadingDropdowns] = useState(false);
+    const [customersList, setCustomersList] = useState([]);
+    const [sellersList, setSellersList] = useState([]);
+    const [ridersList, setRidersList] = useState([]);
+    const [manualFormData, setManualFormData] = useState({
+        customerId: '',
+        sellerId: '',
+        deliveryBoyId: '',
+        address: '',
+        notes: '',
+        totalAmount: '',
+        deliveryFee: '',
+        paymentMode: 'COD',
+    });
+
+    const openCreateModal = async () => {
+        setIsCreateModalOpen(true);
+        setIsLoadingDropdowns(true);
+        try {
+            const [uRes, sRes, dRes] = await Promise.all([
+                adminApi.getUsers({ limit: 100 }).catch(() => ({ data: {} })),
+                adminApi.getSellers({ limit: 100 }).catch(() => ({ data: {} })),
+                adminApi.getDeliveryPartners({ limit: 100 }).catch(() => ({ data: {} })),
+            ]);
+
+            const extractArray = (res) => {
+                if (!res || !res.data) return [];
+                const payload = res.data.result || res.data.data || res.data.results || res.data;
+                if (Array.isArray(payload)) return payload;
+                if (payload && typeof payload === 'object') {
+                    if (Array.isArray(payload.items)) return payload.items;
+                    if (Array.isArray(payload.users)) return payload.users;
+                    if (Array.isArray(payload.sellers)) return payload.sellers;
+                    if (Array.isArray(payload.deliveryPartners)) return payload.deliveryPartners;
+                }
+                return [];
+            };
+
+            setCustomersList(extractArray(uRes));
+            setSellersList(extractArray(sRes));
+            setRidersList(extractArray(dRes));
+        } catch (err) {
+            console.error("Error fetching modal dropdowns:", err);
+        } finally {
+            setIsLoadingDropdowns(false);
+        }
+    };
+
+    const handleCreateManualOrder = async (e) => {
+        e.preventDefault();
+        if (!manualFormData.customerId) return showToast("Please select a customer", "warning");
+        if (!manualFormData.sellerId) return showToast("Please select a seller", "warning");
+
+        setIsSubmittingManual(true);
+        try {
+            const res = await adminApi.createManualOrder({
+                customerId: manualFormData.customerId,
+                sellerId: manualFormData.sellerId,
+                deliveryBoyId: manualFormData.deliveryBoyId || undefined,
+                address: manualFormData.address || undefined,
+                totalAmount: Number(manualFormData.totalAmount || 0),
+                deliveryFee: manualFormData.deliveryFee !== "" ? Number(manualFormData.deliveryFee) : undefined,
+                paymentMode: manualFormData.paymentMode,
+                notes: manualFormData.notes || "WhatsApp Order",
+            });
+
+            if (res.data?.success || res.status === 201) {
+                showToast("WhatsApp Order created and assigned successfully!", "success");
+                setIsCreateModalOpen(false);
+                setManualFormData({
+                    customerId: '',
+                    sellerId: '',
+                    deliveryBoyId: '',
+                    address: '',
+                    notes: '',
+                    totalAmount: '',
+                    deliveryFee: '',
+                    paymentMode: 'COD',
+                });
+                fetchOrders(page);
+            }
+        } catch (error) {
+            showToast(error.response?.data?.message || "Failed to create order", "error");
+        } finally {
+            setIsSubmittingManual(false);
+        }
+    };
 
     const handleCSVExport = () => {
         setIsExporting(true);
@@ -260,6 +356,13 @@ const OrdersList = () => {
                 </div>
                 <div className="flex items-center gap-3">
                     <button
+                        onClick={openCreateModal}
+                        className="flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white rounded-2xl text-xs font-bold hover:bg-emerald-700 transition-all shadow-md shadow-emerald-200 active:scale-95"
+                    >
+                        <Plus className="h-4 w-4" />
+                        CREATE WHATSAPP ORDER
+                    </button>
+                    <button
                         onClick={handleExport}
                         className="flex items-center gap-2 px-5 py-3 bg-white ring-1 ring-slate-200 text-slate-700 rounded-2xl text-xs font-bold hover:bg-slate-50 transition-all shadow-sm"
                     >
@@ -400,6 +503,10 @@ const OrdersList = () => {
                                                         <Badge className="bg-fuchsia-100 text-fuchsia-750 hover:bg-fuchsia-200 border-none text-[9px] font-bold py-0.5">
                                                             Parcel Pickup
                                                         </Badge>
+                                                    ) : order.orderType === 'whatsapp_order' ? (
+                                                        <Badge className="bg-emerald-100 text-emerald-800 border-none text-[9px] font-bold py-0.5">
+                                                            WhatsApp Order
+                                                        </Badge>
                                                     ) : (
                                                         <Badge variant="outline" className="text-[9px] font-bold border-slate-200 text-slate-400 py-0.5">
                                                             {order.items} {order.items > 1 ? 'Items' : 'Item'}
@@ -522,6 +629,178 @@ const OrdersList = () => {
                     />
                 </div>
             </Card>
+
+            {/* Create WhatsApp Order Modal */}
+            <AnimatePresence>
+                {isCreateModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                            className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100"
+                        >
+                            <div className="p-6 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 bg-white/10 rounded-2xl backdrop-blur-md">
+                                        <MessageSquare className="h-6 w-6 text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-black tracking-tight">Create WhatsApp Order</h3>
+                                        <p className="text-xs text-emerald-100 font-medium">Record order & assign seller and rider</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setIsCreateModalOpen(false)}
+                                    className="p-2 text-white/80 hover:text-white bg-white/10 rounded-xl hover:bg-white/20 transition-all"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleCreateManualOrder} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+                                {isLoadingDropdowns ? (
+                                    <div className="py-12 flex flex-col items-center justify-center gap-2">
+                                        <div className="h-8 w-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                                        <p className="text-xs font-bold text-slate-400">Loading Sellers & Riders...</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div>
+                                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
+                                                Customer <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                required
+                                                value={manualFormData.customerId}
+                                                onChange={(e) => setManualFormData({ ...manualFormData, customerId: e.target.value })}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                            >
+                                                <option value="">-- Select Customer --</option>
+                                                {customersList.map((c) => (
+                                                    <option key={c._id || c.id} value={c._id || c.id}>
+                                                        {c.name || "Customer"} ({c.phone || "No phone"})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
+                                                Seller / Shop <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                required
+                                                value={manualFormData.sellerId}
+                                                onChange={(e) => setManualFormData({ ...manualFormData, sellerId: e.target.value })}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                            >
+                                                <option value="">-- Select Seller --</option>
+                                                {sellersList.map((s) => (
+                                                    <option key={s._id || s.id} value={s._id || s.id}>
+                                                        {s.shopName || s.name || "Shop"} ({s.locality || s.phone || "Local"})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
+                                                Assign Delivery Partner / Rider (Optional)
+                                            </label>
+                                            <select
+                                                value={manualFormData.deliveryBoyId}
+                                                onChange={(e) => setManualFormData({ ...manualFormData, deliveryBoyId: e.target.value })}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                            >
+                                                <option value="">-- Assign Later / Broadcast --</option>
+                                                {ridersList.map((r) => (
+                                                    <option key={r._id || r.id} value={r._id || r.id}>
+                                                        {r.name || "Rider"} ({r.phone || "No phone"})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
+                                                    Item Subtotal (₹) <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    required
+                                                    placeholder="e.g. 450"
+                                                    value={manualFormData.totalAmount}
+                                                    onChange={(e) => setManualFormData({ ...manualFormData, totalAmount: e.target.value })}
+                                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
+                                                    Delivery Fee (₹)
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    placeholder="Auto / e.g. 30"
+                                                    value={manualFormData.deliveryFee}
+                                                    onChange={(e) => setManualFormData({ ...manualFormData, deliveryFee: e.target.value })}
+                                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
+                                                Payment Mode
+                                            </label>
+                                            <select
+                                                value={manualFormData.paymentMode}
+                                                onChange={(e) => setManualFormData({ ...manualFormData, paymentMode: e.target.value })}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                            >
+                                                <option value="COD">Cash on Delivery (COD)</option>
+                                                <option value="ONLINE">Paid Online / UPI</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
+                                                Order Notes / Items List
+                                            </label>
+                                            <textarea
+                                                rows="2"
+                                                placeholder="e.g. 1kg Mutton, 2 Packets Milk"
+                                                value={manualFormData.notes}
+                                                onChange={(e) => setManualFormData({ ...manualFormData, notes: e.target.value })}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                                            />
+                                        </div>
+
+                                        <div className="pt-2 flex justify-end gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsCreateModalOpen(false)}
+                                                className="px-5 py-3 bg-slate-100 text-slate-600 rounded-2xl text-xs font-bold hover:bg-slate-200 transition-all"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                disabled={isSubmittingManual}
+                                                className="px-6 py-3 bg-emerald-600 text-white rounded-2xl text-xs font-black hover:bg-emerald-700 transition-all shadow-md shadow-emerald-200 disabled:opacity-50 flex items-center gap-2"
+                                            >
+                                                {isSubmittingManual && <div className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                                                CREATE & ASSIGN ORDER
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

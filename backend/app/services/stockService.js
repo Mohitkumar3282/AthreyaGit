@@ -135,6 +135,7 @@ export async function releaseReservedStockForOrder(order, { session = null, reas
   }
 
   for (const item of order.items) {
+    if (!item?.product) continue;
     const variantSku = String(item.variantSku || item.variantSlot || "").trim();
 
     if (variantSku) {

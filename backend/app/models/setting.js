@@ -19,6 +19,10 @@ const settingSchema = new mongoose.Schema(
             type: String,
             default: "",
         },
+        whatsappNumber: {
+            type: String,
+            default: "",
+        },
         currencySymbol: {
             type: String,
             default: "₹",

@@ -22,6 +22,8 @@ import {
   updateReturnStatus,
   uploadReturnPickupProof,
   uploadBillImage,
+  createManualOrder,
+  assignRiderToOrder,
 } from "../controller/orderController.js";
 import {
   createOrderWithFinancialSnapshot,
@@ -114,6 +116,18 @@ router.post("/:orderId/returns", verifyToken, requestReturn);
 router.get("/:orderId/returns", verifyToken, getReturnDetails);
 
 // Admin/Seller routes
+router.post(
+  "/manual",
+  verifyToken,
+  allowRoles("admin", "seller"),
+  createManualOrder,
+);
+router.put(
+  "/:orderId/assign-rider",
+  verifyToken,
+  allowRoles("admin", "seller"),
+  assignRiderToOrder,
+);
 router.get(
   "/seller-orders",
   verifyToken,

@@ -13,6 +13,7 @@ const ALLOWED_KEYS = [
   "appName",
   "supportEmail",
   "supportPhone",
+  "whatsappNumber",
   "currencySymbol",
   "currencyCode",
   "timezone",
@@ -84,6 +85,7 @@ const updateSettingsSchema = Joi.object({
   appName: Joi.string().allow("").max(200),
   supportEmail: Joi.string().email().allow("").max(200),
   supportPhone: Joi.string().allow("").max(50),
+  whatsappNumber: Joi.string().allow("").max(50),
   currencySymbol: Joi.string().allow("").max(10),
   currencyCode: Joi.string().allow("").max(10),
   timezone: Joi.string().allow("").max(100),
@@ -157,7 +159,7 @@ export const getPublicSettings = async (req, res) => {
       async () => {
         const existing = await Setting.findOne(filter)
           .select(
-            "appName supportEmail supportPhone currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor returnDeliveryCommission deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy codEnabled onlineEnabled lowStockAlertsEnabled productApproval dailyNeeds dailyNeedsCategoryIds createdAt",
+            "appName supportEmail supportPhone whatsappNumber currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor returnDeliveryCommission deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy codEnabled onlineEnabled lowStockAlertsEnabled productApproval dailyNeeds dailyNeedsCategoryIds createdAt",
           )
           .lean();
         return existing || null;

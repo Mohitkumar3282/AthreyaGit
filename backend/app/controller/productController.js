@@ -75,7 +75,8 @@ function makeProductSku(name, index = 1) {
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "")
     .slice(0, 5) || "item";
-  return `${prefix}-${String(index).padStart(3, "0")}`;
+  const uniqueTag = Math.random().toString(36).substring(2, 6);
+  return `${prefix}-${String(index).padStart(3, "0")}-${uniqueTag}`;
 }
 
 function parseJsonIfString(value) {
@@ -659,9 +660,11 @@ export const createProduct = async (req, res) => {
       return handleResponse(res, 400, "Product name is required");
     }
     
-    // Auto-generate slug
+    // Auto-generate slug with unique tag
     if (!productData.slug || productData.slug.trim() === "") {
-      productData.slug = slugify(productData.name);
+      const baseSlug = slugify(productData.name || "product");
+      const uniqueTag = Math.random().toString(36).substring(2, 6);
+      productData.slug = `${baseSlug}-${uniqueTag}`;
     } else {
       productData.slug = slugify(productData.slug);
     }
@@ -745,7 +748,24 @@ export const createProduct = async (req, res) => {
   } catch (error) {
     logger.error("Create Product Error", { scope: "createProduct", error });
     if (error.code === 11000) {
-      return handleResponse(res, 400, "Slug or SKU already exists");
+      try {
+        const uniqueTag = Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
+        productData.slug = `${slugify(productData.name || "product")}-${uniqueTag}`;
+        productData.sku = `${makeProductSku(productData.name, 1)}-${uniqueTag}`;
+        const retryProduct = await Product.create(productData);
+        if (retryProduct && retryProduct._id) {
+          await enqueueProductIndex(retryProduct._id.toString());
+          await invalidate(`cache:catalog:product:${retryProduct._id.toString()}`);
+        }
+        return handleResponse(
+          res,
+          201,
+          successMessage,
+          normalizeProductDocumentModeration(retryProduct?.toObject?.() || retryProduct),
+        );
+      } catch (retryErr) {
+        return handleResponse(res, 400, "Slug or SKU already exists");
+      }
     }
     return handleResponse(res, 500, error.message);
   }

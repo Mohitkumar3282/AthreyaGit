@@ -32,7 +32,8 @@ const AddProduct = () => {
         .toLowerCase()
         .replace(/[^a-z0-9]/g, "")
         .slice(0, 5) || "item";
-    return `${prefix}-${String(index).padStart(3, "0")}`;
+    const uniqueTag = Math.random().toString(36).substring(2, 6);
+    return `${prefix}-${String(index).padStart(3, "0")}-${uniqueTag}`;
   };
 
   const isAutoSku = (sku, name, index = 1) =>

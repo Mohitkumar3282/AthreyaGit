@@ -3,6 +3,7 @@ export const DEFAULT_SETTINGS = {
   appName: "App",
   supportEmail: "",
   supportPhone: "",
+  whatsappNumber: "",
   currencySymbol: "\u20B9",
   currencyCode: "INR",
   timezone: "Asia/Kolkata",

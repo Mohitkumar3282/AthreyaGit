@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@shared/components/ui/Toast';
 import { adminApi } from '../services/adminApi';
 import { useSettings } from '@core/context/SettingsContext';
+import { invalidateCache } from '@core/api/dedupe';
 
 const AdminSettings = () => {
     const normalizeProductApprovalConfig = (raw) => {
@@ -49,6 +50,7 @@ const AdminSettings = () => {
         appName: '',
         supportEmail: '',
         supportPhone: '',
+        whatsappNumber: '',
         currencySymbol: '₹',
         currencyCode: 'INR',
         timezone: 'Asia/Kolkata',
@@ -119,6 +121,7 @@ const AdminSettings = () => {
                     productApproval: normalizeProductApprovalConfig(updatedData),
                 }));
             }
+            invalidateCache('/settings');
             await refetch({ forceRefresh: true });
             showToast('Settings updated successfully', 'success');
         } catch (error) {
@@ -304,6 +307,19 @@ const AdminSettings = () => {
                                             type="text"
                                             value={settings.supportPhone}
                                             onChange={(e) => handleInputChange('supportPhone', e.target.value)}
+                                            className="w-full pl-12 pr-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">WhatsApp Order Number</label>
+                                    <div className="relative group">
+                                        <Phone className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. 919876543210"
+                                            value={settings.whatsappNumber || ''}
+                                            onChange={(e) => handleInputChange('whatsappNumber', e.target.value)}
                                             className="w-full pl-12 pr-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all"
                                         />
                                     </div>

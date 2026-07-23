@@ -584,8 +584,13 @@ export const updateOrderStatus = async (req, res) => {
 
     // Handle Cancellation (Stock Reversal & Transaction Update)
     if (status === "cancelled" && oldStatus !== "cancelled") {
+      order.workflowStatus = WORKFLOW_STATUS.CANCELLED;
+      order.cancelledBy = "admin";
+      order.cancelReason = req.body?.reason || "Cancelled by Admin";
+
       // 1. Reverse Stock
       for (const item of order.items) {
+        if (!item?.product) continue;
         await Product.findByIdAndUpdate(item.product, {
           $inc: { stock: item.quantity },
         });
@@ -1630,3 +1635,272 @@ export const uploadBillImage = async (req, res) => {
     return handleResponse(res, 500, error.message);
   }
 };
+
+/* ===============================
+   CREATE MANUAL / WHATSAPP ORDER (Admin / Seller)
+================================ */
+export const createManualOrder = async (req, res) => {
+  try {
+    const {
+      customerId,
+      sellerId,
+      deliveryBoyId,
+      items = [],
+      totalAmount,
+      deliveryFee: customDeliveryFee,
+      address,
+      paymentMode = "COD",
+      notes,
+    } = req.body || {};
+
+    if (!sellerId) return handleResponse(res, 400, "Seller is required");
+    if (!customerId) return handleResponse(res, 400, "Customer is required");
+
+    const sellerDoc = await Seller.findById(sellerId).lean();
+    if (!sellerDoc) return handleResponse(res, 400, "Invalid Seller ID");
+
+    const customerDoc = await User.findById(customerId).lean();
+    if (!customerDoc) return handleResponse(res, 400, "Invalid Customer ID");
+
+    let userSavedAddress = "";
+    let userSavedCity = "Local";
+    let userLocation = sellerDoc.location || { lat: 17.385, lng: 78.486 };
+
+    if (Array.isArray(customerDoc.addresses) && customerDoc.addresses.length > 0) {
+      const firstAddr = customerDoc.addresses[0];
+      userSavedAddress = firstAddr.fullAddress || firstAddr.formattedAddress || firstAddr.address || "";
+      if (firstAddr.city) userSavedCity = firstAddr.city;
+      if (firstAddr.location?.lat && firstAddr.location?.lng) {
+        userLocation = firstAddr.location;
+      }
+    } else if (customerDoc.address) {
+      if (typeof customerDoc.address === "string") {
+        userSavedAddress = customerDoc.address;
+      } else if (typeof customerDoc.address === "object") {
+        userSavedAddress = customerDoc.address.address || customerDoc.address.fullAddress || customerDoc.address.formattedAddress || "";
+        if (customerDoc.address.city) userSavedCity = customerDoc.address.city;
+        if (customerDoc.address.location?.lat) userLocation = customerDoc.address.location;
+      }
+    }
+
+    const inputAddr = typeof address === "string" ? address.trim() : (address?.address?.trim() || "");
+    const fallbackNotes = (typeof notes === "string" && notes.trim().length > 5) ? notes.trim() : "";
+    const finalAddressLine = inputAddr || userSavedAddress || fallbackNotes || "WhatsApp Order - Direct Delivery";
+
+    const deliveryAddress = {
+      name: customerDoc.name || "WhatsApp Customer",
+      phone: customerDoc.phone || "",
+      address: finalAddressLine,
+      city: (typeof address === "object" && address?.city) || userSavedCity,
+      location: (typeof address === "object" && address?.location) || userLocation,
+    };
+
+    const distanceKm = await deriveDistanceKm({ sellerId, addressLocation: deliveryAddress.location });
+    const financeSettings = await getOrCreateFinanceSettings();
+    const deliveryPricing = calculateCustomerDeliveryFee(distanceKm, financeSettings);
+    const riderPricing = calculateRiderPayout(distanceKm, financeSettings);
+
+    const calculatedDeliveryFee = customDeliveryFee !== undefined ? Number(customDeliveryFee) : deliveryPricing.deliveryFeeCharged;
+    
+    // Process items
+    let formattedItems = [];
+    let productSubtotal = 0;
+
+    if (Array.isArray(items) && items.length > 0) {
+      for (const it of items) {
+        if (it.product) {
+          const prod = await Product.findById(it.product).lean();
+          if (prod) {
+            const price = Number(it.price || prod.price || 0);
+            const qty = Number(it.quantity || 1);
+            formattedItems.push({
+              product: prod._id,
+              name: prod.name,
+              quantity: qty,
+              price,
+              image: prod.image,
+            });
+            productSubtotal += price * qty;
+          }
+        } else if (it.name) {
+          const price = Number(it.price || 0);
+          const qty = Number(it.quantity || 1);
+          formattedItems.push({
+            name: it.name,
+            quantity: qty,
+            price,
+          });
+          productSubtotal += price * qty;
+        }
+      }
+    }
+
+    if (formattedItems.length === 0) {
+      productSubtotal = Number(totalAmount || 0);
+      formattedItems.push({
+        name: notes || "WhatsApp Order Package",
+        quantity: 1,
+        price: productSubtotal,
+      });
+    }
+
+    const grandTotal = productSubtotal + calculatedDeliveryFee;
+    const publicOrderId = await generateUniquePublicOrderId();
+
+    let assignedRiderId = null;
+
+    if (deliveryBoyId) {
+      const riderDoc = await Delivery.findById(deliveryBoyId).lean();
+      if (riderDoc) {
+        assignedRiderId = riderDoc._id;
+      }
+    }
+
+    const sellerPendingUntil = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes accept window for seller
+
+    const newOrder = new Order({
+      orderId: publicOrderId,
+      customer: customerId,
+      seller: sellerId,
+      deliveryBoy: assignedRiderId,
+      assignedAt: assignedRiderId ? new Date() : undefined,
+      orderType: "whatsapp_order",
+      workflowVersion: 2,
+      items: formattedItems,
+      address: deliveryAddress,
+      status: "pending",
+      workflowStatus: WORKFLOW_STATUS.SELLER_PENDING,
+      sellerPendingExpiresAt: sellerPendingUntil,
+      expiresAt: sellerPendingUntil,
+      paymentMode,
+      paymentStatus: paymentMode === "ONLINE" ? "COMPLETED" : "PENDING_CASH_COLLECTION",
+      pricing: {
+        subtotal: productSubtotal,
+        deliveryFee: calculatedDeliveryFee,
+        platformFee: 0,
+        gst: 0,
+        total: grandTotal,
+      },
+      paymentBreakdown: {
+        productSubtotal,
+        deliveryFeeCharged: calculatedDeliveryFee,
+        handlingFeeCharged: 0,
+        tipTotal: 0,
+        discountTotal: 0,
+        taxTotal: 0,
+        grandTotal,
+        sellerPayoutTotal: productSubtotal,
+        adminProductCommissionTotal: 0,
+        riderPayoutBase: riderPricing.riderPayoutBase,
+        riderPayoutDistance: riderPricing.riderPayoutDistance,
+        riderPayoutBonus: riderPricing.riderPayoutBonus,
+        riderTipAmount: 0,
+        riderPayoutTotal: riderPricing.riderPayoutBase + riderPricing.riderPayoutDistance + riderPricing.riderPayoutBonus,
+        platformLogisticsMargin: calculatedDeliveryFee - (riderPricing.riderPayoutBase + riderPricing.riderPayoutDistance),
+        platformTotalEarning: calculatedDeliveryFee - (riderPricing.riderPayoutBase + riderPricing.riderPayoutDistance),
+        codCollectedAmount: paymentMode === "COD" ? grandTotal : 0,
+        codRemittedAmount: 0,
+        codPendingAmount: paymentMode === "COD" ? grandTotal : 0,
+        walletAmount: 0,
+        distanceKmActual: distanceKm,
+        distanceKmRounded: Math.ceil(distanceKm),
+      },
+    });
+
+    await newOrder.save();
+
+    // 1. Customer socket update
+    emitOrderStatusUpdate(newOrder.orderId, { status: newOrder.status, workflowStatus: newOrder.workflowStatus }, customerId);
+
+    // 2. Seller notification & socket events (triggers order alert modal & ringtone sound)
+    if (sellerId) {
+      const sellerIdStr = sellerId.toString();
+      emitNotificationEvent(NOTIFICATION_EVENTS.NEW_ORDER, {
+        orderId: newOrder.orderId,
+        sellerId: sellerIdStr,
+        customerId: customerId ? customerId.toString() : undefined,
+        totalAmount: newOrder.pricing?.total,
+      });
+      emitToSeller(sellerIdStr, {
+        event: "order:new",
+        payload: { order: newOrder },
+      });
+      emitToSeller(sellerIdStr, {
+        event: "new_order",
+        payload: { order: newOrder },
+      });
+    }
+
+    return handleResponse(res, 201, "Manual WhatsApp order created successfully", { order: newOrder });
+  } catch (error) {
+    logger.error("Create Manual Order Error", { scope: "createManualOrder", error });
+    return handleResponse(res, 500, error.message);
+  }
+};
+
+/* ===============================
+   ASSIGN RIDER TO ORDER (Admin / Seller)
+================================ */
+export const assignRiderToOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { deliveryBoyId } = req.body || {};
+
+    if (!deliveryBoyId) return handleResponse(res, 400, "deliveryBoyId is required");
+
+    const orderKey = orderMatchQueryFromRouteParam(orderId);
+    if (!orderKey) return handleResponse(res, 404, "Order not found");
+
+    const order = await Order.findOne(orderKey);
+    if (!order) return handleResponse(res, 404, "Order not found");
+
+    const rider = await Delivery.findById(deliveryBoyId);
+    if (!rider) return handleResponse(res, 400, "Rider not found");
+
+    order.deliveryBoy = rider._id;
+    order.assignedAt = new Date();
+    order.workflowStatus = WORKFLOW_STATUS.DELIVERY_ASSIGNED;
+    if (order.status === "pending") {
+      order.status = "confirmed";
+    }
+
+    await order.save();
+
+    const riderIdStr = rider._id.toString();
+    const broadcastPayload = {
+      orderId: order.orderId,
+      preview: {
+        pickup: "Seller Store",
+        drop: order.address?.address || "Customer Address",
+        total: order.pricing?.total || 0,
+        earnings: order.paymentBreakdown?.riderPayoutTotal || Math.round((order.pricing?.total || 0) * 0.1),
+      },
+      deliverySearchExpiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      at: new Date().toISOString(),
+    };
+
+    emitOrderStatusUpdate(order.orderId, { deliveryBoy: rider._id, workflowStatus: order.workflowStatus }, order.customer);
+
+    emitNotificationEvent(NOTIFICATION_EVENTS.DELIVERY_ASSIGNED, {
+      orderId: order.orderId,
+      deliveryId: riderIdStr,
+      sellerId: order.seller ? order.seller.toString() : undefined,
+      customerId: order.customer ? order.customer.toString() : undefined,
+    });
+
+    emitToDelivery(riderIdStr, {
+      event: "delivery:broadcast",
+      payload: broadcastPayload,
+    });
+
+    emitToDelivery(riderIdStr, {
+      event: "order_assigned",
+      payload: { order },
+    });
+
+    return handleResponse(res, 200, "Rider assigned successfully", { order });
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};
+

@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner';
 import Lottie from 'lottie-react';
 import backendAnimation from '../../../assets/Backend Icon.json';
+import LogoNew from '../../../assets/LogoNew.png';
 import { adminApi } from '../services/adminApi';
 
 const AdminAuth = () => {
@@ -242,16 +243,11 @@ const AdminAuth = () => {
                 <div className="hidden md:flex w-[55%] relative bg-[#f8f9ff] overflow-hidden items-center justify-center">
                     <div className="absolute top-8 right-8 z-30">
                         <div className="w-20 h-20 rounded-2xl bg-white/85 backdrop-blur-sm border border-brand-100 shadow-[0_12px_30px_rgba(79,70,229,0.18)] flex items-center justify-center overflow-hidden">
-                            {logoUrl ? (
-                                <img
-                                    src={logoUrl}
-                                    alt={`${appName} logo`}
-                                    className="w-14 h-14 object-contain"
-                                    style={{ filter: "url(#logo-yellow-watch-green-rider)" }}
-                                />
-                            ) : (
-                                <ShieldCheck size={30} className="text-brand-600" />
-                            )}
+                            <img
+                                src={LogoNew}
+                                alt={`${appName} logo`}
+                                className="w-14 h-14 object-contain"
+                            />
                         </div>
                     </div>
                     {/* The Smooth Curve (SVG) */}
