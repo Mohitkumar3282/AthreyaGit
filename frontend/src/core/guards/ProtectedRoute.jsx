@@ -51,6 +51,13 @@ const ProtectedRoute = ({ children }) => {
         }
     }
 
+    if (location.pathname.startsWith('/delivery')) {
+        const isApprovedDelivery = Boolean(user) && user.isVerified === true;
+        if (user && !isApprovedDelivery) {
+            return <Navigate to="/delivery/auth" replace />;
+        }
+    }
+
     return <>{children}</>;
 };
 

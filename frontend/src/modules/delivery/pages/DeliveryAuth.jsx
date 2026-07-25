@@ -15,7 +15,6 @@ import {
   Upload,
   X,
   Camera,
-  XCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Lottie from "lottie-react";
@@ -25,7 +24,6 @@ import { deliveryApi } from "../services/deliveryApi";
 import { useAuth } from "@core/context/AuthContext";
 import { useSettings } from "@core/context/SettingsContext";
 import { toast } from "sonner";
-import Tesseract from "tesseract.js";
 
 const VEHICLE_TYPES = [
   { value: "bike", label: "Bike" },
@@ -76,13 +74,6 @@ const DeliveryAuth = () => {
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(30);
 
-  // OCR States
-  const [isScanning, setIsScanning] = useState(false);
-  const [ocrProgress, setOcrProgress] = useState(0);
-  const [dlVerified, setDlVerified] = useState(null);
-  const [panVerified, setPanVerified] = useState(null);
-  const [aadharVerified, setAadharVerified] = useState(null);
-
   useEffect(() => {
     let interval;
     if (step === "otp" && timer > 0) {
@@ -90,120 +81,6 @@ const DeliveryAuth = () => {
     }
     return () => clearInterval(interval);
   }, [step, timer]);
-
-  const performOCR = async (file, type) => {
-    setIsScanning(true);
-    setOcrProgress(0);
-
-    // Reset specific verification state
-    if (type === "dl") setDlVerified(null);
-    if (type === "pan") setPanVerified(null);
-    if (type === "aadhar") setAadharVerified(null);
-
-    try {
-      const result = await Tesseract.recognize(file, 'eng', {
-        logger: (m) => {
-          if (m.status === 'recognizing text') {
-            setOcrProgress(Math.round(m.progress * 100));
-          }
-        },
-      });
-
-      const rawText = result.data.text.toLowerCase();
-      const cleanText = rawText.replace(/[^a-z0-9]/g, "");
-
-      // Handle common OCR character substitutions for more robust matching
-      // e.g., '0' read as 'o', '5' as 's', '1' as 'i' or 'l'
-      const normalize = (str) => str.replace(/o/g, "0").replace(/s/g, "5").replace(/[il]/g, "1");
-      const normalizedCleanText = normalize(cleanText);
-
-      console.log(`OCR Raw [${type}]:`, rawText);
-      console.log(`OCR Cleaned [${type}]:`, cleanText);
-
-      let isMatch = false;
-      let targetNumber = "";
-
-      if (type === "dl") {
-        targetNumber = signupDLNumber.toLowerCase().replace(/[^a-z0-9]/g, "");
-        const normalizedTarget = normalize(targetNumber);
-
-        // Match either exact cleaned text or normalized text (handles 0/O, 5/S etc)
-        isMatch = (targetNumber && cleanText.includes(targetNumber)) ||
-          (normalizedTarget && normalizedCleanText.includes(normalizedTarget));
-
-        const dlKeywords = ["driving", "licence", "license", "india", "union", "government", "transport", "validity", "form", "rj"];
-        const hasDlKeywords = dlKeywords.some(k => rawText.includes(k));
-
-        if (isMatch) {
-          setDlVerified(true);
-          setDlFile(file);
-          toast.success("Driving License Verified!");
-        } else {
-          setDlVerified(false);
-          setDlFile(null);
-          toast.error("DL Number mismatch. Make sure you typed the exact number from the photo.");
-        }
-      } else if (type === "pan") {
-        targetNumber = signupPanNumber.toLowerCase().replace(/[^a-z0-9]/g, "");
-        const normalizedTarget = normalize(targetNumber);
-
-        const panKeywords = ["permanent", "account", "income", "tax", "department", "india", "signature", "card", "govt"];
-        const hasPanKeywords = panKeywords.some(k => rawText.includes(k));
-
-        isMatch = (targetNumber && cleanText.includes(targetNumber)) ||
-          (normalizedTarget && normalizedCleanText.includes(normalizedTarget));
-
-        if (isMatch || (hasPanKeywords && isMatch)) {
-          setPanVerified(true);
-          setPanFile(file);
-          toast.success("PAN Card Verified!");
-        } else {
-          setPanVerified(false);
-          setPanFile(null);
-          toast.error("PAN mismatch. Photo must be clear and show the PAN number.");
-        }
-      } else if (type === "aadhar") {
-        targetNumber = signupAadharNumber.toLowerCase().replace(/[^a-z0-9]/g, "");
-        const normalizedTarget = normalize(targetNumber);
-
-        const aadharKeywords = ["government", "india", "male", "female", "unique", "identification", "authority", "enrollment", "birth", "dob", "address", "आधार", "भारत"];
-        const hasAadharKeywords = aadharKeywords.some(k => rawText.includes(k));
-
-        isMatch = (targetNumber && cleanText.includes(targetNumber)) ||
-          (normalizedTarget && normalizedCleanText.includes(normalizedTarget));
-
-        if (isMatch || (hasAadharKeywords && isMatch)) {
-          setAadharVerified(true);
-          setAadharFile(file);
-          toast.success("Aadhar Card Verified!");
-        } else {
-          setAadharVerified(false);
-          setAadharFile(null);
-          toast.error("Aadhar mismatch. 12-digit number should be clearly visible.");
-        }
-      }
-    } catch (error) {
-      console.error("OCR Error:", error);
-      toast.error("Failed to scan document. Please try again.");
-    } finally {
-      setIsScanning(false);
-    }
-  };
-
-  const handleDLUpload = (file) => {
-    if (file) performOCR(file, "dl");
-    else { setDlFile(null); setDlVerified(null); }
-  };
-
-  const handlePanUpload = (file) => {
-    if (file) performOCR(file, "pan");
-    else { setPanFile(null); setPanVerified(null); }
-  };
-
-  const handleAadharUpload = (file) => {
-    if (file) performOCR(file, "aadhar");
-    else { setAadharFile(null); setAadharVerified(null); }
-  };
 
   const handleSendOtp = async () => {
     try {
@@ -219,6 +96,7 @@ const DeliveryAuth = () => {
         if (!signupName.trim()) { toast.error("Please enter your name"); return; }
         if (!signupPhone || signupPhone.length < 10) { toast.error("Please enter a valid 10-digit phone number"); return; }
         if (!profileImageFile) { toast.error("Please upload your profile photo"); return; }
+        if (!aadharFile || !panFile || !dlFile) { toast.error("Please upload all required documents (Aadhar, PAN, and DL)"); return; }
 
         const formData = new FormData();
         formData.append("name", signupName.trim());
@@ -258,8 +136,15 @@ const DeliveryAuth = () => {
       const phone = mode === "login" ? loginPhone : signupPhone;
       const otpString = otp.join("");
       const response = await deliveryApi.verifyOtp({ phone, otp: otpString });
-      const { token, delivery } = response.data.result;
+      const result = response.data?.result || {};
 
+      if (result.isVerified === false || !result.token) {
+        toast.success(response.data?.message || "Registration submitted! Pending admin verification.");
+        setStep("pending_approval");
+        return;
+      }
+
+      const { token, delivery } = result;
       login({ ...delivery, token, role: "delivery" });
 
       toast.success("Welcome! Redirecting to dashboard...");
@@ -358,18 +243,22 @@ const DeliveryAuth = () => {
                 className="text-center mt-3"
               >
                 <h1 className="text-2xl font-black text-gray-900">
-                  {step === "otp"
-                    ? "Verify OTP"
-                    : mode === "login"
-                      ? "Partner Login"
-                      : "Partner Registration"}
+                  {step === "pending_approval"
+                    ? "Application Pending"
+                    : step === "otp"
+                      ? "Verify OTP"
+                      : mode === "login"
+                        ? "Partner Login"
+                        : "Partner Registration"}
                 </h1>
                 <p className="text-gray-500 text-sm mt-1 max-w-[240px] mx-auto">
-                  {step === "otp"
-                    ? `Enter the 4-digit code sent to +91 ${mode === "login" ? loginPhone : signupPhone}`
-                    : mode === "login"
-                      ? "Login with your registered phone number"
-                      : `Step ${signupStep} of 4: ${signupStep === 1 ? "Personal Info" : signupStep === 2 ? "Vehicle Info" : signupStep === 3 ? "Bank Info" : "Documents"}`}
+                  {step === "pending_approval"
+                    ? "Your application is under review by admin"
+                    : step === "otp"
+                      ? `Enter the 4-digit code sent to +91 ${mode === "login" ? loginPhone : signupPhone}`
+                      : mode === "login"
+                        ? "Login with your registered phone number"
+                        : `Step ${signupStep} of 4: ${signupStep === 1 ? "Personal Info" : signupStep === 2 ? "Vehicle Info" : signupStep === 3 ? "Bank Info" : "Documents"}`}
                 </p>
               </motion.div>
             </AnimatePresence>
@@ -733,10 +622,7 @@ const DeliveryAuth = () => {
                                   accept="image/*"
                                   onChange={(e) => {
                                     const file = e.target.files[0];
-                                    if (doc.id === "dl") handleDLUpload(file);
-                                    else if (doc.id === "pan") handlePanUpload(file);
-                                    else if (doc.id === "aadhar") handleAadharUpload(file);
-                                    else doc.setter(file);
+                                    if (file) doc.setter(file);
                                   }}
                                 />
                                 <label
@@ -772,111 +658,6 @@ const DeliveryAuth = () => {
                                     </button>
                                   )}
                                 </label>
-
-                                {/* OCR Progress & Badge for DL */}
-                                {doc.id === "dl" && (
-                                  <div className="mt-2 px-1">
-                                    {(isScanning && doc.state === null) && (
-                                      <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
-                                        <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-brand-500">
-                                          <span>AI Scanning DL...</span>
-                                          <span>{ocrProgress}%</span>
-                                        </div>
-                                        <div className="h-1.5 w-full bg-brand-50 rounded-full overflow-hidden">
-                                          <motion.div
-                                            initial={{ width: 0 }}
-                                            animate={{ width: `${ocrProgress}%` }}
-                                            className="h-full bg-brand-500"
-                                          />
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {!isScanning && dlVerified === true && (
-                                      <div className="flex items-center gap-1.5 text-brand-600 animate-in zoom-in-95 duration-300">
-                                        <CheckCircle className="w-3.5 h-3.5" />
-                                        <span className="text-[10px] font-black uppercase tracking-wider">AI Verified: Valid DL Found</span>
-                                      </div>
-                                    )}
-
-                                    {!isScanning && dlVerified === false && (
-                                      <div className="flex items-center gap-1.5 text-rose-500 animate-in shake duration-500">
-                                        <XCircle className="w-3.5 h-3.5" />
-                                        <span className="text-[10px] font-black uppercase tracking-wider text-rose-500">AI Warning: DL Match Failed</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-
-                                {/* OCR Progress & Badge for PAN */}
-                                {doc.id === "pan" && (
-                                  <div className="mt-2 px-1">
-                                    {(isScanning && doc.state === null) && (
-                                      <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
-                                        <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-brand-500">
-                                          <span>AI Scanning PAN...</span>
-                                          <span>{ocrProgress}%</span>
-                                        </div>
-                                        <div className="h-1.5 w-full bg-brand-50 rounded-full overflow-hidden">
-                                          <motion.div
-                                            initial={{ width: 0 }}
-                                            animate={{ width: `${ocrProgress}%` }}
-                                            className="h-full bg-brand-500"
-                                          />
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {!isScanning && panVerified === true && (
-                                      <div className="flex items-center gap-1.5 text-brand-600 animate-in zoom-in-95 duration-300">
-                                        <CheckCircle className="w-3.5 h-3.5" />
-                                        <span className="text-[10px] font-black uppercase tracking-wider">AI Verified: Valid PAN Found</span>
-                                      </div>
-                                    )}
-
-                                    {!isScanning && panVerified === false && (
-                                      <div className="flex items-center gap-1.5 text-rose-500 animate-in shake duration-500">
-                                        <XCircle className="w-3.5 h-3.5" />
-                                        <span className="text-[10px] font-black uppercase tracking-wider text-rose-500">AI Warning: PAN Match Failed</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-
-                                {/* OCR Progress & Badge for Aadhar */}
-                                {doc.id === "aadhar" && (
-                                  <div className="mt-2 px-1">
-                                    {(isScanning && doc.state === null) && (
-                                      <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
-                                        <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-brand-500">
-                                          <span>AI Scanning Aadhar...</span>
-                                          <span>{ocrProgress}%</span>
-                                        </div>
-                                        <div className="h-1.5 w-full bg-brand-50 rounded-full overflow-hidden">
-                                          <motion.div
-                                            initial={{ width: 0 }}
-                                            animate={{ width: `${ocrProgress}%` }}
-                                            className="h-full bg-brand-500"
-                                          />
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {!isScanning && aadharVerified === true && (
-                                      <div className="flex items-center gap-1.5 text-brand-600 animate-in zoom-in-95 duration-300">
-                                        <CheckCircle className="w-3.5 h-3.5" />
-                                        <span className="text-[10px] font-black uppercase tracking-wider">AI Verified: Valid Aadhar Found</span>
-                                      </div>
-                                    )}
-
-                                    {!isScanning && aadharVerified === false && (
-                                      <div className="flex items-center gap-1.5 text-rose-500 animate-in shake duration-500">
-                                        <XCircle className="w-3.5 h-3.5" />
-                                        <span className="text-[10px] font-black uppercase tracking-wider text-rose-500">AI Warning: Aadhar Match Failed</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
                               </div>
                             ))}
                             <p className="text-[10px] text-gray-400 italic px-1 flex items-center gap-1.5">
@@ -894,7 +675,7 @@ const DeliveryAuth = () => {
                             </button>
                             <button
                               onClick={handleSendOtp}
-                              disabled={loading || dlVerified !== true || panVerified !== true || aadharVerified !== true}
+                              disabled={loading}
                               className="flex-[2] py-4 bg-black  text-primary-foreground rounded-2xl text-sm font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               {loading ? (
@@ -1043,6 +824,44 @@ const DeliveryAuth = () => {
                     className="w-full flex items-center justify-center gap-1.5 text-gray-400 hover:text-gray-600 text-sm font-bold transition-colors"
                   >
                     <ChevronLeft className="w-4 h-4" /> Edit Phone Number
+                  </button>
+                </motion.div>
+              )}
+
+              {/* ─── PENDING APPROVAL STEP ─── */}
+              {step === "pending_approval" && (
+                <motion.div
+                  key="pending_approval"
+                  variants={slideVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="space-y-5 text-center py-2"
+                >
+                  <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-3xl mx-auto flex items-center justify-center border border-amber-100 shadow-sm">
+                    <ShieldCheck className="w-8 h-8" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-black text-gray-900">Document Verification Pending</h3>
+                    <p className="text-xs text-gray-500 max-w-[280px] mx-auto leading-relaxed">
+                      Thank you for submitting your details! Your account and uploaded documents are currently being verified by our Admin Team.
+                    </p>
+                    <div className="bg-amber-50/70 border border-amber-100 rounded-2xl p-3.5 mt-3 text-left">
+                      <p className="text-[11px] font-bold text-amber-800 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                        Under Review by Admin
+                      </p>
+                      <p className="text-[10px] text-amber-700 mt-1">
+                        Once your Aadhar, PAN, and DL details are approved, you will be able to log in to your delivery partner account.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => switchMode("login")}
+                    className="w-full py-4 bg-black text-primary-foreground rounded-2xl text-sm font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all"
+                  >
+                    Back to Login
                   </button>
                 </motion.div>
               )}

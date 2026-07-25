@@ -123,8 +123,12 @@ export const loginDelivery = async (req, res) => {
 
         const delivery = await Delivery.findOne({ phone });
 
-        if (!delivery || !delivery.isVerified) {
-            return handleResponse(res, 404, "Delivery partner not found");
+        if (!delivery) {
+            return handleResponse(res, 404, "Delivery partner not found. Please register first.");
+        }
+
+        if (!delivery.isVerified) {
+            return handleResponse(res, 403, "Your registration is pending document verification by Admin. Please wait for approval before logging in.");
         }
 
         let otp = generateOTP();
@@ -167,10 +171,24 @@ export const verifyDeliveryOTP = async (req, res) => {
             return handleResponse(res, 400, "Invalid or expired OTP");
         }
 
-        delivery.isVerified = true;
-        delivery.isOnline = true; // Auto-activate delivery boy on login
         delivery.otp = undefined;
         delivery.otpExpiry = undefined;
+
+        if (!delivery.isVerified) {
+            await delivery.save();
+            return handleResponse(res, 200, "Registration submitted successfully! Your account is pending document verification by Admin.", {
+                isVerified: false,
+                message: "Registration submitted successfully! Your account is pending document verification by Admin.",
+                delivery: {
+                    id: delivery._id,
+                    name: delivery.name,
+                    phone: delivery.phone,
+                    isVerified: false,
+                },
+            });
+        }
+
+        delivery.isOnline = true; // Auto-activate delivery boy on login when verified
         delivery.lastLogin = new Date();
 
         await delivery.save();
@@ -180,6 +198,7 @@ export const verifyDeliveryOTP = async (req, res) => {
         return handleResponse(res, 200, "Login successful", {
             token,
             delivery,
+            isVerified: true,
         });
     } catch (error) {
         return handleResponse(res, 500, error.message);
