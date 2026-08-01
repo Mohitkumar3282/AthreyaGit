@@ -7,6 +7,7 @@ const VideoBanner = memo(({ videoUrl, posterUrl }) => {
     const [hasError, setHasError] = useState(false);
 
     useEffect(() => {
+        let isMounted = true;
         setIsLoading(true);
         setHasError(false);
 
@@ -15,9 +16,15 @@ const VideoBanner = memo(({ videoUrl, posterUrl }) => {
             // In modern browsers, autoplay requires muted
             videoRef.current.muted = true;
             videoRef.current.play().catch((err) => {
-                console.warn("[VideoBanner] Video playback failed or interrupted:", err);
+                if (isMounted) {
+                    console.warn("[VideoBanner] Video playback failed or interrupted:", err);
+                }
             });
         }
+
+        return () => {
+            isMounted = false;
+        };
     }, [videoUrl]);
 
     const handleCanPlay = () => {
