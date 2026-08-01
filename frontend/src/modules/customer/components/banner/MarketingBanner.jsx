@@ -99,7 +99,7 @@ const MarketingBanner = memo(({ videoData, offers = [] }) => {
                                     navigate(videoData.redirectUrl);
                                 }
                             } else {
-                                const scrollTarget = document.getElementById("todays-needs");
+                                const scrollTarget = document.getElementById("exclusive-partners") || document.getElementById("quick-access-cards");
                                 if (scrollTarget) {
                                     scrollTarget.scrollIntoView({ behavior: "smooth" });
                                 }

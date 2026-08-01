@@ -649,80 +649,9 @@ const Home = () => {
             <LiveBanner />
           </div>
 
-          {/* 5. TODAY'S NEEDS (ఈరోజు అవసరాలు) */}
-          <div className="px-4 py-3">
-            <div className="flex justify-between items-center mb-2.5">
-              <h3 className="text-[12.5px] font-black text-[#A3E635] tracking-wide uppercase">
-                TODAYS NEEDS (ఈరోజు అవసరాలు)
-              </h3>
-              <button onClick={() => navigate('/categories')} className="text-[10.5px] font-black text-[#A3E635] hover:underline">
-                See All
-              </button>
-            </div>
-            <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
-              {todaysNeedsList.map((item, idx) => (
-                <div 
-                  key={idx} 
-                  onClick={() => navigate(item.path)} 
-                  className="w-[84px] shrink-0 bg-[#021f0b] border border-[#0d4f1c] rounded-2xl p-2 flex flex-col items-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
-                >
-                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-white">
-                    <img src={applyCloudinaryTransform(item.image)} alt={item.label} className="w-full h-full object-cover" />
-                  </div>
-                  <div className="flex flex-col items-center text-center leading-none">
-                    <span className="text-[9.5px] font-black text-white">{item.label}</span>
-                    <span className="text-[8.5px] font-bold text-slate-300 mt-0.5">{item.teluguLabel}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 6. Combo & Deals & Orders Promo Row */}
-          <div className="grid grid-cols-3 gap-2 px-4 py-2">
-            {/* Combo Offers Card */}
-            <div 
-              onClick={() => navigate('/offers')} 
-              className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md min-w-0"
-            >
-              <div className="text-xl">🎁</div>
-              <div className="flex flex-col leading-tight min-w-0 text-center sm:text-left">
-                <span className="text-[7.5px] sm:text-[8px] font-black text-orange-600 uppercase tracking-tight line-clamp-1">COMBO OFFERS</span>
-                <span className="text-[8.5px] sm:text-[9.5px] font-black text-slate-800 tracking-tight line-clamp-2">Best Deals & Savings</span>
-                <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-500 tracking-tight line-clamp-1">ఉత్తమ ఆఫర్లు & ఆదా</span>
-              </div>
-            </div>
-
-            {/* Today's Deals Card */}
-            <div 
-              onClick={() => navigate('/offers')} 
-              className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md min-w-0"
-            >
-              <div className="text-xl">🏷️</div>
-              <div className="flex flex-col leading-tight min-w-0 text-center sm:text-left">
-                <span className="text-[7.5px] sm:text-[8px] font-black text-blue-600 uppercase tracking-tight line-clamp-1">TODAY'S DEALS</span>
-                <span className="text-[8.5px] sm:text-[9.5px] font-black text-slate-800 tracking-tight line-clamp-2">Limited Time Offers</span>
-                <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-500 tracking-tight line-clamp-1">పరిమిత సమయ ఆఫర్లు</span>
-              </div>
-            </div>
-
-            {/* My Orders Card */}
-            <div 
-              onClick={() => navigate('/orders')} 
-              className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md min-w-0"
-            >
-              <div className="text-xl">📋</div>
-              <div className="flex flex-col leading-tight min-w-0 text-center sm:text-left">
-                <span className="text-[7.5px] sm:text-[8px] font-black text-green-600 uppercase tracking-tight line-clamp-1">MY ORDERS</span>
-                <span className="text-[8.5px] sm:text-[9.5px] font-black text-slate-800 tracking-tight line-clamp-2">Track your orders</span>
-                <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-500 tracking-tight line-clamp-1">మీ ఆర్డర్లు ట్రాక్ చేయండి</span>
-              </div>
-            </div>
-          </div>
-
-          {/* 7. ATHREYA EXCLUSIVE PARTNERS (ప్రత్యేక భాగస్వాములు) */}
+          {/* 5. ATHREYA EXCLUSIVE PARTNERS (ప్రత్యేక భాగస్వాములు) */}
           {shops.length > 0 && (
-            <div className="px-4 py-3">
+            <div className="px-4 py-3" id="exclusive-partners">
               <div className="flex justify-between items-center mb-2.5">
                 <h3 className="text-[12.5px] font-black text-[#A3E635] tracking-wide uppercase">
                   ATHREYA EXCLUSIVE PARTNERS (ప్రత్యేక భాగస్వాములు)
@@ -762,6 +691,48 @@ const Home = () => {
               </div>
             </div>
           )}
+
+          {/* 6. Combo & Deals & Orders Promo Row */}
+          <div className="grid grid-cols-3 gap-2 px-4 py-2" id="quick-access-cards">
+            {/* Combo Offers Card */}
+            <div 
+              onClick={() => navigate('/offers')} 
+              className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md min-w-0"
+            >
+              <div className="text-xl">🎁</div>
+              <div className="flex flex-col leading-tight min-w-0 text-center sm:text-left">
+                <span className="text-[7.5px] sm:text-[8px] font-black text-orange-600 uppercase tracking-tight line-clamp-1">COMBO OFFERS</span>
+                <span className="text-[8.5px] sm:text-[9.5px] font-black text-slate-800 tracking-tight line-clamp-2">Best Deals & Savings</span>
+                <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-500 tracking-tight line-clamp-1">ఉత్తమ ఆఫర్లు & ఆదా</span>
+              </div>
+            </div>
+
+            {/* Today's Deals Card */}
+            <div 
+              onClick={() => navigate('/offers')} 
+              className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md min-w-0"
+            >
+              <div className="text-xl">🏷️</div>
+              <div className="flex flex-col leading-tight min-w-0 text-center sm:text-left">
+                <span className="text-[7.5px] sm:text-[8px] font-black text-blue-600 uppercase tracking-tight line-clamp-1">TODAY'S DEALS</span>
+                <span className="text-[8.5px] sm:text-[9.5px] font-black text-slate-800 tracking-tight line-clamp-2">Limited Time Offers</span>
+                <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-500 tracking-tight line-clamp-1">పరిమిత సమయ ఆఫర్లు</span>
+              </div>
+            </div>
+
+            {/* My Orders Card */}
+            <div 
+              onClick={() => navigate('/orders')} 
+              className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md min-w-0"
+            >
+              <div className="text-xl">📋</div>
+              <div className="flex flex-col leading-tight min-w-0 text-center sm:text-left">
+                <span className="text-[7.5px] sm:text-[8px] font-black text-green-600 uppercase tracking-tight line-clamp-1">MY ORDERS</span>
+                <span className="text-[8.5px] sm:text-[9.5px] font-black text-slate-800 tracking-tight line-clamp-2">Track your orders</span>
+                <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-500 tracking-tight line-clamp-1">మీ ఆర్డర్లు ట్రాక్ చేయండి</span>
+              </div>
+            </div>
+          </div>
 
           {/* 8. PARCEL PICKUP (పార్సెల్ పికప్) Section */}
           <div className="mx-4 my-3 bg-[#03210b] border border-[#0d4f1c] rounded-2xl p-4 flex gap-4 items-center shadow-md">
