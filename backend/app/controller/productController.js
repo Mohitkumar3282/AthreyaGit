@@ -251,20 +251,46 @@ export const getProducts = async (req, res) => {
 
     if (finalHeaderId && finalHeaderId !== "all") query.headerId = finalHeaderId;
     if (finalCategoryId && finalCategoryId !== "all") {
+      let targetCatId = null;
+
       if (mongoose.Types.ObjectId.isValid(finalCategoryId)) {
         const catDoc = await Category.findById(finalCategoryId).lean();
-        if (catDoc && catDoc.type === "header") {
-          const childCategories = await Category.find({ parentId: finalCategoryId }).select("_id").lean();
-          const childIds = childCategories.map(c => c._id);
-          query.$or = [
-            { categoryId: { $in: childIds } },
-            { headerId: finalCategoryId }
-          ];
-        } else {
-          query.categoryId = finalCategoryId;
+        if (catDoc) {
+          targetCatId = catDoc._id;
         }
+      }
+
+      if (!targetCatId) {
+        const cleanParam = decodeURIComponent(String(finalCategoryId)).trim();
+        const catDoc = await Category.findOne({
+          $or: [
+            { slug: cleanParam.toLowerCase() },
+            { name: new RegExp(`^${cleanParam.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, "i") },
+            { name: new RegExp(cleanParam.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), "i") }
+          ]
+        }).lean();
+        if (catDoc) {
+          targetCatId = catDoc._id;
+        }
+      }
+
+      if (targetCatId) {
+        const childCategories = await Category.find({ parentId: targetCatId }).select("_id").lean();
+        const childIds = childCategories.map(c => c._id);
+        const allCatIds = [targetCatId, ...childIds];
+
+        query.$or = [
+          { headerId: { $in: allCatIds } },
+          { categoryId: { $in: allCatIds } },
+          { subcategoryId: { $in: allCatIds } }
+        ];
       } else {
-        query.categoryId = finalCategoryId;
+        const cleanParam = decodeURIComponent(String(finalCategoryId)).trim();
+        query.$or = [
+          { categoryId: finalCategoryId },
+          { headerId: finalCategoryId },
+          { name: buildSearchRegex(cleanParam, { anchored: false }) }
+        ];
       }
     }
     if (finalSubcategoryId && finalSubcategoryId !== "all") query.subcategoryId = finalSubcategoryId;

@@ -3,68 +3,11 @@ import { Link } from 'react-router-dom';
 import MainLocationHeader from '../components/shared/MainLocationHeader';
 import { customerApi } from '../services/customerApi';
 import { applyCloudinaryTransform } from '@/core/utils/imageUtils';
+import { getTeluguCategoryName } from '@shared/utils/categoryTranslations';
 
 const COLORS = [
     "#ffffff"
 ];
-
-const TELUGU_TRANSLATIONS = {
-  "Water Can": "వాటర్ క్యాన్",
-  "Milk": "పాలు",
-  "Tiffins": "టిఫిన్స్",
-  "Restaurant": "రెస్టారెంట్",
-  "Vegetables": "కూరగాయలు",
-  "Fruits": "పండ్లు",
-  "Chiken": "చికెన్",
-  "Chicken": "చికెన్",
-  "Food": "ఆహారం",
-  "horse food": "గుర్రం ఆహారం",
-  "Cookware": "వంట పాత్రలు",
-  "Rice n": "బియ్యం",
-  "Meat": "మాంసం",
-  "Grocery": "కిరాణా",
-  "Groceries": "కిరాణా",
-  "Chiken fried": "ఫ్రైడ్ చికెన్",
-  "Sea Food": "సముద్ర ఆహారం",
-  "Bakery": "బేకరీ",
-  "Snacks": "స్నాక్స్",
-  "Tea & Coffee": "టీ & కాఫీ",
-  "Pharmacy": "మెడిసిన్",
-  "Flowers": "పూలు",
-  "Electronics": "ఎలక్ట్రానిక్స్",
-  "Stationery": "స్టేషనరీ",
-  "Pets": "పెట్స్",
-  "Home Needs": "హోమ్ నీడ్స్",
-  "Baby Care": "బేబీ కేర్",
-  "Fashion": "ఫ్యాషన్",
-  "More": "మరిన్ని",
-};
-
-const getTeluguCategoryName = (name) => {
-    if (!name) return "";
-    const cleanName = name.trim().toLowerCase();
-    
-    // Check direct match
-    if (TELUGU_TRANSLATIONS[name]) return TELUGU_TRANSLATIONS[name];
-    
-    // Check case-insensitive match
-    for (const [key, value] of Object.entries(TELUGU_TRANSLATIONS)) {
-        if (key.toLowerCase() === cleanName) {
-            return value;
-        }
-    }
-    
-    // Check partial match
-    if (cleanName.includes("chicken") || cleanName.includes("chiken")) return "చికెన్";
-    if (cleanName.includes("vegetable")) return "కూరగాయలు";
-    if (cleanName.includes("fruit")) return "పండ్లు";
-    if (cleanName.includes("milk")) return "పాలు";
-    if (cleanName.includes("water")) return "వాటర్ క్యాన్";
-    if (cleanName.includes("grocery") || cleanName.includes("kirana")) return "కిరాణా";
-    if (cleanName.includes("food")) return "ఆహారం";
-    
-    return "";
-};
 
 const CategoriesPage = () => {
     const [categories, setCategories] = useState([]);

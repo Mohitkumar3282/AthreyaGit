@@ -14,6 +14,7 @@ import { customerApi } from '../services/customerApi';
 import MiniCart from '../components/shared/MiniCart';
 import { useLocation as useAppLocation } from '../context/LocationContext';
 import { useSettings } from '@core/context/SettingsContext';
+import { getTeluguCategoryName } from '@shared/utils/categoryTranslations';
 import LogoTransparent from '@/assets/LogoTransparent.png';
 
 
@@ -38,29 +39,29 @@ const CategoryProductsPage = () => {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const slugMap = {
-                fruits: settings?.dailyNeeds?.fruits || "6a3fc1728bb6d217bf338f1d",
-                vegetables: settings?.dailyNeeds?.vegetables || "6a3fc1738bb6d217bf338f24",
-                chicken: settings?.dailyNeeds?.chicken || "6a3fc1748bb6d217bf338f2b",
-                mutton: settings?.dailyNeeds?.mutton || "6a3fc1748bb6d217bf338f32",
-                eggs: settings?.dailyNeeds?.eggs || "6a3fc1748bb6d217bf338f39",
-            };
-            const resolvedCatId = slugMap[catId?.toLowerCase()] || catId;
+            const cleanCatParam = decodeURIComponent(catId || '').trim();
+            const prodParams = { categoryId: cleanCatParam };
+            const sellerParams = {};
+
+            if (currentLocation?.latitude && currentLocation?.longitude) {
+                prodParams.lat = currentLocation.latitude;
+                prodParams.lng = currentLocation.longitude;
+                sellerParams.lat = currentLocation.latitude;
+                sellerParams.lng = currentLocation.longitude;
+            }
 
             // Fetch products, categories tree, and sellers in parallel
             const [prodRes, catRes, sellersRes] = await Promise.all([
-                customerApi.getProducts({
-                    categoryId: resolvedCatId,
-                }),
+                customerApi.getProducts(prodParams),
                 customerApi.getCategories({ tree: true }),
-                customerApi.getNearbySellers(),
+                customerApi.getNearbySellers(sellerParams),
             ]);
 
             if (sellersRes.data?.success) {
                 setAllSellers(sellersRes.data.results || sellersRes.data.result || []);
             }
 
-            if (prodRes.data.success) {
+            if (prodRes.data?.success) {
                 const rawResult = prodRes.data.result;
                 const dbProds = Array.isArray(prodRes.data.results)
                     ? prodRes.data.results
@@ -84,17 +85,26 @@ const CategoryProductsPage = () => {
                 setProducts([]);
             }
 
-            if (catRes.data.success) {
+            if (catRes.data?.success) {
                 const tree = catRes.data.results || catRes.data.result || [];
                 let currentCat = null;
                 
-                // First check if resolvedCatId is a header category
-                const headerFound = tree.find(h => h._id === resolvedCatId);
+                const matchesParam = (item) => {
+                    if (!item) return false;
+                    const idStr = String(item._id || item.id || '');
+                    const nameStr = String(item.name || '').toLowerCase();
+                    const slugStr = String(item.slug || '').toLowerCase();
+                    const targetStr = cleanCatParam.toLowerCase();
+                    return idStr === cleanCatParam || nameStr === targetStr || slugStr === targetStr || nameStr.includes(targetStr);
+                };
+
+                // Check if cleanCatParam matches a header category or subcategory
+                const headerFound = tree.find(matchesParam);
                 if (headerFound) {
                     currentCat = headerFound;
                 } else {
                     for (const header of tree) {
-                        const found = (header.children || []).find(c => c._id === resolvedCatId);
+                        const found = (header.children || []).find(matchesParam);
                         if (found) {
                             currentCat = found;
                             break;
@@ -110,6 +120,8 @@ const CategoryProductsPage = () => {
                         icon: s.image || 'https://cdn-icons-png.flaticon.com/128/2321/2321801.png'
                     }));
                     setSubCategories([{ id: 'all', name: 'All', icon: 'https://cdn-icons-png.flaticon.com/128/2321/2321831.png' }, ...subs]);
+                } else {
+                    setCategory({ name: cleanCatParam });
                 }
             }
         } catch (error) {
@@ -122,7 +134,7 @@ const CategoryProductsPage = () => {
     useEffect(() => {
         fetchData();
         setSelectedSubCategory(location.state?.activeSubcategoryId || 'all');
-    }, [catId, location.state?.activeSubcategoryId]);
+    }, [catId, location.state?.activeSubcategoryId, currentLocation?.latitude, currentLocation?.longitude]);
 
     const safeProducts = Array.isArray(products) ? products : [];
 
@@ -162,17 +174,6 @@ const CategoryProductsPage = () => {
         return dbGrouped;
     }, [filteredProducts, allSellers, category, catId]);
 
-    const getTeluguCategoryName = (name) => {
-        const TRANSLATIONS = {
-            "Vegetables": "కూరగాయలు",
-            "Fruits": "పండ్లు",
-            "Chicken": "చికెన్",
-            "Mutton": "మాంసం",
-            "Eggs": "గుడ్లు",
-        };
-        return TRANSLATIONS[name] || "";
-    };
-
     return (
         <div className="flex flex-col min-h-screen bg-slate-50 max-w-md mx-auto relative font-sans pb-24">
 
@@ -207,7 +208,7 @@ const CategoryProductsPage = () => {
                                 <span className="block text-[12px] font-black tracking-tight leading-none truncate">
                                     {currentLocation?.name?.includes("Aswapuram") 
                                       ? currentLocation.name.split(",")[0] 
-                                      : "Aswapuram (507116)"}
+                                      : (currentLocation?.name || "Aswapuram (507116)")}
                                 </span>
                             </div>
                             <span className="block text-[10px] font-semibold text-slate-300 ml-4 leading-tight mt-0.5 truncate max-w-full">
@@ -266,7 +267,7 @@ const CategoryProductsPage = () => {
                             {category?.name || catId}
                         </h1>
                         <span className="text-[12px] font-bold text-[#1a6e2e] mt-1.5 block">
-                            {getTeluguCategoryName(category?.name) || 'అశ్వాపురం'}
+                            {getTeluguCategoryName(category?.name || catId) || 'అశ్వాపురం'}
                         </span>
                     </div>
                 </div>
@@ -306,6 +307,22 @@ const CategoryProductsPage = () => {
                     <div className="flex flex-col items-center justify-center py-20 text-slate-400 font-bold text-sm">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1a6e2e] mb-4"></div>
                         Loading Products...
+                    </div>
+                ) : groupedSellers.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-center px-4 bg-white rounded-3xl border border-slate-200 shadow-sm mt-4">
+                        <span className="text-4xl mb-3">🛒</span>
+                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-wide">
+                            No products found in "{category?.name || catId}"
+                        </h3>
+                        <p className="text-xs text-slate-500 font-medium mt-1 max-w-xs">
+                            Currently there are no active items listed under this category near your location.
+                        </p>
+                        <button
+                            onClick={() => navigate('/')}
+                            className="mt-5 px-5 py-2.5 bg-[#1a6e2e] text-white rounded-full text-xs font-black hover:bg-green-800 transition-transform active:scale-95 border-0 cursor-pointer shadow-md"
+                        >
+                            Explore Home Categories
+                        </button>
                     </div>
                 ) : (
                     <>

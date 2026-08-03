@@ -25,7 +25,7 @@ import LogoTransparent from "@/assets/LogoTransparent.png";
 import { customerApi } from "../services/customerApi";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
 import { getAreaName, getTeluguAreaName } from "../components/shared/MainLocationHeader";
-import { getLegacyStatusFromOrder, getOrderStatusLabel } from "@/shared/utils/orderStatus";
+import { getTeluguCategoryName } from "@shared/utils/categoryTranslations";
 import LiveBanner from "../components/banner/LiveBanner";
 
 // Module-level variable to track if the brand animation has played in this SPA session
@@ -201,16 +201,30 @@ const Home = () => {
           tree
             .filter((header) => (header.name || '').trim().toLowerCase() !== 'all')
             .forEach((header) => {
-              (header.children || []).forEach((cat) => {
-                if (!flatCategories.some(existing => existing.id === cat._id)) {
+              const children = header.children || [];
+              if (children.length > 0) {
+                children.forEach((cat) => {
+                  const catId = cat._id || cat.id;
+                  if (catId && !flatCategories.some(existing => existing.id === catId)) {
+                    flatCategories.push({
+                      id: catId,
+                      _id: catId,
+                      name: cat.name,
+                      image: cat.image,
+                    });
+                  }
+                });
+              } else {
+                const headerId = header._id || header.id;
+                if (headerId && !flatCategories.some(existing => existing.id === headerId)) {
                   flatCategories.push({
-                    id: cat._id,
-                    _id: cat._id,
-                    name: cat.name,
-                    image: cat.image,
+                    id: headerId,
+                    _id: headerId,
+                    name: header.name,
+                    image: header.image,
                   });
                 }
-              });
+              }
             });
           setCategories(flatCategories);
         }
@@ -241,33 +255,7 @@ const Home = () => {
     return found ? `/category/${found._id || found.id}` : fallback;
   };
 
-  const getTeluguCategoryName = (name) => {
-    const TELUGU_TRANSLATIONS = {
-      "Water Can": "వాటర్ క్యాన్",
-      "Milk": "పాలు",
-      "Tiffins": "టిఫిన్స్",
-      "Restaurant": "రెస్టారెంట్",
-      "Vegetables": "కూరగాయలు",
-      "Fruits": "పండ్లు",
-      "Chicken": "చికెన్",
-      "Meat": "మాంసం",
-      "Groceries": "కిరాణా",
-      "Grocery": "కిరాణా",
-    };
-    if (!name) return "";
-    const cleanName = name.trim().toLowerCase();
-    if (TELUGU_TRANSLATIONS[name]) return TELUGU_TRANSLATIONS[name];
-    for (const [key, value] of Object.entries(TELUGU_TRANSLATIONS)) {
-      if (key.toLowerCase() === cleanName) return value;
-    }
-    if (cleanName.includes("chicken") || cleanName.includes("chiken")) return "చికెన్";
-    if (cleanName.includes("vegetable")) return "కూరగాయలు";
-    if (cleanName.includes("fruit")) return "పండ్లు";
-    if (cleanName.includes("milk")) return "పాలు";
-    if (cleanName.includes("water")) return "వాటర్ క్యాన్";
-    if (cleanName.includes("grocery") || cleanName.includes("kirana")) return "కిరాణా";
-    return "";
-  };
+
 
   // Build category lists dynamically from DB, or fallback to mock if empty
   const dynamicCategories = categories.length > 0 
@@ -279,13 +267,15 @@ const Home = () => {
       }))
     : [];
 
+  const categorySource = headerCategories.length > 0 ? headerCategories : categories;
+
   // Build header category lists dynamically from DB, or fallback to mock if empty
-  const dynamicHeaderCategories = headerCategories.length > 0 
-    ? headerCategories.map(c => ({
+  const dynamicHeaderCategories = categorySource.length > 0 
+    ? categorySource.map(c => ({
         label: c.name,
         teluguLabel: getTeluguCategoryName(c.name) || c.name,
         image: c.image || "https://cdn.grofers.com/cdn-cgi/image/f=auto,fit=scale-down,q=70,metadata=none,w=270/layout-engine/2022-11/Slice-1_9.png",
-        path: `/category/${c._id || c.id}`
+        path: `/category/${c._id || c.id || encodeURIComponent(c.name)}`
       }))
     : [];
 
