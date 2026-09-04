@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Clipboard, Heart, Wallet, ChevronDown, Check } from "lucide-react";
+import { Clipboard, Heart, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import piggyBankImg from "@/assets/coins/piggy_bank.jpg";
 
@@ -61,14 +61,25 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
   selectedCoupon,
   discountAmount,
 }) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  // Collapsed by default: the customer sees only the single "Total Bill"
+  // figure, and opens the breakdown deliberately. Delivery fee, platform fee
+  // and taxes must not be on screen until then.
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const itemTotal = pricingPreview?.productSubtotal ?? cartTotal;
   const deliveryFee = pricingPreview?.deliveryFeeCharged || 0;
-  const handlingFee = pricingPreview?.handlingFeeCharged || 3; // Platform fee
+  // `?? 0`, not `|| 3`: a genuine zero platform fee is falsy, so the old
+  // fallback invented a 3 rupee charge that was never billed. Harmless while
+  // the breakdown was decorative, but it is authoritative now — the rows have
+  // to add up to the total the customer is shown.
+  const handlingFee = pricingPreview?.handlingFeeCharged ?? 0;
   const tipAmount = pricingPreview?.tipTotal ?? selectedTip ?? 0;
   const taxAmount = pricingPreview?.taxTotal || 0;
-  const savingsTotal = Number(pricingPreview?.savingsTotal || 0) + Number(discountAmount || 0) + Number(coinsDiscount || 0);
+  // Prefer the server's accepted discount over the locally-selected coupon
+  // value. If the two ever disagree (coupon partially applied, capped, or
+  // rejected server-side) the rows must still reconcile with the total.
+  const couponDiscount = Number(pricingPreview?.discountTotal ?? discountAmount ?? 0);
+  const savingsTotal = Number(pricingPreview?.savingsTotal || 0) + couponDiscount + Number(coinsDiscount || 0);
 
   const distanceHint =
     typeof pricingPreview?.distanceKmActual === "number" &&
@@ -117,8 +128,10 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
           <button
             type="button"
             onClick={() => setIsExpanded((v) => !v)}
-            className="text-[11px] font-bold text-[#1a6e2e] flex items-center gap-1">
-            <span>{isExpanded ? "Collapse" : "Details"}</span>
+            aria-expanded={isExpanded}
+            aria-controls="bill-breakup"
+            className="text-[11px] font-bold text-[#1a6e2e] flex items-center gap-1 rounded-lg px-1.5 py-1 -mr-1.5 hover:bg-[#1a6e2e]/5 transition-colors">
+            <span>{isExpanded ? "Hide Bill Breakup" : "View Detailed Bill Breakup"}</span>
             <ChevronDown size={14} className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
           </button>
         </div>
@@ -127,11 +140,12 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
         <AnimatePresence initial={false}>
           {isExpanded && (
             <motion.div
+              id="bill-breakup"
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               className="space-y-2 overflow-hidden border-b border-slate-100 pb-3">
-              <BillRow label="Subtotal" value={currency(itemTotal)} />
+              <BillRow label="Item Total" value={currency(itemTotal)} />
 
               <BillRow
                 label="Delivery Fee"
@@ -146,11 +160,11 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
                 <BillRow label="Taxes & Charges" value={currency(taxAmount)} />
               )}
 
-              {selectedCoupon && discountAmount > 0 && (
+              {couponDiscount > 0 && (
                 <BillRow
                   label="Coupon Discount"
-                  value={`-${currency(discountAmount)}`}
-                  hint={selectedCoupon.code}
+                  value={`-${currency(couponDiscount)}`}
+                  hint={selectedCoupon?.code}
                   tone="credit"
                 />
               )}
@@ -179,18 +193,26 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
           )}
         </AnimatePresence>
 
-        {/* Total Paid / To Pay */}
+        {/* Total Bill — the only figure visible until the breakup is opened */}
         <div className="flex justify-between items-center pt-1">
           <div className="flex flex-col">
             <span className="font-[1000] text-slate-900 text-base md:text-lg uppercase tracking-tight">
-              {finalAmountToPay === 0 ? "Total Paid" : "Total Paid"}
+              Total Bill
             </span>
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
               Inclusive of all taxes
             </span>
           </div>
+          {/*
+            Exact payable, not Math.ceil. The pay button renders the raw
+            server amount, so rounding up here showed 246 against a 245.50
+            charge — and the breakdown rows, now that customers can open
+            them, would not have summed to the headline figure either.
+          */}
           <span className="font-[1000] text-slate-900 text-2xl md:text-3xl tracking-tight">
-            {isPreviewLoading ? "Calculating…" : `₹${Math.ceil(finalAmountToPay || itemTotal + deliveryFee + handlingFee)}`}
+            {isPreviewLoading
+              ? "Calculating…"
+              : currency(finalAmountToPay || itemTotal + deliveryFee + handlingFee)}
           </span>
         </div>
       </motion.div>

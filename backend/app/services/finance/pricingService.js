@@ -151,6 +151,7 @@ export function calculateHandlingFee(cartItems, options = {}) {
   const {
     handlingFeeStrategy = HANDLING_FEE_STRATEGY.HIGHEST_CATEGORY_FEE,
     categoryById = new Map(),
+    defaultHandlingFee = 0,
   } = options;
 
   const categorySubtotalMap = new Map();
@@ -201,6 +202,20 @@ export function calculateHandlingFee(cartItems, options = {}) {
     );
     totalHandlingFee = roundCurrency(maxCategory?.computedFee || 0);
     handlingCategoryUsed = maxCategory || null;
+  }
+
+  const baselineFee = roundCurrency(defaultHandlingFee);
+  if (baselineFee > 0 && totalHandlingFee < baselineFee) {
+    totalHandlingFee = baselineFee;
+    if (!handlingCategoryUsed) {
+      handlingCategoryUsed = {
+        headerCategoryId: null,
+        categoryName: "Platform Fee",
+        handlingFeeType: HANDLING_FEE_TYPE.FIXED,
+        handlingFeeValue: baselineFee,
+        computedFee: baselineFee,
+      };
+    }
   }
 
   if (!handlingCategoryUsed && categoryFees.length > 0) {
@@ -482,6 +497,7 @@ export async function generateOrderPaymentBreakdown({
   const handling = calculateHandlingFee(normalizedItems, {
     handlingFeeStrategy: effectiveHandlingStrategy,
     categoryById,
+    defaultHandlingFee: Number(effectiveSettings.platformFee || 0),
   });
   const delivery = calculateCustomerDeliveryFee(distanceKm, effectiveSettings);
   const rider = calculateRiderPayout(distanceKm, effectiveSettings);

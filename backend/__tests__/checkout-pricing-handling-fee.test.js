@@ -123,6 +123,9 @@ describe("checkout pricing snapshot handling fee", () => {
       incrementalKmSurcharge: 10,
       deliveryPartnerRatePerKm: 5,
       fixedDeliveryFee: 30,
+      // Mirrors what the real normalizer always supplies, so this fixture
+      // exercises the same multi-shop delivery maths production runs.
+      multiShopPickupFee: 5,
       handlingFeeStrategy: "highest_category_fee",
       codEnabled: true,
       onlineEnabled: true,
@@ -138,10 +141,16 @@ describe("checkout pricing snapshot handling fee", () => {
     });
 
     expect(snapshot.sellerCount).toBe(2);
-    expect(snapshot.aggregateBreakdown.deliveryFeeCharged).toBe(60);
+    // 30 base + 5 pickup for the second shop.
+    expect(snapshot.aggregateBreakdown.deliveryFeeCharged).toBe(35);
     expect(snapshot.aggregateBreakdown.handlingFeeCharged).toBe(30);
     expect(snapshot.aggregateBreakdown.productSubtotal).toBe(300);
-    expect(snapshot.aggregateBreakdown.grandTotal).toBe(390);
+    expect(snapshot.aggregateBreakdown.grandTotal).toBe(365);
+
+    const perSellerDeliveryFees = snapshot.sellerBreakdownEntries.map(
+      (entry) => entry.breakdown.deliveryFeeCharged,
+    );
+    expect(perSellerDeliveryFees.reduce((sum, v) => sum + v, 0)).toBe(35);
 
     const perSellerFees = snapshot.sellerBreakdownEntries.map(
       (entry) => entry.breakdown.handlingFeeCharged,
@@ -156,6 +165,63 @@ describe("checkout pricing snapshot handling fee", () => {
     );
     expect(sellerA.breakdown.handlingFeeCharged).toBe(0);
     expect(sellerB.breakdown.handlingFeeCharged).toBe(30);
+  });
+
+  it("applies the admin global platformFee when category handling fees are zero or unset", async () => {
+    mockProductFind.mockReturnValue(
+      createQueryChain([
+        {
+          _id: "p1",
+          name: "P1",
+          salePrice: 0,
+          price: 150,
+          mainImage: "",
+          headerId: "h1",
+          sellerId: "seller-a",
+          status: "active",
+          variants: [],
+        },
+      ]),
+    );
+
+    mockCategoryFind.mockReturnValue(
+      createQueryChain([
+        {
+          _id: "h1",
+          name: "Header 1",
+          adminCommissionType: "percentage",
+          adminCommissionValue: 0,
+          adminCommissionFixedRule: "per_qty",
+          handlingFeeType: "none",
+          handlingFeeValue: 0,
+          handlingFees: 0,
+        },
+      ]),
+    );
+
+    mockGetOrCreateFinanceSettings.mockResolvedValue({
+      deliveryPricingMode: "distance_based",
+      platformFee: 3,
+      customerBaseDeliveryFee: 30,
+      riderBasePayout: 30,
+      baseDistanceCapacityKm: 0.5,
+      incrementalKmSurcharge: 10,
+      deliveryPartnerRatePerKm: 5,
+      fixedDeliveryFee: 30,
+      multiShopPickupFee: 5,
+      handlingFeeStrategy: "highest_category_fee",
+      codEnabled: true,
+      onlineEnabled: true,
+    });
+
+    const snapshot = await buildCheckoutPricingSnapshot({
+      orderItems: [{ product: "p1", quantity: 1 }],
+      address: {},
+      session: null,
+    });
+
+    expect(snapshot.aggregateBreakdown.handlingFeeCharged).toBe(3);
+    expect(snapshot.aggregateBreakdown.grandTotal).toBe(183); // 150 + 30 delivery + 3 platform fee
   });
 });
 

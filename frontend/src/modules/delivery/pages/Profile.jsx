@@ -17,6 +17,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import Button from "@/shared/components/ui/Button";
 import Card from "@/shared/components/ui/Card";
 import { useAuth } from "@core/context/AuthContext";

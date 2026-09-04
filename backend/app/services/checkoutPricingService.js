@@ -7,10 +7,12 @@ import {
   isServerSideCouponEngineEnabled,
 } from "../constants/finance.js";
 import {
+  calculateCustomerDeliveryFee,
   calculateHandlingFee,
   generateOrderPaymentBreakdown,
   hydrateOrderItems,
 } from "./finance/pricingService.js";
+import { getOrCreateFinanceSettings } from "./finance/financeSettingsService.js";
 import { computeOrderDiscount } from "./finance/couponService.js";
 import {
   computeCoinsForSavings,
@@ -95,6 +97,14 @@ function round2(value) {
 }
 
 function buildAggregateBreakdown(sellerBreakdowns = []) {
+  const maxDistanceActual = Math.max(
+    ...sellerBreakdowns.map((row) => Number(row?.distanceKmActual || 0)),
+    0,
+  );
+  const maxDistanceRounded = Math.max(
+    ...sellerBreakdowns.map((row) => Number(row?.distanceKmRounded || 0)),
+    0,
+  );
   const aggregate = {
     currency: sellerBreakdowns[0]?.currency || "INR",
     productSubtotal: sumField(sellerBreakdowns, "productSubtotal"),
@@ -130,8 +140,8 @@ function buildAggregateBreakdown(sellerBreakdowns = []) {
     codCollectedAmount: sumField(sellerBreakdowns, "codCollectedAmount"),
     codRemittedAmount: sumField(sellerBreakdowns, "codRemittedAmount"),
     codPendingAmount: sumField(sellerBreakdowns, "codPendingAmount"),
-    distanceKmActual: sumField(sellerBreakdowns, "distanceKmActual"),
-    distanceKmRounded: sumField(sellerBreakdowns, "distanceKmRounded"),
+    distanceKmActual: maxDistanceActual,
+    distanceKmRounded: maxDistanceRounded,
     snapshots: {
       perSeller: sellerBreakdowns.map((row, index) => ({
         index,
@@ -147,6 +157,97 @@ function buildAggregateBreakdown(sellerBreakdowns = []) {
     ),
   };
   return aggregate;
+}
+
+/**
+ * Spreads ONE delivery charge across a multi-shop checkout.
+ *
+ * The customer is placing a single combined order, so they must never be
+ * charged a full delivery fee per shop. Instead:
+ *
+ *   first (primary) shop  -> the full distance-based delivery fee
+ *   every additional shop -> `multiShopPickupFee` only (default 5)
+ *
+ * so a two-shop basket at the base rate costs 30 + 5 = 35, not 60.
+ *
+ * The primary shop is the FARTHEST one, because the distance-based fee is
+ * computed from the longest leg of the trip — charging the base fee against
+ * the nearest shop would under-recover the rider's actual distance.
+ *
+ * Each extra shop's surcharge is booked against that shop's own order rather
+ * than lumped onto the primary. The customer's total is identical either way,
+ * but this keeps every order document truthful about what its own delivery
+ * line contributed, which is what reconciliation and refunds read.
+ */
+function applyGlobalDeliveryFeeToSellerBreakdowns(
+  sellerBreakdownEntries = [],
+  globalDelivery = { deliveryFeeCharged: 0, distanceKmActual: 0, distanceKmRounded: 0, mode: "distance_based" },
+  multiShopPickupFee = 0,
+) {
+  const fee = Number(globalDelivery?.deliveryFeeCharged || 0);
+  if (sellerBreakdownEntries.length === 0) return;
+
+  // A single-shop order has no extra pickups, so the surcharge never applies.
+  const pickupFee =
+    sellerBreakdownEntries.length > 1
+      ? Math.max(0, round2(Number(multiShopPickupFee) || 0))
+      : 0;
+
+  // Pick the primary seller to assign the global delivery fee.
+  // We prefer the seller with the highest distance (or first seller if equal).
+  let chosenSellerId = sellerBreakdownEntries[0]?.sellerId || null;
+  let maxDistance = -1;
+  for (const entry of sellerBreakdownEntries) {
+    const dist = Number(entry?.distanceKm || 0);
+    if (dist > maxDistance) {
+      maxDistance = dist;
+      chosenSellerId = entry.sellerId;
+    }
+  }
+
+  for (const entry of sellerBreakdownEntries) {
+    const breakdown = entry?.breakdown;
+    if (!breakdown) continue;
+
+    const shouldCharge = chosenSellerId && entry.sellerId === chosenSellerId;
+    const deliveryFeeCharged = shouldCharge ? fee : pickupFee;
+
+    breakdown.deliveryFeeCharged = deliveryFeeCharged;
+    if (shouldCharge) {
+      breakdown.distanceKmActual = globalDelivery.distanceKmActual;
+      breakdown.distanceKmRounded = globalDelivery.distanceKmRounded;
+    }
+    breakdown.snapshots = breakdown.snapshots && typeof breakdown.snapshots === "object"
+      ? breakdown.snapshots
+      : {};
+    breakdown.snapshots.deliveryPricingMode = globalDelivery.mode;
+    breakdown.snapshots.isPrimaryDeliverySeller = shouldCharge;
+    // Marks this line as an extra-pickup surcharge rather than a delivery fee,
+    // so invoices and refunds can tell the two apart after the fact.
+    breakdown.snapshots.multiShopPickupFeeCharged = shouldCharge ? 0 : pickupFee;
+
+    const productSubtotal = Number(breakdown.productSubtotal || 0);
+    const handlingFeeCharged = Number(breakdown.handlingFeeCharged || 0);
+    const discountTotal = Number(breakdown.discountTotal || 0);
+    const taxTotal = Number(breakdown.taxTotal || 0);
+    const riderPayoutTotal = Number(breakdown.riderPayoutTotal || 0);
+    const adminProductCommissionTotal = Number(breakdown.adminProductCommissionTotal || 0);
+
+    const grossTotal = round2(
+      productSubtotal + deliveryFeeCharged + handlingFeeCharged - discountTotal + taxTotal,
+    );
+
+    breakdown.grossTotal = grossTotal;
+    breakdown.grandTotal = grossTotal;
+    breakdown.payableAmount = grossTotal;
+    breakdown.walletAmount = 0;
+    breakdown.platformLogisticsMargin = round2(
+      deliveryFeeCharged + handlingFeeCharged - riderPayoutTotal,
+    );
+    breakdown.platformTotalEarning = round2(
+      adminProductCommissionTotal + breakdown.platformLogisticsMargin,
+    );
+  }
 }
 
 function allocateCheckoutTipToSellerBreakdowns(
@@ -189,14 +290,26 @@ function allocateCheckoutTipToSellerBreakdowns(
   });
 }
 
-async function computeGlobalHandlingFeeForCheckout(hydratedItems = [], { session = null } = {}) {
+async function computeGlobalHandlingFeeForCheckout(
+  hydratedItems = [],
+  { session = null, deliverySettings = null } = {},
+) {
   const headerIds = Array.from(
     new Set(hydratedItems.map((item) => String(item?.headerCategoryId || "")).filter(Boolean)),
   );
+  const defaultHandlingFee = Number(deliverySettings?.platformFee || 0);
   if (headerIds.length === 0) {
     return {
-      handlingFeeCharged: 0,
-      handlingCategoryUsed: null,
+      handlingFeeCharged: defaultHandlingFee,
+      handlingCategoryUsed: defaultHandlingFee > 0
+        ? {
+            headerCategoryId: null,
+            categoryName: "Platform Fee",
+            handlingFeeType: HANDLING_FEE_TYPE.FIXED,
+            handlingFeeValue: defaultHandlingFee,
+            computedFee: defaultHandlingFee,
+          }
+        : null,
     };
   }
 
@@ -210,6 +323,7 @@ async function computeGlobalHandlingFeeForCheckout(hydratedItems = [], { session
   const handling = calculateHandlingFee(hydratedItems, {
     handlingFeeStrategy: HANDLING_FEE_STRATEGY.HIGHEST_CATEGORY_FEE,
     categoryById,
+    defaultHandlingFee,
   });
 
   return {
@@ -306,6 +420,13 @@ function applyFreeDeliveryToSellerBreakdowns(sellerBreakdownEntries = []) {
       continue;
     }
     breakdown.deliveryFeeCharged = 0;
+    // The extra-shop pickup surcharge rides on `deliveryFeeCharged`, so the
+    // rebate waives it too. Clear the marker so the snapshot cannot claim a
+    // surcharge that the customer was never charged.
+    breakdown.snapshots = breakdown.snapshots && typeof breakdown.snapshots === "object"
+      ? breakdown.snapshots
+      : {};
+    breakdown.snapshots.multiShopPickupFeeCharged = 0;
     breakdown.grossTotal = round2(Number(breakdown.grossTotal || 0) - oldDeliveryFee);
     breakdown.grandTotal = round2(Number(breakdown.grandTotal || 0) - oldDeliveryFee);
     breakdown.payableAmount = breakdown.grandTotal;
@@ -522,7 +643,11 @@ export async function buildCheckoutPricingSnapshot({
   const sellerIds = Array.from(itemsBySeller.keys()).sort((a, b) => a.localeCompare(b));
   const sellerBreakdownEntries = [];
 
-  const globalHandling = await computeGlobalHandlingFeeForCheckout(hydratedItems, { session });
+  const deliverySettings = await getOrCreateFinanceSettings({ session });
+  const globalHandling = await computeGlobalHandlingFeeForCheckout(hydratedItems, {
+    session,
+    deliverySettings,
+  });
 
   // Pre-compute each seller's subtotal for proportional discount/wallet distribution
   const sellerSubtotals = new Map();
@@ -559,6 +684,7 @@ export async function buildCheckoutPricingSnapshot({
       distanceKm,
       discountTotal: sellerDiscount,
       taxTotal: sellerTax,
+      deliverySettings,
       session,
     });
     sellerBreakdownEntries.push({
@@ -572,12 +698,27 @@ export async function buildCheckoutPricingSnapshot({
     });
   }
 
+  // Calculate single global customer delivery fee based on max distance among all sellers
+  const maxDistanceKm = sellerBreakdownEntries.reduce(
+    (max, entry) => Math.max(max, Number(entry?.distanceKm || 0)),
+    0,
+  );
+  const globalDelivery = calculateCustomerDeliveryFee(maxDistanceKm, deliverySettings);
+
+  applyGlobalDeliveryFeeToSellerBreakdowns(
+    sellerBreakdownEntries,
+    globalDelivery,
+    deliverySettings?.multiShopPickupFee,
+  );
   applyGlobalHandlingFeeToSellerBreakdowns(sellerBreakdownEntries, globalHandling);
   // Audit Phase 5 (H-6): free-delivery rebate must run AFTER handling
   // (so `grossTotal` is final on the delivery axis) and BEFORE tip /
   // wallet allocation (so they clamp against the post-rebate grandTotal,
   // matching the frontend math).
-  if (applyFreeDelivery) {
+  const isThresholdFreeDelivery =
+    Number(deliverySettings?.freeDeliveryThreshold || 0) > 0 &&
+    totalSubtotal >= Number(deliverySettings.freeDeliveryThreshold);
+  if (applyFreeDelivery || isThresholdFreeDelivery) {
     applyFreeDeliveryToSellerBreakdowns(sellerBreakdownEntries);
   }
   allocateCheckoutTipToSellerBreakdowns(sellerBreakdownEntries, tipAmount);
@@ -592,22 +733,20 @@ export async function buildCheckoutPricingSnapshot({
   let coinsApplied = { coins: 0, rupeeValue: 0, cappedBy: null };
   let coinBalance = 0;
 
-  if (coinSettings.enabled && customerId) {
+  if (coinSettings.enabled && customerId && requestedCoins > 0) {
     coinBalance = await getCoinBalance(customerId, { session });
-    if (requestedCoins > 0) {
-      const payableBeforeCoins = round2(
-        sellerBreakdownEntries.reduce(
-          (sum, entry) => sum + Number(entry?.breakdown?.grandTotal || 0),
-          0,
-        ),
-      );
-      coinsApplied = computeRedeemableCoins({
-        requestedCoins,
-        balance: coinBalance,
-        orderAmount: payableBeforeCoins,
-        settings: coinSettings,
-      });
-    }
+    const payableBeforeCoins = round2(
+      sellerBreakdownEntries.reduce(
+        (sum, entry) => sum + Number(entry?.breakdown?.grandTotal || 0),
+        0,
+      ),
+    );
+    coinsApplied = computeRedeemableCoins({
+      requestedCoins,
+      balance: coinBalance,
+      orderAmount: payableBeforeCoins,
+      settings: coinSettings,
+    });
   }
 
   applyCoinsRedemptionToSellerBreakdowns(
@@ -638,10 +777,6 @@ export async function buildCheckoutPricingSnapshot({
   // the customer's order is only complete once the last leg lands. Nearby
   // addresses therefore quote a short window and distant ones a longer one,
   // recomputed on every preview as the delivery address changes.
-  const maxDistanceKm = sellerBreakdownEntries.reduce(
-    (max, entry) => Math.max(max, Number(entry?.distanceKm || 0)),
-    0,
-  );
   const deliveryEta = await estimateDeliveryEta({
     distanceKm: maxDistanceKm,
     itemCount,

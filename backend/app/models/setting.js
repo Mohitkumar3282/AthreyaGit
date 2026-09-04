@@ -124,6 +124,13 @@ const settingSchema = new mongoose.Schema(
             default: 10,
             min: 0,
         },
+        // Charged once per ADDITIONAL shop in a multi-shop checkout. The first
+        // shop pays the full delivery fee; extra pickup stops cost only this.
+        multiShopPickupFee: {
+            type: Number,
+            default: 5,
+            min: 0,
+        },
         deliveryPartnerRatePerKm: {
             type: Number,
             default: 5,
@@ -143,6 +150,16 @@ const settingSchema = new mongoose.Schema(
             type: String,
             enum: ALL_HANDLING_FEE_STRATEGIES,
             default: "highest_category_fee",
+        },
+        platformFee: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+        freeDeliveryThreshold: {
+            type: Number,
+            default: 0,
+            min: 0,
         },
         codEnabled: {
             type: Boolean,

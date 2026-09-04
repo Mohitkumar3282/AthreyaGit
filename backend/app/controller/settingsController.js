@@ -43,6 +43,7 @@ const ALLOWED_KEYS = [
   "baseDeliveryCharge",
   "baseDistanceCapacityKm",
   "incrementalKmSurcharge",
+  "multiShopPickupFee",
   "deliveryPartnerRatePerKm",
   "fleetCommissionRatePerKm",
   "fixedDeliveryFee",
@@ -118,6 +119,7 @@ const updateSettingsSchema = Joi.object({
   baseDeliveryCharge: Joi.number().min(0),
   baseDistanceCapacityKm: Joi.number().min(0),
   incrementalKmSurcharge: Joi.number().min(0),
+  multiShopPickupFee: Joi.number().min(0),
   deliveryPartnerRatePerKm: Joi.number().min(0),
   fleetCommissionRatePerKm: Joi.number().min(0),
   fixedDeliveryFee: Joi.number().min(0),
@@ -189,7 +191,7 @@ export const getPublicSettings = async (req, res) => {
       async () => {
         const existing = await Setting.findOne(filter)
           .select(
-            "appName supportEmail supportPhone whatsappNumber currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor returnDeliveryCommission deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy codEnabled onlineEnabled lowStockAlertsEnabled productApproval dailyNeeds dailyNeedsCategoryIds deliveryEta walletCashback athreyaCoins createdAt",
+            "appName supportEmail supportPhone whatsappNumber currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor returnDeliveryCommission deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge multiShopPickupFee deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy codEnabled onlineEnabled lowStockAlertsEnabled productApproval dailyNeeds dailyNeedsCategoryIds deliveryEta walletCashback athreyaCoins createdAt",
           )
           .lean();
         return existing || null;

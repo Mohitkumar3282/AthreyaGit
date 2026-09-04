@@ -28,6 +28,7 @@ const BillingCharges = () => {
         riderBasePayout: 30,
         baseDistance: 0.5,
         extraPerKm: 10,
+        multiShopPickupFee: 5,
         deliveryPartnerRatePerKm: 5,
         fixedCharge: 30,
         handlingFeeStrategy: "highest_category_fee",
@@ -52,10 +53,13 @@ const BillingCharges = () => {
                     setDeliveryMode(s.deliveryPricingMode === 'fixed_price' ? 'fixed' : 'distance');
                     setConfig((prev) => ({
                         ...prev,
+                        platformFee: s.platformFee ?? prev.platformFee,
+                        freeDeliveryThreshold: s.freeDeliveryThreshold ?? prev.freeDeliveryThreshold,
                         baseCharge: s.customerBaseDeliveryFee ?? s.baseDeliveryCharge ?? prev.baseCharge,
                         riderBasePayout: s.riderBasePayout ?? s.customerBaseDeliveryFee ?? prev.riderBasePayout,
                         baseDistance: s.baseDistanceCapacityKm ?? prev.baseDistance,
                         extraPerKm: s.incrementalKmSurcharge ?? prev.extraPerKm,
+                        multiShopPickupFee: s.multiShopPickupFee ?? prev.multiShopPickupFee,
                         deliveryPartnerRatePerKm: s.deliveryPartnerRatePerKm ?? s.fleetCommissionRatePerKm ?? prev.deliveryPartnerRatePerKm,
                         fixedCharge: s.fixedDeliveryFee ?? s.customerBaseDeliveryFee ?? prev.fixedCharge,
                         handlingFeeStrategy: s.handlingFeeStrategy ?? prev.handlingFeeStrategy,
@@ -78,12 +82,15 @@ const BillingCharges = () => {
                     returnDeliveryCommission,
                 }),
                 adminApi.updateDeliveryFinanceSettings({
+                    platformFee: config.platformFee,
+                    freeDeliveryThreshold: config.freeDeliveryThreshold,
                     deliveryPricingMode: deliveryMode === 'fixed' ? 'fixed_price' : 'distance_based',
                     customerBaseDeliveryFee: config.baseCharge,
                     riderBasePayout: config.riderBasePayout,
                     baseDeliveryCharge: config.baseCharge,
                     baseDistanceCapacityKm: config.baseDistance,
                     incrementalKmSurcharge: config.extraPerKm,
+                    multiShopPickupFee: config.multiShopPickupFee,
                     deliveryPartnerRatePerKm: config.deliveryPartnerRatePerKm,
                     fleetCommissionRatePerKm: config.deliveryPartnerRatePerKm,
                     fixedDeliveryFee: config.fixedCharge,
@@ -313,6 +320,36 @@ const BillingCharges = () => {
                                     </div>
                                     <p className="text-[10px] font-bold text-slate-400">
                                         Flat amount paid to delivery partner for each approved return pickup (deducted from seller earnings).
+                                    </p>
+                                </div>
+
+                                {/*
+                                    Lives outside the fixed/distance toggle on purpose: an
+                                    extra pickup stop costs the same regardless of how the
+                                    base delivery fee is priced.
+                                */}
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        Extra Shop Pickup Fee
+                                    </label>
+                                    <div className="relative group max-w-md">
+                                        <span className="absolute left-5 top-1/2 -translate-y-1/2 font-bold text-slate-300 group-focus-within:text-slate-900 transition-colors">₹</span>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={config.multiShopPickupFee}
+                                            onChange={(e) => handleInputChange('multiShopPickupFee', e.target.value)}
+                                            className="w-full pl-10 pr-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-black text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all"
+                                        />
+                                    </div>
+                                    <p className="text-[10px] font-bold text-slate-400">
+                                        Added once per <span className="font-black">additional</span> shop in a multi-shop order.
+                                        The first shop pays the full delivery fee; extra pickups cost only this.
+                                    </p>
+                                    <p className="text-[10px] font-bold text-emerald-600">
+                                        2 shops = ₹{Number(config.baseCharge || 0) + Number(config.multiShopPickupFee || 0)}
+                                        {'  ·  '}
+                                        3 shops = ₹{Number(config.baseCharge || 0) + Number(config.multiShopPickupFee || 0) * 2}
                                     </p>
                                 </div>
                             </div>

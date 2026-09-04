@@ -66,10 +66,34 @@ export default defineConfig({
   build: {
     minify: 'esbuild',
     sourcemap: false,
+    // These browsers all support ESM + optional chaining natively, so esbuild
+    // stops emitting downlevel helpers for syntax the target already has.
+    target: ['es2020', 'chrome87', 'safari14', 'firefox78', 'edge88'],
     rollupOptions: {
       output: {
         manualChunks(id) {
+          // Vite's dynamic-import preload helper is pulled in by almost every
+          // chunk in the app. Left unassigned, Rollup folds it into whichever
+          // vendor chunk it feels like — it was landing inside vendor-jspdf,
+          // which made the ENTRY chunk statically import jsPDF + html2canvas +
+          // pako (~575 KB) on every single page load, for a PDF export only two
+          // admin screens use. Pin the helper to its own chunk so it can never
+          // drag a heavy vendor into the critical path again.
+          if (id.includes('vite/preload-helper')) return 'vendor-preload'
+
           if (!id.includes('node_modules')) return
+
+          // React itself changes far less often than app code. Keeping it in
+          // its own chunk means a normal deploy only invalidates the app
+          // chunks, and returning users keep ~140 KB of React from cache.
+          if (
+            id.includes('node_modules/react-dom/') ||
+            id.includes('node_modules/react/') ||
+            id.includes('node_modules/scheduler/')
+          ) {
+            return 'vendor-react'
+          }
+          if (id.includes('react-router')) return 'vendor-router'
 
           if (
             id.includes('@mui/material') ||
@@ -82,13 +106,15 @@ export default defineConfig({
 
           if (id.includes('framer-motion')) return 'vendor-motion'
           if (id.includes('firebase')) return 'vendor-firebase'
-          if (id.includes('recharts')) return 'vendor-charts'
-          if (id.includes('jspdf')) return 'vendor-jspdf'
+          if (id.includes('recharts') || id.includes('@reduxjs/toolkit') || id.includes('/d3-')) {
+            return 'vendor-charts'
+          }
+          if (id.includes('jspdf') || id.includes('html2canvas')) return 'vendor-jspdf'
           if (id.includes('lottie-web') || id.includes('lottie-react')) return 'vendor-lottie'
-          if (id.includes('tesseract.js') || id.includes('tesseract.js-core')) return 'vendor-tesseract'
           if (id.includes('@react-google-maps') || id.includes('react-google-maps')) return 'vendor-google-maps'
           if (id.includes('date-fns')) return 'vendor-date-fns'
           if (id.includes('lucide-react')) return 'vendor-lucide'
+          if (id.includes('socket.io') || id.includes('engine.io')) return 'vendor-socket'
         },
       },
     },

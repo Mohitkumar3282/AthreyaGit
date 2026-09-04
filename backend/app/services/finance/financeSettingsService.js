@@ -7,12 +7,18 @@ import { roundCurrency } from "../../utils/money.js";
 
 const DEFAULT_FINANCE_SETTINGS = {
   deliveryPricingMode: DELIVERY_PRICING_MODE.DISTANCE_BASED,
+  platformFee: 0,
+  freeDeliveryThreshold: 0,
   customerBaseDeliveryFee: 30,
   riderBasePayout: 30,
   baseDistanceCapacityKm: 0.5,
   incrementalKmSurcharge: 10,
   deliveryPartnerRatePerKm: 5,
   fixedDeliveryFee: 30,
+  // Surcharge per EXTRA shop in a single multi-shop checkout. The first shop
+  // carries the full delivery fee; every additional pickup stop adds only
+  // this, because the rider is already making the trip.
+  multiShopPickupFee: 5,
   handlingFeeStrategy: HANDLING_FEE_STRATEGY.HIGHEST_CATEGORY_FEE,
   codEnabled: true,
   onlineEnabled: true,
@@ -24,6 +30,14 @@ export function normalizeFinanceSettings(raw = {}) {
     raw.deliveryPricingMode ||
     raw.pricingMode ||
     DEFAULT_FINANCE_SETTINGS.deliveryPricingMode;
+
+  const platformFee = roundCurrency(
+    raw.platformFee ?? raw.handlingFee ?? raw.handlingFees ?? raw.platformCharge ?? DEFAULT_FINANCE_SETTINGS.platformFee,
+  );
+
+  const freeDeliveryThreshold = roundCurrency(
+    raw.freeDeliveryThreshold ?? raw.freeDeliveryMinimum ?? DEFAULT_FINANCE_SETTINGS.freeDeliveryThreshold,
+  );
 
   const customerBaseDeliveryFee = roundCurrency(
     raw.customerBaseDeliveryFee ?? raw.baseDeliveryCharge ?? DEFAULT_FINANCE_SETTINGS.customerBaseDeliveryFee,
@@ -51,6 +65,14 @@ export function normalizeFinanceSettings(raw = {}) {
     raw.fixedDeliveryFee ?? raw.baseDeliveryCharge ?? customerBaseDeliveryFee,
   );
 
+  // Clamped at 0 so a negative value can never credit the customer per shop.
+  const multiShopPickupFee = Math.max(
+    0,
+    roundCurrency(
+      raw.multiShopPickupFee ?? DEFAULT_FINANCE_SETTINGS.multiShopPickupFee,
+    ),
+  );
+
   const handlingFeeStrategy =
     raw.handlingFeeStrategy || DEFAULT_FINANCE_SETTINGS.handlingFeeStrategy;
 
@@ -61,6 +83,8 @@ export function normalizeFinanceSettings(raw = {}) {
   return {
     deliveryPricingMode,
     pricingMode: deliveryPricingMode,
+    platformFee,
+    freeDeliveryThreshold,
     customerBaseDeliveryFee,
     riderBasePayout,
     baseDeliveryCharge: customerBaseDeliveryFee,
@@ -71,6 +95,7 @@ export function normalizeFinanceSettings(raw = {}) {
     deliveryPartnerRatePerKm,
     fleetCommissionRatePerKm: deliveryPartnerRatePerKm,
     fixedDeliveryFee,
+    multiShopPickupFee,
     handlingFeeStrategy,
     codEnabled: raw.codEnabled ?? DEFAULT_FINANCE_SETTINGS.codEnabled,
     onlineEnabled: raw.onlineEnabled ?? DEFAULT_FINANCE_SETTINGS.onlineEnabled,

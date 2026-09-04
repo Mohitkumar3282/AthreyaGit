@@ -109,6 +109,8 @@ export const payoutProcessSchema = Joi.object({
 });
 
 export const updateDeliverySettingsSchema = Joi.object({
+  platformFee: Joi.number().min(0).optional(),
+  freeDeliveryThreshold: Joi.number().min(0).optional(),
   deliveryPricingMode: Joi.string().valid("fixed_price", "distance_based").optional(),
   pricingMode: Joi.string().valid("fixed_price", "distance_based").optional(),
   customerBaseDeliveryFee: Joi.number().min(0).optional(),
@@ -116,6 +118,7 @@ export const updateDeliverySettingsSchema = Joi.object({
   baseDeliveryCharge: Joi.number().min(0).optional(),
   baseDistanceCapacityKm: Joi.number().min(0).optional(),
   incrementalKmSurcharge: Joi.number().min(0).optional(),
+  multiShopPickupFee: Joi.number().min(0).optional(),
   deliveryPartnerRatePerKm: Joi.number().min(0).optional(),
   fleetCommissionRatePerKm: Joi.number().min(0).optional(),
   fixedDeliveryFee: Joi.number().min(0).optional(),
@@ -125,6 +128,8 @@ export const updateDeliverySettingsSchema = Joi.object({
   codEnabled: Joi.boolean().optional(),
   onlineEnabled: Joi.boolean().optional(),
 }).or(
+  "platformFee",
+  "freeDeliveryThreshold",
   "deliveryPricingMode",
   "pricingMode",
   "customerBaseDeliveryFee",
@@ -132,6 +137,7 @@ export const updateDeliverySettingsSchema = Joi.object({
   "baseDeliveryCharge",
   "baseDistanceCapacityKm",
   "incrementalKmSurcharge",
+  "multiShopPickupFee",
   "deliveryPartnerRatePerKm",
   "fleetCommissionRatePerKm",
   "fixedDeliveryFee",

@@ -4,6 +4,7 @@ import ProtectedRoute from '../guards/ProtectedRoute';
 import RoleGuard from '../guards/RoleGuard';
 import { UserRole } from '../constants/roles';
 import RootErrorBoundary from '../../shared/components/RootErrorBoundary';
+import Loader from '../../shared/components/ui/Loader';
 import { setActiveRole, ROLES } from '../auth/activeRoleStore';
 
 // Providers for Customer Module
@@ -14,12 +15,16 @@ import { ProductDetailProvider } from '../../modules/customer/context/ProductDet
 import { LocationProvider } from '../../modules/customer/context/LocationContext';
 import ScrollToTop from '../../modules/customer/components/shared/ScrollToTop';
 
-// Public Pages
-import Auth from '../../modules/seller/pages/Auth';
-import ApplicationPending from '../../modules/seller/pages/ApplicationPending';
-import AdminAuth from '../../modules/admin/pages/AdminAuth';
-import DeliveryAuth from '../../modules/delivery/pages/DeliveryAuth';
-import CustomerAuth from '../../modules/customer/pages/CustomerAuth';
+// Public auth pages (lazy-loaded).
+//
+// These MUST stay lazy. Each one bundles its own Lottie animation JSON — the
+// seller Auth screen alone pulls in a 210 KB file — so importing them eagerly
+// put ~480 KB of animation data a customer never sees into the entry chunk.
+const Auth = lazy(() => import('../../modules/seller/pages/Auth'));
+const ApplicationPending = lazy(() => import('../../modules/seller/pages/ApplicationPending'));
+const AdminAuth = lazy(() => import('../../modules/admin/pages/AdminAuth'));
+const DeliveryAuth = lazy(() => import('../../modules/delivery/pages/DeliveryAuth'));
+const CustomerAuth = lazy(() => import('../../modules/customer/pages/CustomerAuth'));
 
 // Customer Pages (lazy-loaded)
 const Home = lazy(() => import('../../modules/customer/pages/Home'));
@@ -85,7 +90,13 @@ const AppRouter = () => {
     const router = useMemo(() => createBrowserRouter([
         {
             path: '/',
-            element: <Outlet />,
+            // Suspense boundary for the lazy auth pages and role modules below,
+            // so a chunk fetch shows the loader instead of blanking the tree.
+            element: (
+                <Suspense fallback={<Loader fullScreen />}>
+                    <Outlet />
+                </Suspense>
+            ),
             errorElement: <RootErrorBoundary />,
             children: [
                 {

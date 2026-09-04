@@ -26,6 +26,7 @@ import { customerApi } from "../services/customerApi";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
 import { getAreaName, getTeluguAreaName } from "../components/shared/MainLocationHeader";
 import { getTeluguCategoryName } from "@shared/utils/categoryTranslations";
+import { getLegacyStatusFromOrder } from "@shared/utils/orderStatus";
 import LiveBanner from "../components/banner/LiveBanner";
 
 // Module-level variable to track if the brand animation has played in this SPA session
@@ -229,7 +230,22 @@ const Home = () => {
           setCategories(flatCategories);
         }
       })
-      .catch(e => console.error("Error fetching categories:", e));
+      .catch(e => console.error("Error fetching categories:", e))
+      .finally(() => {
+        // Tell the splash screen the page has its above-the-fold content.
+        //
+        // SplashScreen has always waited for this signal on the Home route,
+        // but nothing ever sent it, so every landing-page load sat through the
+        // full 1.5s safety timeout before the splash would clear. Firing it
+        // here (on settle, not just success — a failed fetch must not pin the
+        // splash open either) lets the splash leave as soon as we have data.
+        //
+        // Both are set because the splash only installs __resolveHomeData__
+        // after its intro finishes; if categories land before that, it reads
+        // the __homeDataLoaded__ flag instead.
+        window.__homeDataLoaded__ = true;
+        window.__resolveHomeData__?.();
+      });
   }, []);
 
   // Fetch nearby sellers when coordinates change

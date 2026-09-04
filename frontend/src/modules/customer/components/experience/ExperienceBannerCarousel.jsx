@@ -8,7 +8,7 @@ import {
 } from "@/core/utils/imageUtils";
 
 import { isMobileOrWebView } from "@/core/utils/deviceUtils";
-import newBanner from "@/assets/banner_new.png";
+import newBanner from "@/assets/banner_new.jpg";
 
 
 const BANNER_CHUNK_SIZE = 20;
@@ -22,26 +22,31 @@ const isVideoUrl = (url) => {
 };
 
 const ExperienceBannerCarousel = ({ section, items, fullWidth = false, slideGap = 0, edgeToEdge = false }) => {
-  if (!items.length) return null;
+  // NOTE: every hook below must run unconditionally. The empty-items bail-out
+  // used to sit above them, so the moment banners arrived from the API the
+  // component went from 0 hooks to 9 and React threw "rendered more hooks than
+  // during the previous render", taking out the Home page. The guard now lives
+  // at the return statement instead.
+  const safeItems = React.useMemo(() => items || [], [items]);
 
   const [activeIndex, setActiveIndex] = React.useState(0);
   const [visibleCount, setVisibleCount] = React.useState(() =>
-    Math.min(items.length, BANNER_CHUNK_SIZE)
+    Math.min(safeItems.length, BANNER_CHUNK_SIZE)
   );
-  const visibleItems = items.slice(0, visibleCount);
+  const visibleItems = safeItems.slice(0, visibleCount);
   const totalItems = visibleItems.length;
   const x = useMotionValue(0);
   const containerRef = React.useRef(null);
-  const hasMore = visibleCount < items.length;
+  const hasMore = visibleCount < safeItems.length;
 
   const loadMore = React.useCallback(() => {
-    setVisibleCount((prev) => Math.min(items.length, prev + BANNER_CHUNK_SIZE));
-  }, [items.length]);
+    setVisibleCount((prev) => Math.min(safeItems.length, prev + BANNER_CHUNK_SIZE));
+  }, [safeItems.length]);
 
   React.useEffect(() => {
-    setVisibleCount(Math.min(items.length, BANNER_CHUNK_SIZE));
+    setVisibleCount(Math.min(safeItems.length, BANNER_CHUNK_SIZE));
     setActiveIndex(0);
-  }, [items.length]);
+  }, [safeItems.length]);
 
   // Auto-play logic
   React.useEffect(() => {
@@ -79,6 +84,8 @@ const ExperienceBannerCarousel = ({ section, items, fullWidth = false, slideGap 
     return applyCloudinaryTransform(url, "f_auto,q_auto,c_fill,g_auto,w_824,h_440");
   }, []);
 
+  // The empty-state guard belongs here, after every hook has run.
+  if (!totalItems) return null;
 
   return (
     <div className={cn("overflow-hidden touch-pan-y", fullWidth && "w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] md:w-full md:static md:ml-0 md:mr-0 md:max-w-6xl md:mx-auto md:rounded-[2rem]")}>
