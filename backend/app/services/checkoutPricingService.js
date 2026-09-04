@@ -777,9 +777,14 @@ export async function buildCheckoutPricingSnapshot({
   // the customer's order is only complete once the last leg lands. Nearby
   // addresses therefore quote a short window and distant ones a longer one,
   // recomputed on every preview as the delivery address changes.
+  //
+  // `sellerIds` is derived from the item->seller grouping, so it is already the
+  // count of UNIQUE stores in the cart. Each extra store adds store-to-store
+  // pickup routing time on top of the distance-based window.
   const deliveryEta = await estimateDeliveryEta({
     distanceKm: maxDistanceKm,
     itemCount,
+    shopCount: sellerIds.length,
     session,
   });
 

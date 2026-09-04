@@ -183,16 +183,21 @@ const settingSchema = new mongoose.Schema(
         deliveryEta: {
             enabled: { type: Boolean, default: true },
             // Picking, packing and handover buffer applied to every order.
-            basePrepMinutes: { type: Number, default: 8, min: 0 },
+            basePrepMinutes: { type: Number, default: 10, min: 0 },
             // Travel time added per kilometre of seller -> address distance.
             minutesPerKm: { type: Number, default: 3, min: 0 },
             // Extra picking time per cart line (0 disables the term).
             minutesPerItem: { type: Number, default: 0, min: 0 },
             // Floor / ceiling on the quoted lower bound.
-            minMinutes: { type: Number, default: 8, min: 1 },
+            minMinutes: { type: Number, default: 10, min: 1 },
             maxMinutes: { type: Number, default: 180, min: 1 },
             // Width of the quoted window: max = min + spread.
             rangeSpreadMinutes: { type: Number, default: 5, min: 0 },
+            // Added per EXTRA store in the same order, for store-to-store
+            // pickup routing. Defaults give 1 shop 10-15, 2 shops 15-25,
+            // 3 shops 20-35 for a nearby basket.
+            extraShopMinMinutes: { type: Number, default: 5, min: 0 },
+            extraShopMaxMinutes: { type: Number, default: 10, min: 0 },
         },
 
         /**

@@ -37,10 +37,10 @@ describe("dynamic delivery ETA", () => {
     expect(nearby.minMinutes).toBeLessThan(middle.minMinutes);
     expect(middle.minMinutes).toBeLessThan(far.minMinutes);
 
-    // base 8 + 3 min/km
-    expect(middle.minMinutes).toBe(20);
-    expect(middle.maxMinutes).toBe(25);
-    expect(middle.label).toBe("20-25 mins");
+    // base 10 + 3 min/km
+    expect(middle.minMinutes).toBe(22);
+    expect(middle.maxMinutes).toBe(27);
+    expect(middle.label).toBe("22-27 mins");
   });
 
   it("never quotes below the configured floor for a zero-distance order", () => {
@@ -114,7 +114,7 @@ describe("dynamic delivery ETA", () => {
       throw new Error("mongo down");
     });
     const eta = await estimateDeliveryEta({ distanceKm: 4 });
-    expect(eta.minMinutes).toBe(20);
+    expect(eta.minMinutes).toBe(22);
   });
 
   it("normalizes out-of-order min/max bounds", () => {

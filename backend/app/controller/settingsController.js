@@ -153,6 +153,9 @@ const updateSettingsSchema = Joi.object({
     minMinutes: Joi.number().integer().min(1).max(1440),
     maxMinutes: Joi.number().integer().min(1).max(1440),
     rangeSpreadMinutes: Joi.number().integer().min(0).max(240),
+    // Per extra store in a multi-shop order (store-to-store pickup routing).
+    extraShopMinMinutes: Joi.number().integer().min(0).max(240),
+    extraShopMaxMinutes: Joi.number().integer().min(0).max(240),
   }).unknown(false),
   // Wallet Cashback configuration (walletCashbackService).
   walletCashback: Joi.object({
