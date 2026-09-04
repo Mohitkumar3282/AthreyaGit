@@ -1122,6 +1122,9 @@ const CheckoutPage = () => {
                   </p>
                   <p className="text-xs text-slate-500 font-medium mt-0.5">
                     Shipment of {cartCount} {cartCount === 1 ? "item" : "items"}
+                    {pricingPreview?.deliveryEta?.shopCount > 1 && (
+                      <> · from {pricingPreview.deliveryEta.shopCount} stores</>
+                    )}
                     {pricingPreview?.deliveryEta?.distanceKm > 0 && (
                       <> · {pricingPreview.deliveryEta.distanceKm.toFixed(1)} km away</>
                     )}
