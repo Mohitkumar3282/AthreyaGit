@@ -39,6 +39,10 @@ export const previewCheckoutFinance = async (req, res) => {
       // the preview can refuse a coupon the user has already exhausted.
       couponCode: payload.couponCode || null,
       couponId: payload.couponId || null,
+      // Athreya Coins: the requested redemption is clamped server-side
+      // against the live CoinWallet balance and the configured caps, so
+      // the preview always quotes the same number place-order will debit.
+      coinsRedeem: payload.coinsRedeem || 0,
       customerId: req.user?.id || null,
     });
 
@@ -67,6 +71,15 @@ export const previewCheckoutFinance = async (req, res) => {
       // SERVER_SIDE_COUPON_ENGINE is off.
       couponSnapshot: pricingSnapshot.couponSnapshot || null,
       freeDeliveryApplied: !!pricingSnapshot.freeDeliveryApplied,
+      // Distance-derived delivery promise for the address in this payload.
+      // Recomputed on every preview, so switching address updates the ETA.
+      deliveryEta: pricingSnapshot.deliveryEta || null,
+      // Wallet Cashback the order will return on delivery, so checkout can
+      // show the retention loop without doing its own percentage math.
+      cashback: pricingSnapshot.cashback || null,
+      // Athreya Coins: what was accepted for redemption, plus what this
+      // order would earn, so the checkout UI never has to do coin math.
+      coins: pricingSnapshot.coins || null,
       ...(distanceDebug ? { distanceDebug } : {}),
     });
   } catch (error) {
@@ -98,6 +111,8 @@ export const createOrderWithFinancialSnapshot = async (req, res) => {
       // coupon engine fills the discount in via `couponCode`/`couponId`
       // instead.
       couponCode: validated.couponCode || null,
+      // Athreya Coins redemption request (clamped server-side).
+      coinsRedeem: validated.coinsRedeem || 0,
     };
     const idempotencyKey = String(req.headers["idempotency-key"] || "").trim() || null;
 

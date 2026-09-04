@@ -19,6 +19,8 @@ import {
     Linkedin,
     Youtube,
     Loader2,
+    Coins,
+    ExternalLink,
     X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -78,7 +80,45 @@ const AdminSettings = () => {
             sellerCreateRequiresApproval: false,
             sellerEditRequiresApproval: false,
         },
+        // Athreya Coins. Stored as `rupeeValuePerCoin` (₹0.01 per coin), but
+        // the admin edits the far more legible "how many coins make ₹1", so
+        // the form keeps `coinsPerRupee` and converts on save.
+        athreyaCoins: {
+            enabled: true,
+            coinsPerRupeeSaved: 1,
+            rupeeValuePerCoin: 0.01,
+            minRedeemCoins: 1,
+            maxRedeemPercentOfOrder: 100,
+            maxEarnPerOrder: 0,
+            creditOn: 'DELIVERY',
+        },
     });
+
+    const coins = settings.athreyaCoins || {};
+    const coinsPerRupee = Math.max(1, Math.round(1 / (Number(coins.rupeeValuePerCoin) || 0.01)));
+
+    const handleCoinChange = (field, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            athreyaCoins: { ...(prev.athreyaCoins || {}), [field]: value },
+        }));
+    };
+
+    // The admin types "100 coins = ₹1"; we persist the reciprocal.
+    const handleCoinsPerRupeeChange = (value) => {
+        const perRupee = Math.max(1, Math.round(Number(value) || 1));
+        handleCoinChange('rupeeValuePerCoin', Number((1 / perRupee).toFixed(4)));
+    };
+
+    // Worked example rendered live under the rate inputs, so an admin can see
+    // what a rate change actually pays out before saving it.
+    const exampleCoins = Math.floor(100 * (Number(coins.coinsPerRupeeSaved) || 0));
+    const exampleValue = (exampleCoins / coinsPerRupee).toFixed(2);
+
+    const CREDIT_TRIGGERS = [
+        { id: 'DELIVERY', label: 'Order delivered', hint: 'Recommended' },
+        { id: 'PLACEMENT', label: 'Order placed', hint: 'Cancellations claw back' },
+    ];
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -204,6 +244,7 @@ const AdminSettings = () => {
         { id: 'legal', label: 'Legal & Contact', icon: Building2 },
         { id: 'social', label: 'Social & Apps', icon: Share2 },
         { id: 'seo', label: 'SEO & Meta', icon: Search },
+        { id: 'coins', label: 'Athreya Coins', icon: Coins },
     ];
 
     return (
@@ -707,6 +748,174 @@ const AdminSettings = () => {
                                     />
                                     <p className="text-[10px] font-bold text-slate-400 italic text-right">Separate keywords with commas</p>
                                 </div>
+                            </div>
+                        </Card>
+                    )}
+
+                    {/* Athreya Coins */}
+                    {activeTab === 'coins' && (
+                        <Card className="border-none shadow-xl ring-1 ring-slate-100 bg-white rounded-xl overflow-hidden">
+                            <div className="p-6 border-b border-slate-50 bg-slate-50/30">
+                                <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-3">
+                                    <Coins className="h-4 w-4 text-amber-500" />
+                                    Athreya Coins
+                                </h3>
+                                <p className="text-xs font-bold text-slate-500 mt-2">
+                                    Customers earn coins on the savings of every delivered order and
+                                    redeem them at checkout as a discount.
+                                </p>
+                            </div>
+
+                            <div className="p-8 space-y-4">
+                                {/* Enable / disable */}
+                                <div className="rounded-2xl bg-slate-50 border border-slate-200 px-5 py-4 flex items-center justify-between gap-4">
+                                    <div>
+                                        <p className="text-sm font-black text-slate-900">Enable Athreya Coins</p>
+                                        <p className="text-xs font-bold text-slate-500 mt-1">
+                                            When off, no new coins are earned and customers cannot redeem at
+                                            checkout. Existing balances are preserved.
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        role="switch"
+                                        aria-checked={Boolean(coins.enabled)}
+                                        onClick={() => handleCoinChange('enabled', !coins.enabled)}
+                                        className={cn(
+                                            "relative inline-flex h-7 w-14 shrink-0 items-center rounded-full transition-colors duration-200",
+                                            coins.enabled ? "bg-emerald-500" : "bg-slate-300"
+                                        )}
+                                    >
+                                        <span
+                                            className={cn(
+                                                "inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform duration-200",
+                                                coins.enabled ? "translate-x-7" : "translate-x-1"
+                                            )}
+                                        />
+                                    </button>
+                                </div>
+
+                                {/* Conversion rate + earn rate */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                            Conversion Rate &mdash; coins per &#8377;1
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            value={coinsPerRupee}
+                                            onChange={(e) => handleCoinsPerRupeeChange(e.target.value)}
+                                            className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all"
+                                        />
+                                        <p className="text-[10px] font-bold text-emerald-600">
+                                            {coinsPerRupee} Coins = &#8377;1
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                            Coins Earned per &#8377;1 Saved
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            step="0.1"
+                                            value={coins.coinsPerRupeeSaved ?? 1}
+                                            onChange={(e) => handleCoinChange('coinsPerRupeeSaved', Number(e.target.value))}
+                                            className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all"
+                                        />
+                                        <p className="text-[10px] font-bold text-slate-400 italic">
+                                            Savings are MRP minus price paid, plus any coupon discount.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Live worked example — the quickest sanity check on a rate change */}
+                                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 px-5 py-4">
+                                    <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">
+                                        Worked Example
+                                    </p>
+                                    <p className="text-sm font-bold text-slate-700 mt-2">
+                                        A customer who saves <span className="font-black">&#8377;100</span> earns{' '}
+                                        <span className="font-black text-emerald-700">{exampleCoins} coins</span>, worth{' '}
+                                        <span className="font-black text-emerald-700">&#8377;{exampleValue}</span> at checkout.
+                                    </p>
+                                </div>
+
+                                {/* Redemption limits */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                            Minimum Redemption (coins)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            value={coins.minRedeemCoins ?? 1}
+                                            onChange={(e) => handleCoinChange('minRedeemCoins', Number(e.target.value))}
+                                            className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                            Max % of Order Payable by Coins
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            max={100}
+                                            value={coins.maxRedeemPercentOfOrder ?? 100}
+                                            onChange={(e) => handleCoinChange('maxRedeemPercentOfOrder', Number(e.target.value))}
+                                            className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                            Max Coins per Order (0 = no cap)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            value={coins.maxEarnPerOrder ?? 0}
+                                            onChange={(e) => handleCoinChange('maxEarnPerOrder', Number(e.target.value))}
+                                            className="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand-500/10 transition-all"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* When coins are credited */}
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        Credit Coins On
+                                    </label>
+                                    <div className="flex gap-3">
+                                        {CREDIT_TRIGGERS.map((option) => (
+                                            <button
+                                                key={option.id}
+                                                type="button"
+                                                onClick={() => handleCoinChange('creditOn', option.id)}
+                                                className={cn(
+                                                    "flex-1 rounded-2xl border-2 px-4 py-3 text-left transition-all",
+                                                    (coins.creditOn || 'DELIVERY') === option.id
+                                                        ? "border-emerald-500 bg-emerald-50"
+                                                        : "border-slate-200 bg-white hover:border-slate-300"
+                                                )}
+                                            >
+                                                <p className="text-sm font-black text-slate-900">{option.label}</p>
+                                                <p className="text-[10px] font-bold text-slate-500 mt-0.5">{option.hint}</p>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <a
+                                    href="/admin/coin-wallets"
+                                    className="inline-flex items-center gap-2 text-xs font-black text-brand-600 uppercase tracking-widest hover:underline"
+                                >
+                                    View customer wallets &amp; transactions
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                </a>
                             </div>
                         </Card>
                     )}

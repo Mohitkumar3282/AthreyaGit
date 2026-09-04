@@ -53,6 +53,9 @@ const ALLOWED_KEYS = [
   "productApproval",
   "dailyNeeds",
   "dailyNeedsCategoryIds",
+  "deliveryEta",
+  "walletCashback",
+  "athreyaCoins",
 ];
 
 function flattenForMongoSet(prefix, value, target) {
@@ -139,6 +142,33 @@ const updateSettingsSchema = Joi.object({
     eggs: Joi.string().allow("").max(100),
   }).unknown(false),
   dailyNeedsCategoryIds: Joi.array().items(Joi.string().max(100)).optional(),
+  // Dynamic delivery-time estimation coefficients (deliveryEtaService).
+  deliveryEta: Joi.object({
+    enabled: Joi.boolean(),
+    basePrepMinutes: Joi.number().min(0).max(600),
+    minutesPerKm: Joi.number().min(0).max(120),
+    minutesPerItem: Joi.number().min(0).max(60),
+    minMinutes: Joi.number().integer().min(1).max(1440),
+    maxMinutes: Joi.number().integer().min(1).max(1440),
+    rangeSpreadMinutes: Joi.number().integer().min(0).max(240),
+  }).unknown(false),
+  // Wallet Cashback configuration (walletCashbackService).
+  walletCashback: Joi.object({
+    enabled: Joi.boolean(),
+    ratePercent: Joi.number().min(0).max(100),
+    minCashbackAmount: Joi.number().min(0),
+    maxCashbackPerOrder: Joi.number().min(0),
+  }).unknown(false),
+  // Athreya Coins loyalty configuration (coinsService).
+  athreyaCoins: Joi.object({
+    enabled: Joi.boolean(),
+    coinsPerRupeeSaved: Joi.number().min(0).max(1000),
+    rupeeValuePerCoin: Joi.number().min(0.01).max(1000),
+    minRedeemCoins: Joi.number().integer().min(0),
+    maxRedeemPercentOfOrder: Joi.number().min(0).max(100),
+    maxEarnPerOrder: Joi.number().integer().min(0),
+    creditOn: Joi.string().valid("DELIVERY", "PLACEMENT"),
+  }).unknown(false),
 }).unknown(false);
 
 /**
@@ -159,7 +189,7 @@ export const getPublicSettings = async (req, res) => {
       async () => {
         const existing = await Setting.findOne(filter)
           .select(
-            "appName supportEmail supportPhone whatsappNumber currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor returnDeliveryCommission deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy codEnabled onlineEnabled lowStockAlertsEnabled productApproval dailyNeeds dailyNeedsCategoryIds createdAt",
+            "appName supportEmail supportPhone whatsappNumber currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor returnDeliveryCommission deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy codEnabled onlineEnabled lowStockAlertsEnabled productApproval dailyNeeds dailyNeedsCategoryIds deliveryEta walletCashback athreyaCoins createdAt",
           )
           .lean();
         return existing || null;

@@ -67,10 +67,13 @@ import CheckoutAddressSection from "./checkout/components/CheckoutAddressSection
 import CheckoutCartSummary from "./checkout/components/CheckoutCartSummary";
 import CheckoutPricingBreakdown from "./checkout/components/CheckoutPricingBreakdown";
 import CheckoutPaymentSelector from "./checkout/components/CheckoutPaymentSelector";
+import CheckoutRupeeWalletSection from "./checkout/components/CheckoutRupeeWalletSection";
 import CheckoutCouponSection from "./checkout/components/CheckoutCouponSection";
+import CheckoutCoinsSection from "./checkout/components/CheckoutCoinsSection";
 import CheckoutRecommendedProducts from "./checkout/components/CheckoutRecommendedProducts";
 import CheckoutWishlistSection from "./checkout/components/CheckoutWishlistSection";
 import CheckoutOrderSuccess from "./checkout/components/CheckoutOrderSuccess";
+import CoinsPromoBanner from "../components/CoinsPromoBanner";
 
 const CheckoutPage = () => {
   const {
@@ -142,10 +145,28 @@ const CheckoutPage = () => {
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
   const [useWallet, setUseWallet] = useState(false);
   const [walletAmountToUse, setWalletAmountToUse] = useState(0);
+  // Canonical wallet balance. Read from the wallet endpoint rather than the
+  // cached auth profile, so cashback credited by a just-delivered order is
+  // spendable straight away.
+  const [walletBalance, setWalletBalance] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
   const [orderId, setOrderId] = useState(null);
   const [pricingPreview, setPricingPreview] = useState(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  // Athreya Coins. `coinsToRedeem` is what the customer asked for; `coinsResult`
+  // is what the server actually accepted after clamping (balance, minimum
+  // redemption, and the per-order percentage cap), and is the only number the
+  // UI renders as a discount.
+  const [useCoins, setUseCoins] = useState(false);
+  const [coinsToRedeem, setCoinsToRedeem] = useState(0);
+  const [coinsResult, setCoinsResult] = useState(null);
+  const [coinBalance, setCoinBalance] = useState(0);
+  // Coins this order will grant, shown on the success screen.
+  const [coinsEarned, setCoinsEarned] = useState(0);
+  // Wallet cashback this order will return on delivery.
+  const [cashbackEarned, setCashbackEarned] = useState(0);
+  // Savings this order realised, shown next to the coins earned.
+  const [savingsTotal, setSavingsTotal] = useState(0);
   const postOrderNavigateRef = useRef(null);
   const previewDebounceRef = useRef(null);
   const [currentAddress, setCurrentAddress] = useState({
@@ -240,17 +261,53 @@ const CheckoutPage = () => {
     }
   }, [paymentMethods, selectedPayment]);
 
+  // How much wallet balance to REQUEST. Clamped against the pre-redemption
+  // bill (`grossTotal` + tip) rather than `grandTotal`, because `grandTotal`
+  // shrinks once the redemption is applied — clamping against it would make
+  // the request oscillate on every preview.
+  const preRedemptionTotal =
+    Number(pricingPreview?.grossTotal || pricingPreview?.grandTotal || 0) +
+    Number(pricingPreview?.tipTotal || 0);
+
   useEffect(() => {
-    if (useWallet && user?.walletBalance && pricingPreview?.grandTotal) {
-      const maxAvailable = Number(user.walletBalance || 0);
-      const totalToPay = Number(pricingPreview.grandTotal || 0);
-      setWalletAmountToUse(Math.min(maxAvailable, totalToPay));
+    if (useWallet && walletBalance > 0 && preRedemptionTotal > 0) {
+      setWalletAmountToUse(Math.min(walletBalance, preRedemptionTotal));
     } else {
       setWalletAmountToUse(0);
     }
-  }, [useWallet, user?.walletBalance, pricingPreview?.grandTotal]);
+  }, [useWallet, walletBalance, preRedemptionTotal]);
 
-  const finalAmountToPay = Math.max(0, (pricingPreview?.grandTotal || 0) - walletAmountToUse);
+  // The server is the single source of truth for what the customer owes:
+  // `payableAmount` is already net of the wallet redemption it accepted (and
+  // of any coins). We render that rather than doing the subtraction here, so
+  // the figure on the pay button can never drift from what is charged.
+  const walletApplied = Number(
+    pricingPreview?.walletAmount ?? (useWallet ? walletAmountToUse : 0),
+  );
+  const finalAmountToPay = Math.max(
+    0,
+    Number(pricingPreview?.payableAmount ?? pricingPreview?.grandTotal ?? 0),
+  );
+
+  const coinSettings = coinsResult?.settings || {};
+  const appliedCoins = coinsResult?.redeemed || 0;
+  const appliedCoinsDiscount = coinsResult?.discount || 0;
+  // Ceiling for this order: the percentage cap applies to the pre-coins total,
+  // which is `grandTotal + discount already granted`.
+  const coinsOrderBase =
+    Number(pricingPreview?.grandTotal || 0) + Number(appliedCoinsDiscount || 0);
+  const maxRedeemableCoins = useMemo(() => {
+    const perCoin = Number(coinSettings.rupeeValuePerCoin || 1);
+    const percent = Number(coinSettings.maxRedeemPercentOfOrder ?? 100);
+    if (!coinBalance || coinsOrderBase <= 0 || perCoin <= 0) return 0;
+    const capRupees = Math.min((coinsOrderBase * percent) / 100, coinsOrderBase);
+    return Math.max(0, Math.min(coinBalance, Math.floor(capRupees / perCoin)));
+  }, [coinBalance, coinsOrderBase, coinSettings.rupeeValuePerCoin, coinSettings.maxRedeemPercentOfOrder]);
+
+  // Delivery promise for the currently selected address. Falls back to the
+  // location context only until the first preview lands.
+  const deliveryEtaLabel =
+    pricingPreview?.deliveryEta?.label || currentLocation?.time || null;
 
   const buildAddressForOrder = () => {
     if (savedRecipient) {
@@ -665,6 +722,10 @@ const CheckoutPage = () => {
       tipAmount: selectedTip,
       paymentMode: selectedPayment === "online" ? "ONLINE" : "COD",
       timeSlot: selectedTimeSlot,
+      coinsRedeem: useCoins ? coinsToRedeem : 0,
+      // Send the wallet request so the server returns a `payableAmount`
+      // already net of it — no client-side subtraction, no drift.
+      walletAmount: useWallet ? walletAmountToUse : 0,
     });
 
     const fetchPreview = async () => {
@@ -673,6 +734,11 @@ const CheckoutPage = () => {
         const res = await customerApi.checkoutPreview(buildPreviewPayload());
         if (res.data?.success) {
           setPricingPreview(res.data.result?.breakdown ?? null);
+          const coins = res.data.result?.coins ?? null;
+          setCoinsResult(coins);
+          if (coins && typeof coins.balance === "number") {
+            setCoinBalance(Number(coins.balance));
+          }
         }
       } catch (error) {
         console.error("Checkout preview failed", error);
@@ -695,7 +761,61 @@ const CheckoutPage = () => {
     savedRecipient,
     currentAddress,
     currentLocation,
+    useCoins,
+    coinsToRedeem,
+    useWallet,
+    walletAmountToUse,
   ]);
+
+  // Canonical wallet balance for this customer.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setWalletBalance(0);
+      return;
+    }
+    customerApi
+      .getWallet()
+      .then((res) => {
+        if (!res.data?.success) return;
+        setWalletBalance(Number(res.data.result?.balance || 0));
+      })
+      .catch(() => { });
+  }, [isAuthenticated]);
+
+  // Athreya Coins balance — fetched once so the checkout can show the wallet
+  // even before the customer chooses to spend anything.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setCoinBalance(0);
+      return;
+    }
+    customerApi
+      .getCoins()
+      .then((res) => {
+        if (!res.data?.success) return;
+        const summary = res.data.result || {};
+        setCoinBalance(Number(summary.balance || 0));
+        setCoinsResult((prev) => prev || { settings: summary.settings, redeemed: 0, discount: 0 });
+      })
+      .catch(() => { });
+  }, [isAuthenticated]);
+
+  // Keep the requested redemption inside what this order can actually absorb —
+  // e.g. after removing an item the previous request may now exceed the cap.
+  // Ticking the box with nothing typed yet defaults to spending the maximum,
+  // which is what a customer opting in almost always wants.
+  useEffect(() => {
+    if (!useCoins) return;
+    if (maxRedeemableCoins <= 0) {
+      setUseCoins(false);
+      setCoinsToRedeem(0);
+      return;
+    }
+    setCoinsToRedeem((current) => {
+      if (current <= 0) return maxRedeemableCoins;
+      return Math.min(current, maxRedeemableCoins);
+    });
+  }, [useCoins, maxRedeemableCoins]);
 
   // Recommended products — only re-fetches when the set of product IDs changes
   useEffect(() => {
@@ -737,6 +857,9 @@ const CheckoutPage = () => {
         tipAmount: selectedTip,
         timeSlot: selectedTimeSlot,
         walletAmount: walletAmountToUse,
+        // Athreya Coins: send the request, not a computed discount. The server
+        // re-clamps it against the live balance and the per-order cap.
+        coinsRedeem: useCoins ? coinsToRedeem : 0,
         items: cart.map((item) => ({
           product: item.id || item._id,
           name: item.name,
@@ -799,6 +922,11 @@ const CheckoutPage = () => {
         clearCart();
         showToast("Order placed — waiting for seller to accept.", "success");
         setOrderId(mainOrderId);
+        setCoinsEarned(Number(mainOrder?.coins?.earned ?? pricingPreview?.coinsEarned ?? 0));
+        setSavingsTotal(Number(pricingPreview?.savingsTotal ?? 0));
+        setCashbackEarned(
+          Number(mainOrder?.cashback?.amount ?? pricingPreview?.cashbackEarned ?? 0),
+        );
         setShowSuccess(true);
 
         if (postOrderNavigateRef.current) {
@@ -919,61 +1047,85 @@ const CheckoutPage = () => {
   return (
     <div className="min-h-screen bg-white pb-32 font-sans">
       {/* Order Success Overlay */}
-      <CheckoutOrderSuccess orderId={orderId} show={showSuccess} />
+      <CheckoutOrderSuccess
+        orderId={orderId}
+        show={showSuccess}
+        coinsEarned={coinsEarned}
+        cashbackEarned={cashbackEarned}
+        savingsTotal={savingsTotal}
+        coinValue={coinSettings.rupeeValuePerCoin}
+      />
 
       {/* Premium Header */}
-      <div className="bg-white border-b border-[#1a6e2e]/20 pt-6 pb-12 md:pb-24 relative z-10 md:rounded-b-[4rem] rounded-b-[2rem] overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 relative z-10">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => navigate(-1)}
-              className="w-12 h-12 flex items-center justify-center bg-transparent hover:bg-slate-50 rounded-2xl transition-all active:scale-95">
-              <ChevronLeft size={28} className="text-[#1a6e2e]" />
-            </button>
-            <div className="flex flex-col items-center">
-              <div className="flex items-center gap-1.5 mb-1 cursor-pointer" onClick={() => navigate("/")}>
-                <img
-                  src={settings?.logoUrl || LogoTransparent}
-                  alt="Athreya Delivery"
-                  className="h-10 md:h-12 w-auto object-contain"
-                  style={{ filter: "url(#logo-yellow-watch-green-rider)" }}
-                />
-                <div className="flex flex-col items-start leading-none font-sans">
-                  <span className="text-[13px] md:text-[16px] font-black text-[#1a6e2e] tracking-wide uppercase">ATHREYA</span>
-                  <span className="text-[9px] md:text-[10px] font-bold text-[#1a6e2e] tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
-                </div>
-              </div>
-              <h1 className="text-xl md:text-2xl font-black text-[#1a6e2e] tracking-tight uppercase">Checkout</h1>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="h-1.5 w-1.5 bg-[#1a6e2e] rounded-full animate-pulse" />
-                <p className="text-[#1a6e2e] text-[10px] md:text-xs font-black tracking-[0.2em] uppercase">
-                  {cartCount} {cartCount === 1 ? "Item" : "Items"} in cart
-                </p>
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-emerald-100 shadow-2xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
+          <button
+            onClick={() => navigate(-1)}
+            aria-label="Go Back"
+            className="w-10 h-10 rounded-2xl bg-emerald-50 text-[#0d4d29] flex items-center justify-center hover:bg-emerald-100 active:scale-95 transition-all shrink-0">
+            <ChevronLeft size={24} />
+          </button>
+
+          <div className="flex flex-col items-center cursor-pointer" onClick={() => navigate("/")}>
+            <div className="flex items-center gap-1.5">
+              <img
+                src={settings?.logoUrl || LogoTransparent}
+                alt="Athreya Delivery"
+                className="h-8 md:h-9 w-auto object-contain"
+                style={{ filter: "url(#logo-yellow-watch-green-rider)" }}
+              />
+              <div className="flex flex-col items-start leading-none font-sans">
+                <span className="text-xs md:text-sm font-[1000] text-[#0d4d29] tracking-wide uppercase">ATHREYA</span>
+                <span className="text-[8px] md:text-[9px] font-bold text-[#0d4d29] tracking-[0.12em] uppercase">DELIVERY</span>
               </div>
             </div>
-            <button
-              onClick={handleShare}
-              className="h-12 px-4 flex items-center gap-2 bg-transparent hover:bg-slate-50 rounded-2xl transition-all active:scale-95">
-              <Share2 size={20} className="text-[#1a6e2e]" />
-              <span className="text-xs font-black text-[#1a6e2e] uppercase tracking-widest hidden sm:block">Share</span>
-            </button>
+            <div className="flex items-center gap-2 mt-1">
+              <h1 className="text-sm md:text-base font-[1000] text-slate-800 uppercase tracking-wide">Checkout</h1>
+              <span className="text-[10px] font-bold text-[#0d4d29] bg-[#edf8f0] px-2 py-0.5 rounded-full border border-emerald-200">
+                {cartCount} {cartCount === 1 ? "Item" : "Items"}
+              </span>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 -mt-12 md:-mt-16 lg:-mt-20 relative z-20">
-        <div className="lg:grid lg:grid-cols-12 lg:gap-8 items-start">
+          <button
+            onClick={handleShare}
+            aria-label="Share"
+            className="h-10 px-3 md:px-4 rounded-2xl bg-emerald-50 text-[#0d4d29] flex items-center gap-1.5 hover:bg-emerald-100 active:scale-95 transition-all shrink-0">
+            <Share2 size={18} />
+            <span className="text-xs font-[1000] uppercase tracking-wider hidden sm:inline">Share</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Main Checkout Container */}
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5 space-y-4 pb-20 lg:pb-8 font-sans">
+        {/* Promotional Earn Coins & Save Money Banner */}
+        <CoinsPromoBanner variant="compact" />
+
+        <div className="lg:grid lg:grid-cols-12 lg:gap-6 items-start space-y-4 lg:space-y-0">
 
           {/* Left Column */}
-          <div className="lg:col-span-7 xl:col-span-8 space-y-6 pb-8">
+          <div className="lg:col-span-7 xl:col-span-8 space-y-4">
             {/* Delivery Time Banner */}
-            <div className="bg-white rounded-2xl p-4 border border-[#1a6e2e]/20 border border-slate-100 mt-3">
+            <div className="bg-white rounded-2xl sm:rounded-3xl p-4 border border-emerald-100 shadow-xs">
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full bg-[#1a6e2e]/10 flex items-center justify-center flex-shrink-0">
-                  <Clock size={24} className="text-[#1a6e2e]" />
+                <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl sm:rounded-2xl bg-[#0d4d29] text-white flex items-center justify-center shrink-0 shadow-2xs">
+                  <Clock size={20} className="text-white" />
                 </div>
-                <div>
-                  <p className="text-sm text-slate-500">Shipment of {cartCount} items</p>
+                <div className="min-w-0">
+                  <p className="text-sm sm:text-base font-[1000] text-slate-900 leading-tight">
+                    {isPreviewLoading && !deliveryEtaLabel
+                      ? "Estimating delivery time…"
+                      : deliveryEtaLabel
+                        ? `Arriving in ${deliveryEtaLabel}`
+                        : "Delivery time will update once you pick an address"}
+                  </p>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    Shipment of {cartCount} {cartCount === 1 ? "item" : "items"}
+                    {pricingPreview?.deliveryEta?.distanceKm > 0 && (
+                      <> · {pricingPreview.deliveryEta.distanceKm.toFixed(1)} km away</>
+                    )}
+                  </p>
                 </div>
               </div>
             </div>
@@ -1024,7 +1176,7 @@ const CheckoutPage = () => {
           </div>
 
           {/* Right Column */}
-          <div className="lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-8 pb-32 lg:pb-8">
+          <div className="lg:col-span-5 xl:col-span-4 space-y-4 lg:sticky lg:top-20">
             {/* Coupon Section */}
             <CheckoutCouponSection
               coupons={coupons}
@@ -1038,6 +1190,29 @@ const CheckoutPage = () => {
               onApplyManualCode={handleApplyManualCode}
             />
 
+            {/* Rupee Wallet (Cashback & Refunds) */}
+            <CheckoutRupeeWalletSection
+              walletBalance={walletBalance}
+              useWallet={useWallet}
+              onToggleWallet={() => setUseWallet((v) => !v)}
+              walletAmountToUse={walletApplied}
+            />
+
+            {/* Athreya Coins */}
+            <CheckoutCoinsSection
+              balance={coinBalance}
+              settings={coinSettings}
+              maxRedeemable={maxRedeemableCoins}
+              coinsToRedeem={coinsToRedeem}
+              onChangeCoins={setCoinsToRedeem}
+              isApplied={useCoins}
+              onToggle={() => setUseCoins((value) => !value)}
+              appliedCoins={appliedCoins}
+              appliedDiscount={appliedCoinsDiscount}
+              payableAfter={finalAmountToPay}
+              cappedBy={coinsResult?.cappedBy}
+            />
+
             {/* Pricing Breakdown */}
             <CheckoutPricingBreakdown
               pricingPreview={pricingPreview}
@@ -1045,7 +1220,10 @@ const CheckoutPage = () => {
               selectedTip={selectedTip}
               onSelectTip={setSelectedTip}
               tipAmounts={tipAmounts}
-              walletAmountToUse={walletAmountToUse}
+              walletAmountToUse={walletApplied}
+              cashback={pricingPreview?.cashbackEarned || 0}
+              coinsDiscount={appliedCoinsDiscount}
+              coinsRedeemed={appliedCoins}
               finalAmountToPay={finalAmountToPay}
               cartTotal={cartTotal}
               selectedCoupon={selectedCoupon}
@@ -1057,31 +1235,30 @@ const CheckoutPage = () => {
               paymentMethods={paymentMethods}
               selectedPayment={selectedPayment}
               onSelectPayment={setSelectedPayment}
-              useWallet={useWallet}
-              onToggleWallet={() => setUseWallet((v) => !v)}
-              walletBalance={user?.walletBalance || 0}
-              walletAmountToUse={walletAmountToUse}
             />
 
             {/* Desktop Slide to Pay */}
-            <div className="hidden lg:block">
+            <div className="hidden lg:block pt-1">
               <SlideToPay
                 amount={finalAmountToPay}
                 onSuccess={handlePlaceOrder}
                 isLoading={isPlacingOrder || isPreviewLoading || !pricingPreview}
                 text={finalAmountToPay === 0 ? "Place Free Order" : "Order Now"}
               />
-              <p className="text-center text-[10px] text-slate-400 font-bold mt-4 uppercase tracking-[0.1em]">
+              <p className="text-center text-[10px] text-slate-400 font-bold mt-2 uppercase tracking-[0.1em]">
                 🔒 SSL encrypted secure checkout
               </p>
             </div>
           </div>
         </div>
-      </div>
+
+        {/* How It Works Explainer Banner */}
+        <CoinsPromoBanner variant="footer" className="mt-4" />
+      </main>
 
       {/* Sticky Footer — Mobile Only */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-4  z-50 rounded-t-3xl">
-        <div className="max-w-4xl mx-auto">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200/80 p-2.5 sm:p-3 z-50 shadow-2xl">
+        <div className="max-w-md mx-auto">
           <SlideToPay
             amount={finalAmountToPay}
             onSuccess={handlePlaceOrder}

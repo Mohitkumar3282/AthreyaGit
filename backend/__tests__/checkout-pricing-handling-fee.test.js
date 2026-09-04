@@ -3,6 +3,7 @@ import { jest } from "@jest/globals";
 const mockProductFind = jest.fn();
 const mockCategoryFind = jest.fn();
 const mockGetOrCreateFinanceSettings = jest.fn();
+const mockSettingFindOne = jest.fn(() => createQueryChain(null));
 
 function createQueryChain(result) {
   return {
@@ -27,6 +28,28 @@ jest.unstable_mockModule("../app/services/finance/financeSettingsService.js", ()
   getOrCreateFinanceSettings: mockGetOrCreateFinanceSettings,
 }));
 
+// The snapshot now also reads platform `Setting` for the dynamic delivery ETA
+// and the Athreya Coins config. Stub the model (rather than the services) so
+// the real ETA / coin maths still runs against these fixtures.
+jest.unstable_mockModule("../app/models/setting.js", () => ({
+  default: {
+    findOne: mockSettingFindOne,
+  },
+}));
+
+jest.unstable_mockModule("../app/models/coinWallet.js", () => ({
+  default: {
+    findOne: jest.fn(() => createQueryChain(null)),
+  },
+}));
+
+jest.unstable_mockModule("../app/models/coinTransaction.js", () => ({
+  default: {
+    findOne: jest.fn(() => createQueryChain(null)),
+    create: jest.fn(),
+  },
+}));
+
 const { buildCheckoutPricingSnapshot } = await import(
   "../app/services/checkoutPricingService.js"
 );
@@ -34,6 +57,9 @@ const { buildCheckoutPricingSnapshot } = await import(
 describe("checkout pricing snapshot handling fee", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Empty settings doc -> deliveryEtaService / coinsService fall back to
+    // their documented defaults.
+    mockSettingFindOne.mockReturnValue(createQueryChain(null));
   });
 
   it("charges only the highest header-category handling fee once across a multi-seller checkout", async () => {

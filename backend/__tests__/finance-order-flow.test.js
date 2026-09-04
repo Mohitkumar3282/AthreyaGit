@@ -9,7 +9,13 @@ const mockCreditWallet = jest.fn();
 const mockDebitWallet = jest.fn();
 const mockGetOrCreateWallet = jest.fn();
 const mockUpdateCashInHand = jest.fn();
+const mockGetCustomerBalance = jest.fn();
 const mockCreatePendingPayoutForOrder = jest.fn();
+const mockCreditCoins = jest.fn();
+const mockDebitCoins = jest.fn();
+const mockGetCoinBalance = jest.fn();
+const mockComputeCashback = jest.fn(() => 0);
+const mockResolveSavingsBase = jest.fn(() => 0);
 
 function createSession() {
   return {
@@ -89,12 +95,29 @@ jest.unstable_mockModule("../app/services/finance/auditLogService.js", () => ({
 jest.unstable_mockModule("../app/services/finance/walletService.js", () => ({
   creditWallet: mockCreditWallet,
   debitWallet: mockDebitWallet,
+  getCustomerBalance: mockGetCustomerBalance,
   getOrCreateWallet: mockGetOrCreateWallet,
   updateCashInHand: mockUpdateCashInHand,
 }));
 
 jest.unstable_mockModule("../app/services/finance/payoutService.js", () => ({
   createPendingPayoutForOrder: mockCreatePendingPayoutForOrder,
+}));
+
+// Athreya Coins: this suite stubs `mongoose` wholesale (no `Schema`), so the
+// coin models cannot be imported for real. Stub the service the same way the
+// wallet/payout services are stubbed above.
+jest.unstable_mockModule("../app/services/coinsService.js", () => ({
+  creditCoins: mockCreditCoins,
+  debitCoins: mockDebitCoins,
+  getCoinBalance: mockGetCoinBalance,
+}));
+
+// Wallet Cashback reads platform settings; this suite stubs `mongoose`
+// wholesale so the Setting model cannot be imported for real.
+jest.unstable_mockModule("../app/services/walletCashbackService.js", () => ({
+  computeCashbackForSavings: mockComputeCashback,
+  resolveSavingsBase: mockResolveSavingsBase,
 }));
 
 const {

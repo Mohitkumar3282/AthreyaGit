@@ -49,6 +49,11 @@ export const checkoutPreviewSchema = Joi.object({
   // snapshot ignores client-supplied `discountTotal` when either
   // identifier is provided and SERVER_SIDE_COUPON_ENGINE is on.
   couponCode: Joi.string().trim().allow("", null).optional(),
+  // Athreya Coins the customer wants to spend, in COINS (integer). The
+  // server re-reads the authoritative balance and re-clamps against the
+  // configured floor/ceiling, so this is a request rather than an
+  // instruction — an inflated value simply gets capped.
+  coinsRedeem: Joi.number().integer().min(0).default(0),
 });
 
 export const createFinanceOrderSchema = checkoutPreviewSchema.keys({

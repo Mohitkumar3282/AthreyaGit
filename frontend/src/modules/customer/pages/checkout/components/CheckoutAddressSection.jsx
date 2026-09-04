@@ -38,15 +38,15 @@ const CheckoutAddressSection = React.memo(function CheckoutAddressSection({
   displayAddress,
 }) {
   return (
-    <motion.div className="bg-white rounded-2xl p-4 border border-[#1a6e2e]/20">
+    <motion.div className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-xs space-y-4">
       {/* "Order for someone else" toggle */}
-      <div className="flex justify-between items-center mb-3">
-        <span className="text-xs text-slate-500 font-medium">
+      <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+        <span className="text-xs text-slate-500 font-bold">
           Ordering for someone else?
         </span>
         <button
           onClick={onToggleRecipientForm}
-          className="text-[#1a6e2e] text-xs font-bold hover:underline">
+          className="text-[#0d4d29] text-xs font-[1000] uppercase tracking-wider hover:underline">
           {showRecipientForm
             ? "Close"
             : savedRecipient
@@ -57,19 +57,19 @@ const CheckoutAddressSection = React.memo(function CheckoutAddressSection({
 
       {/* Saved recipient card */}
       {savedRecipient && !showRecipientForm && (
-        <div className="mb-4 p-4 bg-[#1a6e2e]/10 border border-[#1a6e2e]/20 rounded-2xl flex items-start justify-between">
+        <div className="p-4 bg-[#edf8f0] border border-emerald-200 rounded-2xl flex items-start justify-between">
           <div className="flex gap-3">
-            <div className="h-10 w-10 rounded-full bg-[#1a6e2e]/20 flex items-center justify-center text-[#1a6e2e] flex-shrink-0">
+            <div className="h-10 w-10 rounded-xl bg-[#0d4d29] flex items-center justify-center text-white shrink-0 shadow-2xs">
               <Contact2 size={18} />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-800">
+              <p className="text-sm font-[1000] text-slate-800">
                 {savedRecipient.name}
               </p>
-              <p className="text-xs text-[#1a6e2e] font-bold mb-1">
+              <p className="text-xs text-[#0d4d29] font-bold mb-1">
                 {savedRecipient.phone}
               </p>
-              <p className="text-xs text-slate-500 leading-tight">
+              <p className="text-xs text-slate-600 leading-tight">
                 {savedRecipient.completeAddress}
                 {savedRecipient.landmark && `, ${savedRecipient.landmark}`}
                 {savedRecipient.pincode && ` - ${savedRecipient.pincode}`}
@@ -78,7 +78,7 @@ const CheckoutAddressSection = React.memo(function CheckoutAddressSection({
           </div>
           <button
             onClick={onRemoveRecipient}
-            className="text-red-500 text-xs font-bold hover:underline">
+            className="text-rose-600 text-xs font-bold hover:underline">
             Remove
           </button>
         </div>
@@ -92,20 +92,20 @@ const CheckoutAddressSection = React.memo(function CheckoutAddressSection({
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="overflow-hidden mb-4">
-            <div className="bg-white rounded-2xl p-4 border border-[#1a6e2e]/20 space-y-4">
+            className="overflow-hidden">
+            <div className="bg-[#edf8f0]/60 rounded-2xl p-4 border border-emerald-200 space-y-4">
               <div>
-                <h4 className="text-sm font-bold text-slate-800 mb-3">
+                <h4 className="text-sm font-[1000] text-slate-800 mb-2 uppercase tracking-wide">
                   Enter delivery address details
                 </h4>
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   <Input
                     placeholder="Enter complete address*"
                     value={recipientData.completeAddress}
                     onChange={(e) =>
                       onRecipientDataChange({ ...recipientData, completeAddress: e.target.value })
                     }
-                    className="h-12 rounded-xl border-[#1a6e2e]/20 focus:ring-[#1a6e2e] focus:border-[#1a6e2e] text-sm"
+                    className="h-11 rounded-xl bg-white border-emerald-200 focus:ring-[#0d4d29] focus:border-[#0d4d29] text-sm font-medium"
                   />
                   <Input
                     placeholder="Find landmark (optional)"
@@ -113,7 +113,7 @@ const CheckoutAddressSection = React.memo(function CheckoutAddressSection({
                     onChange={(e) =>
                       onRecipientDataChange({ ...recipientData, landmark: e.target.value })
                     }
-                    className="h-12 rounded-xl border-[#1a6e2e]/20 focus:ring-[#1a6e2e] focus:border-[#1a6e2e] text-sm"
+                    className="h-11 rounded-xl bg-white border-emerald-200 focus:ring-[#0d4d29] focus:border-[#0d4d29] text-sm font-medium"
                   />
                   <Input
                     placeholder="Enter pin code (optional)"
@@ -121,26 +121,26 @@ const CheckoutAddressSection = React.memo(function CheckoutAddressSection({
                     onChange={(e) =>
                       onRecipientDataChange({ ...recipientData, pincode: e.target.value })
                     }
-                    className="h-12 rounded-xl border-[#1a6e2e]/20 focus:ring-[#1a6e2e] focus:border-[#1a6e2e] text-sm"
+                    className="h-11 rounded-xl bg-white border-emerald-200 focus:ring-[#0d4d29] focus:border-[#0d4d29] text-sm font-medium"
                   />
                 </div>
               </div>
 
               <div>
-                <h4 className="text-sm font-bold text-slate-800 mb-1">
+                <h4 className="text-sm font-[1000] text-slate-800 mb-1 uppercase tracking-wide">
                   Enter receiver details
                 </h4>
-                <p className="text-[10px] text-slate-400 mb-3 font-medium">
+                <p className="text-[10px] text-slate-500 mb-2.5 font-medium">
                   We&apos;ll contact receiver to get the exact delivery address
                 </p>
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   <Input
                     placeholder="Receiver's name*"
                     value={recipientData.name}
                     onChange={(e) =>
                       onRecipientDataChange({ ...recipientData, name: e.target.value })
                     }
-                    className="h-12 rounded-xl border-[#1a6e2e]/20 focus:ring-[#1a6e2e] focus:border-[#1a6e2e] text-sm"
+                    className="h-11 rounded-xl bg-white border-emerald-200 focus:ring-[#0d4d29] focus:border-[#0d4d29] text-sm font-medium"
                   />
                   <div className="relative">
                     <Input
@@ -149,7 +149,7 @@ const CheckoutAddressSection = React.memo(function CheckoutAddressSection({
                       onChange={(e) =>
                         onRecipientDataChange({ ...recipientData, phone: e.target.value })
                       }
-                      className="h-12 rounded-xl border-[#1a6e2e]/20 focus:ring-[#1a6e2e] focus:border-[#1a6e2e] text-sm pr-10"
+                      className="h-11 rounded-xl bg-white border-emerald-200 focus:ring-[#0d4d29] focus:border-[#0d4d29] text-sm font-medium pr-10"
                     />
                     <Contact2
                       size={18}
@@ -161,7 +161,7 @@ const CheckoutAddressSection = React.memo(function CheckoutAddressSection({
 
               <Button
                 onClick={onSaveRecipient}
-                className="w-full h-12 bg-[#1a6e2e] text-white font-bold rounded-xl border border-transparent">
+                className="w-full h-11 bg-[#0d4d29] hover:bg-[#0a3f22] text-white font-[1000] uppercase tracking-wider text-xs rounded-xl shadow-sm">
                 Save address
               </Button>
             </div>
@@ -170,37 +170,40 @@ const CheckoutAddressSection = React.memo(function CheckoutAddressSection({
       </AnimatePresence>
 
       {/* Delivery address heading */}
-      <div className="mb-3">
-        <h3 className="font-black text-slate-800 text-base">Delivery Address</h3>
+      <div>
+        <h3 className="font-[1000] text-slate-800 text-sm md:text-base uppercase tracking-wider">
+          Delivery Address
+        </h3>
         <p className="text-xs text-slate-500">Select or edit your saved address</p>
       </div>
 
       {/* Active address card */}
-      <div className="border rounded-xl p-3 mb-3 relative cursor-pointer transition-all border-[#1a6e2e] bg-[#1a6e2e]/10">
+      <div className="border-2 rounded-2xl p-4 relative transition-all border-[#0d4d29] bg-[#edf8f0]">
         <div className="flex items-start gap-3">
-          <div className="mt-1">
-            <div className="h-5 w-5 rounded-full bg-[#1a6e2e] flex items-center justify-center border border-transparent">
-              <Check size={12} className="text-white stroke-[4]" />
+          <div className="mt-0.5">
+            <div className="h-6 w-6 rounded-full bg-[#0d4d29] flex items-center justify-center shadow-2xs">
+              <Check size={14} className="text-white stroke-[3.5]" />
             </div>
           </div>
-          <div className="flex-1">
-            <div className="flex justify-between items-start">
-              <h4 className="font-bold text-slate-800 text-sm">{displayName}</h4>
-              <div className="flex items-center gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between items-start gap-2">
+              <h4 className="font-[1000] text-slate-900 text-sm">{displayName}</h4>
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={(e) => { e.stopPropagation(); onEditAddress(); }}
-                  className="text-slate-500 text-xs font-bold hover:underline">
+                  className="text-slate-600 text-xs font-bold hover:underline">
                   Edit
                 </button>
+                <span className="text-slate-300">|</span>
                 <button
                   onClick={(e) => { e.stopPropagation(); onSelectAddress(); }}
-                  className="text-[#1a6e2e] text-xs font-bold hover:underline">
+                  className="text-[#0d4d29] text-xs font-[1000] uppercase tracking-wide hover:underline">
                   Change
                 </button>
               </div>
             </div>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">{displayPhone}</p>
-            <p className="text-xs text-slate-500 mt-1 leading-relaxed">{displayAddress}</p>
+            <p className="text-xs text-[#0d4d29] font-bold mt-0.5">{displayPhone}</p>
+            <p className="text-xs text-slate-600 mt-1 leading-relaxed">{displayAddress}</p>
           </div>
         </div>
       </div>
@@ -210,24 +213,24 @@ const CheckoutAddressSection = React.memo(function CheckoutAddressSection({
         type="button"
         onClick={onUseCurrentLocation}
         disabled={isFetchingLocation}
-        className="mt-3 w-full py-2.5 rounded-2xl border border-dashed border-[#1a6e2e]/30 text-xs font-bold text-slate-700 hover:bg-[#1a6e2e]/5 transition-colors">
-        {isFetchingLocation ? "Detecting live location..." : "Use current live location"}
+        className="w-full py-2.5 rounded-xl border border-dashed border-emerald-300 bg-white hover:bg-emerald-50/50 text-xs font-[1000] text-[#0d4d29] uppercase tracking-wider transition-colors">
+        {isFetchingLocation ? "Detecting live location..." : "📍 Use current live location"}
       </button>
 
       {/* Confirmation banner */}
-      <motion.div className="mt-3 rounded-2xl border border-[#1a6e2e]/20 bg-[#1a6e2e]/10 px-4 py-3 flex items-center gap-3">
-        <div className="h-8 w-8 rounded-full bg-[#1a6e2e] flex items-center justify-center border border-transparent">
-          <Check size={16} className="text-white stroke-[3]" />
+      <div className="rounded-2xl border border-emerald-200 bg-[#edf8f0] px-3.5 py-2.5 flex items-center gap-3">
+        <div className="h-7 w-7 rounded-full bg-[#0d4d29] flex items-center justify-center shrink-0">
+          <Check size={14} className="text-white stroke-[3.5]" />
         </div>
-        <div className="flex-1">
-          <p className="text-[13px] font-semibold text-[#1a6e2e]">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-[1000] text-[#0d4d29] uppercase tracking-wide">
             Delivery address confirmed
           </p>
-          <p className="text-[11px] font-medium text-[#1a6e2e]">
-            We&apos;ll deliver to the address you&apos;ve entered above.
+          <p className="text-[11px] font-semibold text-slate-600 truncate">
+            We&apos;ll deliver to the address selected above.
           </p>
         </div>
-      </motion.div>
+      </div>
     </motion.div>
   );
 });

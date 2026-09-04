@@ -321,6 +321,38 @@ export const LocationProvider = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Dynamic delivery ETA for the selected location.
+  //
+  // The header used to show a hard-coded "12-15 mins" regardless of where the
+  // customer was. Whenever the coordinates change we ask the server for the
+  // distance-derived promise from the nearest store that actually serves the
+  // point, and patch `time` in place — every existing `updateLocation` call
+  // site keeps working, its placeholder is simply corrected a moment later.
+  //
+  // We only touch `time`, never the coordinates, so this can never feed back
+  // into itself.
+  useEffect(() => {
+    const lat = currentLocation?.latitude;
+    const lng = currentLocation?.longitude;
+    if (typeof lat !== "number" || typeof lng !== "number") return;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    let cancelled = false;
+    customerApi
+      .getDeliveryEta(lat, lng)
+      .then((res) => {
+        if (cancelled || !res.data?.success) return;
+        const label = res.data.result?.eta?.label;
+        if (!label) return;
+        setCurrentLocation((prev) => (prev.time === label ? prev : { ...prev, time: label }));
+      })
+      .catch(() => { });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentLocation?.latitude, currentLocation?.longitude]);
+
   const locationValue = useMemo(() => ({
     currentLocation,
     savedAddresses,

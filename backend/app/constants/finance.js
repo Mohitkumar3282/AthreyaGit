@@ -77,6 +77,14 @@ export const LEDGER_TRANSACTION_TYPE = {
   // the `LedgerEntry` collection were both bypassed, leaving every
   // wallet-using customer in permanent drift between the two ledgers.
   WALLET_PAYMENT: "WALLET_PAYMENT",
+  // Wallet Cashback: emitted by `settleDeliveredOrder` when a delivered
+  // order's customer savings are converted into wallet balance, and by
+  // `reverseOrderFinanceOnCancellation` when that credit is clawed back.
+  // The platform funds cashback out of its own margin — it never touches
+  // the seller or rider payout — so the only wallet these move is the
+  // customer's.
+  CASHBACK_CREDITED: "CASHBACK_CREDITED",
+  CASHBACK_REVERSED: "CASHBACK_REVERSED",
 };
 
 export const PAYOUT_TYPE = {
@@ -151,8 +159,17 @@ export const FINANCE_AUDIT_ACTION = {
 // to make rollback trivial (env flip back). Default is OFF for production
 // safety — flip to "true" only after backfilling historical over-charges
 // (see audit PHASE 5 rollout plan).
+//
+// Wallet Cashback rollout: this now defaults to ON. The redemption promise
+// the wallet makes ("the used wallet amount is deducted from the final order
+// amount") is only true while it is on — with it off the wallet was debited
+// AND the customer was still charged the full `grandTotal`, which is a double
+// charge. Set `WALLET_REDEMPTION_REDUCES_PAYABLE=false` to fall back to the
+// legacy behaviour.
 export function isWalletRedemptionReducesPayableEnabled() {
-  return String(process.env.WALLET_REDEMPTION_REDUCES_PAYABLE || "").toLowerCase() === "true";
+  const raw = String(process.env.WALLET_REDEMPTION_REDUCES_PAYABLE || "").toLowerCase();
+  if (raw === "false" || raw === "0" || raw === "off") return false;
+  return true;
 }
 
 // Audit Phase 5 (C-2 + C-4 + H-2 + H-6 + H-7): when this flag is on, the

@@ -10,6 +10,7 @@ import {
   Building2,
   Truck,
   Wallet,
+  Coins,
   Banknote,
   Receipt,
   CircleDollarSign,
@@ -53,6 +54,7 @@ const PendingDeliveryBoys = React.lazy(
 );
 const DeliveryFunds = React.lazy(() => import("../pages/DeliveryFunds"));
 const AdminWallet = React.lazy(() => import("../pages/AdminWallet"));
+const AdminCoinWallets = React.lazy(() => import("../pages/AdminCoinWallets"));
 const WithdrawalRequests = React.lazy(
   () => import("../pages/WithdrawalRequests"),
 );
@@ -160,6 +162,12 @@ const navItems = [
   },
   { label: "Wallet", path: "/admin/wallet", icon: Wallet, color: "violet" },
   {
+    label: "Athreya Coins",
+    path: "/admin/coin-wallets",
+    icon: Coins,
+    color: "amber",
+  },
+  {
     label: "Money Requests",
     path: "/admin/withdrawals",
     icon: Banknote,
@@ -266,6 +274,7 @@ const AdminRoutes = () => {
         <Route path="/tracking" element={<FleetTracking />} />
         <Route path="/delivery-funds" element={<DeliveryFunds />} />
         <Route path="/wallet" element={<AdminWallet />} />
+        <Route path="/coin-wallets" element={<AdminCoinWallets />} />
         <Route path="/withdrawals" element={<WithdrawalRequests />} />
         <Route path="/seller-transactions" element={<SellerTransactions />} />
         <Route path="/cash-collection" element={<CashCollection />} />

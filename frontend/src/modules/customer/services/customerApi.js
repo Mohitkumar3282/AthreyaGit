@@ -8,8 +8,19 @@ export const customerApi = {
   verifyOtp: (data) => axiosInstance.post("/customer/verify-otp", data),
   getProfile: () => getWithDedupe("/customer/profile", {}, { ttl: 5000 }), // Short cache for profile
   updateProfile: (data) => axiosInstance.put("/customer/profile", data),
+  // Canonical wallet: balance + cashback summary, and the LedgerEntry-backed
+  // history (cashback credits, checkout redemptions, refunds).
+  getWallet: () => getWithDedupe("/customer/wallet", {}, { ttl: 5000 }),
+  getWalletLedger: (params) =>
+    getWithDedupe("/customer/wallet/transactions", params),
+  // Legacy Transaction-collection view, kept for older screens.
   getWalletTransactions: (params) =>
     getWithDedupe("/customer/transactions", params),
+
+  // Athreya Coins (loyalty wallet)
+  getCoins: () => getWithDedupe("/customer/coins", {}, { ttl: 5000 }),
+  getCoinTransactions: (params) =>
+    getWithDedupe("/customer/coins/transactions", params),
   getCategories: (params) =>
     getWithDedupe("/categories", params, { ttl: 60 * 1000 }), // 1 min for categories
   getProducts: (params) => getWithDedupe("/products", params),
@@ -167,6 +178,9 @@ export const customerApi = {
     axiosInstance.get("/maps/geocode", { params: { address, ...params } }),
   geocodePlaceId: (placeId, params = {}) =>
     axiosInstance.get("/maps/geocode", { params: { placeId, ...params } }),
+  // Distance-derived delivery promise for a point (nearest serving store).
+  getDeliveryEta: (lat, lng) =>
+    getWithDedupe("/maps/delivery-eta", { lat, lng }, { ttl: 5 * 60 * 1000 }),
 
   // Push (FCM) test
   testPushNotification: () => axiosInstance.post("/push/test"),

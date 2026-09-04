@@ -1,9 +1,15 @@
 import express from "express";
-import { geocodeAddressController } from "../controller/mapsController.js";
+import {
+    deliveryEtaController,
+    geocodeAddressController,
+} from "../controller/mapsController.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
 import { mapsRateLimit } from "../middleware/mapsRateLimit.js";
 import { validate } from "../middleware/validate.js";
-import { geocodeQuerySchema } from "../validation/mapsValidation.js";
+import {
+    deliveryEtaQuerySchema,
+    geocodeQuerySchema,
+} from "../validation/mapsValidation.js";
 
 const router = express.Router();
 
@@ -18,6 +24,17 @@ router.get(
     mapsRateLimit,
     validate(geocodeQuerySchema, "query"),
     geocodeAddressController,
+);
+
+// Distance-derived delivery promise for a point. Public on purpose: the
+// location header shows an ETA before the customer signs in, and unlike
+// /geocode this route touches no paid third-party API — only our own store
+// index — so there is no key to abuse. Still rate-limited.
+router.get(
+    "/delivery-eta",
+    mapsRateLimit,
+    validate(deliveryEtaQuerySchema, "query"),
+    deliveryEtaController,
 );
 
 export default router;

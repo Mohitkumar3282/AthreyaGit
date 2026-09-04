@@ -15,10 +15,17 @@ import { createFinanceAuditLog } from "./auditLogService.js";
 import {
   creditWallet,
   debitWallet,
+  getCustomerBalance,
   getOrCreateWallet,
   updateCashInHand,
 } from "./walletService.js";
 import { createPendingPayoutForOrder } from "./payoutService.js";
+import { creditCoins, debitCoins, getCoinBalance } from "../coinsService.js";
+import { COIN_TRANSACTION_TYPE } from "../../constants/coins.js";
+import {
+  computeCashbackForSavings,
+  resolveSavingsBase,
+} from "../walletCashbackService.js";
 
 function toOrderIdQuery(orderOrId) {
   if (!orderOrId) return null;
@@ -591,6 +598,71 @@ export async function settleDeliveredOrder(orderOrId, { actorId = null } = {}) {
     await createPendingRiderPayout(order, { session, actorId });
     await creditAdminEarning(order, { session, actorId });
 
+    // Wallet Cashback: the retention loop pays out here, on delivery, so a
+    // place-then-cancel loop cannot mint balance. The amount was frozen at
+    // placement; orders placed before this feature shipped have no
+    // `cashback` sub-doc, so we fall back to computing it from the frozen
+    // payment breakdown rather than silently paying them nothing.
+    //
+    // `order.cashback.credited` is the idempotency guard, and it is written
+    // in the same transaction as the wallet movement. That matters because
+    // `creditWallet` mutates the wallet BEFORE the ledger row is inserted —
+    // relying on the ledger's unique idempotency key alone would let a
+    // replay double-credit the balance and then swallow the duplicate row.
+    const cashbackAmount = roundCurrency(
+      order.cashback?.amount ??
+        computeCashbackForSavings(resolveSavingsBase(order)),
+    );
+    if (cashbackAmount > 0 && !order.cashback?.credited) {
+      await creditWallet({
+        ownerType: OWNER_TYPE.CUSTOMER,
+        ownerId: order.customer,
+        amount: cashbackAmount,
+        bucket: "available",
+        session,
+        ledgerType: LEDGER_TRANSACTION_TYPE.CASHBACK_CREDITED,
+        ledgerReference: order.orderId,
+        ledgerDescription: "Wallet cashback on delivered order",
+        idempotencyKey: `CASHBACK-${order.orderId}`,
+        orderId: order._id,
+        metadata: {
+          savingsBase: Number(order.cashback?.savingsBase || 0),
+          ratePercent: Number(order.cashback?.ratePercent || 0),
+        },
+      });
+      order.cashback = {
+        ...(order.cashback?.toObject?.() || order.cashback || {}),
+        amount: cashbackAmount,
+        credited: true,
+        creditedAt: new Date(),
+      };
+    }
+
+    // Athreya Coins: the loyalty grant frozen at placement lands now, on
+    // delivery — that is what keeps a place-then-cancel loop from minting
+    // coins. The idempotency key makes a replayed settlement a no-op even
+    // if the `earnedCredited` flag write were somehow lost.
+    const coinsToCredit = Math.max(0, Math.floor(Number(order.coins?.earned || 0)));
+    if (coinsToCredit > 0 && !order.coins?.earnedCredited) {
+      await creditCoins({
+        customerId: order.customer,
+        coins: coinsToCredit,
+        type: COIN_TRANSACTION_TYPE.EARN,
+        description: "Athreya Coins earned on delivered order",
+        order: order._id,
+        orderId: order.orderId,
+        checkoutGroupId: order.checkoutGroupId || null,
+        idempotencyKey: `COIN-EARN-ORDER-${order.orderId}`,
+        meta: { savingsBase: Number(order.coins?.savingsBase || 0) },
+        session,
+      });
+      order.coins = {
+        ...(order.coins?.toObject?.() || order.coins || {}),
+        earnedCredited: true,
+        earnedCreditedAt: new Date(),
+      };
+    }
+
     order.financeFlags = {
       ...(order.financeFlags || {}),
       deliveredSettlementApplied: true,
@@ -828,6 +900,92 @@ export async function reverseOrderFinanceOnCancellation(
         },
         { session },
       );
+    }
+
+    // Wallet Cashback: if this order already paid out (i.e. it was delivered
+    // and then reversed), take the credit back. We claw back only what the
+    // balance can still cover — the customer may already have spent it, and
+    // holding up a refund over a ₹1 cashback would be the wrong trade. The
+    // shortfall is recorded in the ledger metadata for reconciliation.
+    if (order.cashback?.credited && !order.cashback?.reversed) {
+      const creditedCashback = roundCurrency(order.cashback.amount || 0);
+      const customerBalance = await getCustomerBalance(order.customer, { session });
+      const clawback = roundCurrency(
+        Math.min(creditedCashback, Math.max(0, customerBalance)),
+      );
+      if (clawback > 0) {
+        await debitWallet({
+          ownerType: OWNER_TYPE.CUSTOMER,
+          ownerId: order.customer,
+          amount: clawback,
+          bucket: "available",
+          session,
+          ledgerType: LEDGER_TRANSACTION_TYPE.CASHBACK_REVERSED,
+          ledgerReference: order.orderId,
+          ledgerDescription: `Wallet cashback reversed: ${reason}`,
+          idempotencyKey: `CASHBACK-REV-${order.orderId}`,
+          orderId: order._id,
+          metadata: {
+            creditedAmount: creditedCashback,
+            shortfall: roundCurrency(creditedCashback - clawback),
+          },
+        });
+      }
+      order.cashback = {
+        ...(order.cashback?.toObject?.() || order.cashback || {}),
+        credited: false,
+        reversed: true,
+      };
+    }
+
+    // Athreya Coins: hand back whatever the customer spent on this order.
+    // Coins earned are normally still uncredited at cancellation time (they
+    // land on delivery), so there is nothing to claw back in the default
+    // configuration; when the platform credits at placement we claw back
+    // only what the balance can still cover, since the customer may already
+    // have spent them elsewhere and blocking the refund over loyalty points
+    // would be the wrong trade.
+    const coinsSpent = Math.max(0, Math.floor(Number(order.coins?.redeemed || 0)));
+    if (coinsSpent > 0 && !order.coins?.redeemedReversed) {
+      await creditCoins({
+        customerId: order.customer,
+        coins: coinsSpent,
+        type: COIN_TRANSACTION_TYPE.REVERSAL,
+        description: `Athreya Coins returned: ${reason}`,
+        order: order._id,
+        orderId: order.orderId,
+        checkoutGroupId: order.checkoutGroupId || null,
+        idempotencyKey: `COIN-REVERSAL-${order.orderId}`,
+        session,
+      });
+      order.coins = {
+        ...(order.coins?.toObject?.() || order.coins || {}),
+        redeemedReversed: true,
+      };
+    }
+
+    if (order.coins?.earnedCredited && Number(order.coins?.earned || 0) > 0) {
+      const currentCoinBalance = await getCoinBalance(order.customer, { session });
+      const clawback = Math.min(
+        Math.floor(Number(order.coins.earned || 0)),
+        Math.max(0, currentCoinBalance),
+      );
+      if (clawback > 0) {
+        await debitCoins({
+          customerId: order.customer,
+          coins: clawback,
+          type: COIN_TRANSACTION_TYPE.EXPIRY,
+          description: `Athreya Coins reclaimed: ${reason}`,
+          order: order._id,
+          orderId: order.orderId,
+          idempotencyKey: `COIN-CLAWBACK-${order.orderId}`,
+          session,
+        });
+      }
+      order.coins = {
+        ...(order.coins?.toObject?.() || order.coins || {}),
+        earnedCredited: false,
+      };
     }
 
     order.settlementStatus = {

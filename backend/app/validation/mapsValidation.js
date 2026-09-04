@@ -21,6 +21,15 @@ export const geocodeQuerySchema = Joi.object({
   country: trimmedString.length(2).uppercase().optional(),
 }).or("address", "placeId");
 
+/**
+ * Query schema for `/maps/delivery-eta` — the distance-derived delivery
+ * promise shown in the location header before a cart even exists.
+ */
+export const deliveryEtaQuerySchema = Joi.object({
+  lat: latitude.required(),
+  lng: longitude.required(),
+});
+
 /** Query schema for `/maps/reverse-geocode`. */
 export const reverseGeocodeQuerySchema = Joi.object({
   lat: latitude.required(),

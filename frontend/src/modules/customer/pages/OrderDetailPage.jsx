@@ -8,7 +8,10 @@ import DeliveryOtpDisplay from "../components/DeliveryOtpDisplay";
 import OrderProgressTracker from "../components/order/OrderProgressTracker";
 import ReturnProgressTracker from "../components/order/ReturnProgressTracker";
 import CancellationProgressTracker from "../components/order/CancellationProgressTracker";
+import CoinsEarnedModal from "../components/CoinsEarnedModal";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
+import deliveryBagImg from "@/assets/coins/delivery_bag.jpg";
+import piggyBankImg from "@/assets/coins/piggy_bank.jpg";
 import {
   ChevronLeft,
   Package,
@@ -27,6 +30,8 @@ import {
   Store,
   Navigation2,
   Camera,
+  Coins,
+  Wallet,
   X,
 } from "lucide-react";
 import { customerApi } from "../services/customerApi";
@@ -156,6 +161,7 @@ const OrderDetailPage = () => {
   const [returnImagePreviews, setReturnImagePreviews] = useState([]);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [returnEligibility, setReturnEligibility] = useState({ eligible: false });
+  const [showCoinsEarnedModal, setShowCoinsEarnedModal] = useState(false);
   const fileInputRef = useRef(null);
 
   const [cancellationDetails, setCancellationDetails] = useState(null);
@@ -651,6 +657,19 @@ const OrderDetailPage = () => {
     return !!returnEligibility?.eligible;
   };
 
+  // Per-line MRP and savings, read from the frozen payment breakdown rather
+  // than the live catalog — so an order always shows the prices it was
+  // actually charged at, even after the product is repriced.
+  const lineItemAt = (index) => {
+    const lines = order?.paymentBreakdown?.lineItems;
+    return Array.isArray(lines) ? lines[index] : null;
+  };
+  const lineMrpFor = (index) => {
+    const line = lineItemAt(index);
+    return Number(line?.unitMrp ?? line?.unitPrice ?? 0);
+  };
+  const lineSavingsFor = (index) => Number(lineItemAt(index)?.lineSavings || 0);
+
   const canCancelDirectly = () => {
     return order && order.status !== "delivered" && order.status !== "cancelled";
   };
@@ -824,12 +843,26 @@ const OrderDetailPage = () => {
     }
   };
 
+  let totalSavingsOnOrder = 0;
+  if (order?.coins?.savingsBase) {
+    totalSavingsOnOrder = Number(order.coins.savingsBase);
+  } else if (order?.items) {
+    let itemsSaving = 0;
+    order.items.forEach((item) => {
+      const mrp = Number(item.mrp || item.originalPrice || item.price || 0);
+      const price = Number(item.price || 0);
+      const diff = Math.max(0, mrp - price);
+      itemsSaving += diff * Number(item.quantity || 1);
+    });
+    totalSavingsOnOrder = itemsSaving + Number(order.pricing?.discount || 0);
+  }
+
   if (!order) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-white">
         <Package size={64} className="text-slate-300 mb-4" />
         <h3 className="text-lg font-bold text-slate-800">Order not found</h3>
-        <Link to="/orders" className="text-[#1a6e2e] font-bold mt-4 hover:opacity-80">
+        <Link to="/orders" className="text-[#0d4d29] font-bold mt-4 hover:opacity-80">
           Back to my orders
         </Link>
       </div>
@@ -838,23 +871,65 @@ const OrderDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-white pb-24 font-sans">
-      {/* Minimal Header */}
-      <div className="bg-white/80  sticky top-0 z-30 px-4 py-3 flex items-center justify-between border-b border-slate-100">
+      {/* Coins Earned Modal */}
+      <CoinsEarnedModal
+        isOpen={showCoinsEarnedModal}
+        onClose={() => setShowCoinsEarnedModal(false)}
+        savingsAmount={totalSavingsOnOrder}
+        coinsEarned={order.coins?.earned || Math.floor(totalSavingsOnOrder)}
+        rupeeValue={order.coins?.earned ? order.coins.earned / 100 : totalSavingsOnOrder / 100}
+      />
+
+      {/* Dark Green Header matching Screen 1 */}
+      <div className="bg-[#0d4d29] text-white sticky top-0 z-30 px-4 py-3.5 flex items-center justify-between shadow-md">
         <button
           type="button"
           onClick={handleBack}
-          className="p-2 -ml-2 rounded-full hover:bg-slate-100 transition-colors"
+          className="w-10 h-10 -ml-2 rounded-full flex items-center justify-center hover:bg-white/15 active:scale-95 transition-all text-white"
+          aria-label="Back"
         >
-          <ChevronLeft size={24} className="text-slate-800" />
+          <ChevronLeft size={24} />
         </button>
         <div className="flex-1 text-center">
-          <h1 className="text-base font-bold text-slate-800">Order</h1>
-          <p className="text-xs text-slate-500 font-medium">#{order.orderId.slice(-8)}</p>
+          <h1 className="text-base font-[1000] tracking-widest uppercase text-white">ORDER SUMMARY</h1>
+          <p className="text-[10px] font-bold text-emerald-200">#{order.orderId.slice(-8)}</p>
         </div>
-        <div className="w-10" />
+        <div className="w-8" />
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
+        {/* Status Card matching Screen 1 */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-3xl p-4 md:p-5 border-2 border-emerald-100/80 shadow-xs flex items-center justify-between gap-3"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="h-11 w-11 rounded-full bg-[#0d4d29] text-white flex items-center justify-center shrink-0 shadow-sm">
+              <CheckCircle size={24} className="text-white fill-[#0d4d29]" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="font-[1000] text-slate-800 text-sm md:text-base leading-tight">
+                {status === "delivered"
+                  ? "Order Delivered Successfully!"
+                  : status === "cancelled"
+                  ? "Order Cancelled"
+                  : "Order Placed Successfully!"}
+              </h3>
+              <p className="text-[11px] font-semibold text-slate-500 mt-0.5 truncate">
+                Thank you for choosing Athreya Delivery
+              </p>
+            </div>
+          </div>
+
+          <div className="h-14 w-14 md:h-16 md:w-16 shrink-0 rounded-2xl overflow-hidden bg-amber-50 p-1 border border-amber-200 shadow-2xs">
+            <img
+              src={deliveryBagImg}
+              alt="Athreya Delivery Bag"
+              className="h-full w-full object-contain"
+            />
+          </div>
+        </motion.div>
         {/* Payment Required Card - Only for Online Pending Orders */}
         {isAwaitingOnlinePayment && (
           <motion.div
@@ -1114,100 +1189,246 @@ const OrderDetailPage = () => {
             </>
           ) : (
             <>
-              <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <Package size={18} className="text-slate-400" />
-                Order Items
-              </h3>
-              <div className="space-y-3">
-                {order.items.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 transition-colors"
-                  >
-                    <div className="h-14 w-14 bg-slate-50 rounded-xl overflow-hidden flex-shrink-0 border border-slate-100">
-                      <img
-                        src={applyCloudinaryTransform(item.image)}
-                        alt={item.name}
-                        loading="lazy"
-                        className="h-full w-full object-cover"
-                      />
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
+                <h3 className="text-sm md:text-base font-[1000] text-slate-800 tracking-wider uppercase flex items-center gap-2">
+                  <Package size={18} className="text-[#0d4d29]" />
+                  ITEMS ORDERED
+                </h3>
+                <span className="text-xs font-bold text-[#0d4d29] bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                  {order.items?.reduce((acc, i) => acc + (Number(i.quantity) || 1), 0) || 0} Items
+                </span>
+              </div>
+
+              {/* Table Column Headers matching Screen 1 */}
+              <div className="grid grid-cols-12 gap-2 text-[11px] font-black uppercase tracking-wider text-slate-500 px-1 border-b border-slate-100 pb-2">
+                <div className="col-span-5 md:col-span-6">Item</div>
+                <div className="col-span-2 text-right">M.R.P.</div>
+                <div className="col-span-3 md:col-span-2 text-right">Our Price</div>
+                <div className="col-span-2 text-right text-[#0d4d29]">You Save</div>
+              </div>
+
+              {/* Items Table Rows */}
+              <div className="divide-y divide-slate-100">
+                {order.items?.map((item, idx) => {
+                  const qty = Math.max(1, Number(item.quantity || 1));
+                  const unitMrp = Number(item.mrp || item.originalPrice || item.price || 0);
+                  const unitPrice = Number(item.price || 0);
+                  const unitSaving = Math.max(0, unitMrp - unitPrice);
+                  const totalMrp = (unitMrp * qty).toFixed(2);
+                  const totalPrice = (unitPrice * qty).toFixed(2);
+                  const totalSaving = (unitSaving * qty).toFixed(2);
+
+                  return (
+                    <div
+                      key={idx}
+                      className="grid grid-cols-12 gap-2 items-center py-3 px-1 hover:bg-slate-50/70 transition-colors rounded-xl"
+                    >
+                      <div className="col-span-5 md:col-span-6 flex items-center gap-2.5 min-w-0">
+                        <div className="h-11 w-11 rounded-xl bg-slate-100 overflow-hidden shrink-0 border border-slate-200">
+                          <img
+                            src={applyCloudinaryTransform(item.image)}
+                            alt={item.name}
+                            loading="lazy"
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-slate-800 text-xs md:text-sm truncate">
+                            {item.name}
+                          </h4>
+                          <p className="text-[10px] font-semibold text-slate-400">
+                            Qty: {item.quantity} {item.unit ? `· ${item.unit}` : ""}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="col-span-2 text-right">
+                        <span className="text-xs md:text-sm font-semibold text-slate-400 line-through">
+                          ₹{totalMrp}
+                        </span>
+                      </div>
+
+                      <div className="col-span-3 md:col-span-2 text-right">
+                        <span className="text-xs md:text-sm font-black text-slate-800">
+                          ₹{totalPrice}
+                        </span>
+                      </div>
+
+                      <div className="col-span-2 text-right">
+                        <span className="text-xs md:text-sm font-black text-[#0d4d29]">
+                          {Number(totalSaving) > 0 ? `₹${totalSaving}` : "—"}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-slate-800 text-sm mb-0.5 truncate">
-                        {item.name}
-                      </h4>
-                      <p className="text-slate-500 text-xs font-medium">
-                        Qty: {item.quantity}
-                      </p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="font-bold text-slate-900">
-                        ₹{item.price * item.quantity}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </>
           )}
         </motion.div>
 
-        {/* Bill Summary - Cleaner Design */}
+        {/* Bill Summary matching Screen 1 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-3xl p-5 border border-[#1a6e2e]/20"
+          className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-xs space-y-4"
         >
-          <h3 className="text-base font-bold text-slate-800 mb-4">Bill Summary</h3>
-          <div className="space-y-2.5 text-sm">
-            <div className="flex justify-between text-slate-600">
-              <span>Item Total</span>
-              <span className="font-semibold">₹{order.pricing.subtotal}</span>
+          <h3 className="text-base font-[1000] text-slate-800 uppercase tracking-tight border-b border-slate-100 pb-2">
+            Bill Summary
+          </h3>
+          <div className="space-y-2.5 text-xs md:text-sm">
+            <div className="flex justify-between text-slate-600 font-semibold px-1">
+              <span>Subtotal</span>
+              <span className="font-bold text-slate-800">₹{Number(order.pricing.subtotal || 0).toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-slate-600">
+            <div className="flex justify-between text-slate-600 font-semibold px-1">
               <span>Delivery Fee</span>
               <span
                 className={
-                  order.pricing.deliveryFee === 0 ? "text-[#1a6e2e] font-bold" : "font-semibold"
+                  order.pricing.deliveryFee === 0 ? "text-[#0d4d29] font-[1000]" : "font-bold text-slate-800"
                 }>
                 {order.pricing.deliveryFee === 0
                   ? "FREE"
-                  : `₹${order.pricing.deliveryFee}`}
+                  : `₹${Number(order.pricing.deliveryFee).toFixed(2)}`}
               </span>
             </div>
-            {order.pricing.tip > 0 && (
-              <div className="flex justify-between text-slate-600">
-                <span>Tip</span>
-                <span className="font-semibold">₹{order.pricing.tip}</span>
+            {Number(order.pricing.platformFee || 0) > 0 && (
+              <div className="flex justify-between text-slate-600 font-semibold px-1">
+                <span>Platform Fee</span>
+                <span className="font-bold text-slate-800">₹{Number(order.pricing.platformFee).toFixed(2)}</span>
               </div>
             )}
-            <div className="border-t border-slate-100 mt-3 pt-3 flex justify-between items-center">
-              <span className="text-base font-bold text-slate-900">
-                Total Amount
+            {Number(order.pricing.gst || 0) > 0 && (
+              <div className="flex justify-between text-slate-600 font-semibold px-1">
+                <span>Taxes &amp; Other Charges</span>
+                <span className="font-bold text-slate-800">₹{Number(order.pricing.gst).toFixed(2)}</span>
+              </div>
+            )}
+            {Number(order.pricing.discount || 0) > 0 && (
+              <div className="flex justify-between text-[#0d4d29] font-semibold px-1">
+                <span>Coupon Discount</span>
+                <span className="font-bold">-₹{Number(order.pricing.discount).toFixed(2)}</span>
+              </div>
+            )}
+            {Number(order.pricing.tip || 0) > 0 && (
+              <div className="flex justify-between text-slate-600 font-semibold px-1">
+                <span>Delivery Partner Tip</span>
+                <span className="font-bold text-slate-800">₹{Number(order.pricing.tip).toFixed(2)}</span>
+              </div>
+            )}
+            {Number(order.pricing?.walletAmount || 0) > 0 && (
+              <div className="flex justify-between text-[#0d4d29] font-semibold px-1">
+                <span>Wallet Balance Used</span>
+                <span className="font-bold">
+                  -₹{Number(order.pricing.walletAmount).toFixed(2)}
+                </span>
+              </div>
+            )}
+            {Number(order.coins?.redeemed || 0) > 0 && (
+              <div className="flex justify-between text-[#0d4d29] font-semibold px-1">
+                <span>Athreya Coins ({order.coins.redeemed.toLocaleString('en-IN')})</span>
+                <span className="font-bold">
+                  -₹{Number(order.coins.redeemedValue).toFixed(2)}
+                </span>
+              </div>
+            )}
+            <div className="border-t border-slate-200 mt-3 pt-3 flex justify-between items-center px-1">
+              <span className="text-base font-[1000] text-slate-900 uppercase">
+                Total Paid
               </span>
-              <span className="text-xl font-black text-[#1a6e2e]">
-                ₹{order.pricing.total}
+              <span className="text-2xl font-[1000] text-slate-900">
+                ₹{Number(order.pricing.total || 0).toFixed(2)}
               </span>
             </div>
           </div>
+        </motion.div>
 
-          {/* Payment Method */}
-          <div className="mt-4 bg-slate-50 rounded-2xl p-3.5 flex items-center justify-between">
+        {/* SAVED MONEY ON THIS ORDER Card matching Screen 1 */}
+        {totalSavingsOnOrder > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.32 }}
+            className="rounded-3xl bg-[#fefce8] border-2 border-[#fef08a] p-4 md:p-5 flex items-center justify-between gap-4 shadow-sm relative overflow-hidden"
+          >
+            <div className="space-y-1 z-10 min-w-0">
+              <div className="inline-flex items-center gap-1.5 bg-[#fde047]/60 px-2.5 py-1 rounded-full text-[10px] font-[1000] text-amber-900 uppercase tracking-wider">
+                <span className="h-3.5 w-3.5 rounded-full bg-amber-500 text-white flex items-center justify-center text-[9px]">
+                  ✓
+                </span>
+                <span>SAVED MONEY ON THIS ORDER</span>
+              </div>
+
+              <div className="text-3xl md:text-4xl font-[1000] text-[#0d592e] tracking-tight pt-1">
+                ₹{totalSavingsOnOrder.toFixed(2)}
+              </div>
+
+              <p className="text-xs font-bold text-amber-950/80">
+                Great! You saved ₹{Math.round(totalSavingsOnOrder)} on this order.
+              </p>
+            </div>
+
+            <div className="h-20 w-20 md:h-24 md:w-24 shrink-0 rounded-2xl overflow-hidden bg-white/70 p-1.5 shadow-sm border border-amber-200">
+              <img
+                src={piggyBankImg}
+                alt="Savings Piggy Bank"
+                className="h-full w-full object-contain"
+              />
+            </div>
+          </motion.div>
+        )}
+
+        {/* COINS EARNED Interactive Card matching Screen 2 trigger */}
+        {order.coins?.earned > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            onClick={() => setShowCoinsEarnedModal(true)}
+            className="rounded-3xl bg-gradient-to-r from-[#edf8f0] to-[#f6faf7] border-2 border-[#bbf7d0] p-4 md:p-5 flex items-center justify-between gap-4 shadow-sm cursor-pointer hover:border-emerald-400 transition-all group"
+          >
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 bg-white rounded-xl flex items-center justify-center border border-[#1a6e2e]/20">
-                <CreditCard size={18} className="text-slate-700" />
+              <div className="h-12 w-12 rounded-full bg-[#0d592e] text-white flex items-center justify-center shadow-sm shrink-0">
+                <CheckCircle size={26} className="text-white fill-[#0d4d29]" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  Payment
-                </p>
-                <p className="text-sm font-bold text-slate-900">
-                  {order.payment.method === "cash"
-                    ? "Cash on Delivery"
-                    : order.payment.method}
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider">You Earned</p>
+                <h4 className="text-xl font-[1000] text-[#0d592e] leading-tight">
+                  {order.coins.earned.toLocaleString("en-IN")} Coins
+                </h4>
+                <p className="text-xs font-bold text-slate-500">
+                  (₹{(order.coins.earned / 100).toFixed(2)} Added to Wallet)
                 </p>
               </div>
+            </div>
+
+            <div className="flex items-center gap-1 text-xs font-black text-[#0d592e] bg-white px-3 py-2 rounded-xl border border-emerald-200 shadow-2xs group-hover:bg-[#0d592e] group-hover:text-white transition-colors shrink-0">
+              <span>View Breakdown</span>
+              <ArrowRight size={14} />
+            </div>
+          </motion.div>
+        )}
+
+        {/* Payment Method */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.34 }}
+          className="bg-slate-50 rounded-2xl p-3.5 flex items-center justify-between border border-slate-200/80">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 bg-white rounded-xl flex items-center justify-center border border-[#0d4d29]/20 shadow-2xs">
+              <CreditCard size={18} className="text-slate-700" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                Payment
+              </p>
+              <p className="text-sm font-bold text-slate-900">
+                {order.payment.method === "cash"
+                  ? "Cash on Delivery"
+                  : order.payment.method}
+              </p>
             </div>
           </div>
         </motion.div>

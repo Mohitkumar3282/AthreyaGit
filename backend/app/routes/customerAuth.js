@@ -6,6 +6,10 @@ import {
     getCustomerProfile,
     updateCustomerProfile,
     getCustomerTransactions,
+    getCustomerCoins,
+    getCustomerCoinTransactions,
+    getCustomerWallet,
+    getCustomerWalletTransactions,
 } from "../controller/customerAuthController.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
 import {
@@ -28,6 +32,15 @@ router.get("/profile", verifyToken, getCustomerProfile);
 router.put("/profile", verifyToken, updateCustomerProfile);
 
 // Wallet
+// `/transactions` is the legacy Transaction-collection view, kept for older
+// clients. `/wallet` + `/wallet/transactions` read the canonical Wallet and
+// LedgerEntry records, so cashback credits and checkout redemptions show up.
 router.get("/transactions", verifyToken, getCustomerTransactions);
+router.get("/wallet", verifyToken, getCustomerWallet);
+router.get("/wallet/transactions", verifyToken, getCustomerWalletTransactions);
+
+// Athreya Coins
+router.get("/coins", verifyToken, getCustomerCoins);
+router.get("/coins/transactions", verifyToken, getCustomerCoinTransactions);
 
 export default router;

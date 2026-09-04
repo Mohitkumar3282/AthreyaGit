@@ -12,6 +12,17 @@ import {
   hydrateOrderItems,
 } from "./finance/pricingService.js";
 import { computeOrderDiscount } from "./finance/couponService.js";
+import {
+  computeCoinsForSavings,
+  computeRedeemableCoins,
+  getCoinBalance,
+  getCoinSettings,
+} from "./coinsService.js";
+import { estimateDeliveryEta } from "./deliveryEtaService.js";
+import {
+  computeCashbackForSavings,
+  getCashbackSettings,
+} from "./walletCashbackService.js";
 
 function normalizeLocation(location = null) {
   const lat = Number(location?.lat);
@@ -87,6 +98,12 @@ function buildAggregateBreakdown(sellerBreakdowns = []) {
   const aggregate = {
     currency: sellerBreakdowns[0]?.currency || "INR",
     productSubtotal: sumField(sellerBreakdowns, "productSubtotal"),
+    // Athreya Coins: MRP-vs-paid savings, and the coin redemption applied
+    // to this checkout (`coinsRedeemed` is a coin count, `coinsDiscount`
+    // is the rupee value it bought).
+    productSavings: sumField(sellerBreakdowns, "productSavings"),
+    coinsRedeemed: sumField(sellerBreakdowns, "coinsRedeemed"),
+    coinsDiscount: sumField(sellerBreakdowns, "coinsDiscount"),
     deliveryFeeCharged: sumField(sellerBreakdowns, "deliveryFeeCharged"),
     handlingFeeCharged: sumField(sellerBreakdowns, "handlingFeeCharged"),
     tipTotal: sumField(sellerBreakdowns, "tipTotal"),
@@ -357,6 +374,82 @@ function applyWalletAllocationToSellerBreakdowns(
   });
 }
 
+// Athreya Coins: spend redeemed coins across the checkout the same way the
+// wallet allocator does — proportionate to each seller's post-wallet
+// grandTotal, with the last seller absorbing the rounding remainder so the
+// per-seller allocations always sum back to the checkout-level discount.
+//
+// Unlike the wallet path there is no legacy behaviour to preserve, so this
+// always reduces the payable. The rider and seller payouts are untouched:
+// the platform absorbs a coin redemption exactly like a coupon discount,
+// which is why only `platformLogisticsMargin` / `platformTotalEarning` move.
+function applyCoinsRedemptionToSellerBreakdowns(
+  sellerBreakdownEntries = [],
+  totalCoinsDiscount = 0,
+  totalCoinsRedeemed = 0,
+) {
+  for (const entry of sellerBreakdownEntries) {
+    if (!entry?.breakdown) continue;
+    entry.breakdown.coinsRedeemed = 0;
+    entry.breakdown.coinsDiscount = 0;
+  }
+
+  const normalizedDiscount = round2(totalCoinsDiscount);
+  if (
+    !Number.isFinite(normalizedDiscount) ||
+    normalizedDiscount <= 0 ||
+    sellerBreakdownEntries.length === 0
+  ) {
+    return;
+  }
+
+  const totalBase = sellerBreakdownEntries.reduce(
+    (sum, entry) => sum + Number(entry?.breakdown?.grandTotal || 0),
+    0,
+  );
+  const cappedDiscount = Math.min(normalizedDiscount, round2(totalBase));
+  if (cappedDiscount <= 0) return;
+
+  const coinCount = Math.max(0, Math.floor(Number(totalCoinsRedeemed || 0)));
+  let allocatedDiscount = 0;
+  let allocatedCoins = 0;
+
+  sellerBreakdownEntries.forEach((entry, index) => {
+    const breakdown = entry?.breakdown;
+    if (!breakdown) return;
+
+    const grandTotal = Number(breakdown.grandTotal || 0);
+    const isLast = index === sellerBreakdownEntries.length - 1;
+
+    let allocation;
+    let coins;
+    if (isLast) {
+      allocation = round2(cappedDiscount - allocatedDiscount);
+      coins = coinCount - allocatedCoins;
+    } else if (totalBase > 0) {
+      allocation = round2((grandTotal / totalBase) * cappedDiscount);
+      coins = Math.round((grandTotal / totalBase) * coinCount);
+      allocatedDiscount = round2(allocatedDiscount + allocation);
+      allocatedCoins += coins;
+    } else {
+      allocation = 0;
+      coins = 0;
+    }
+    allocation = Math.max(0, Math.min(allocation, grandTotal));
+
+    breakdown.coinsRedeemed = Math.max(0, coins);
+    breakdown.coinsDiscount = allocation;
+    breakdown.grandTotal = round2(grandTotal - allocation);
+    breakdown.payableAmount = breakdown.grandTotal;
+    breakdown.platformLogisticsMargin = round2(
+      Number(breakdown.platformLogisticsMargin || 0) - allocation,
+    );
+    breakdown.platformTotalEarning = round2(
+      Number(breakdown.platformTotalEarning || 0) - allocation,
+    );
+  });
+}
+
 export async function buildCheckoutPricingSnapshot({
   orderItems = [],
   address = {},
@@ -380,6 +473,12 @@ export async function buildCheckoutPricingSnapshot({
   // every Order document for audit and per-user usage counting.
   couponCode = null,
   couponId = null,
+  // Athreya Coins redemption requested by the customer, in COINS (not
+  // rupees). The value is treated as a request, never as truth: the
+  // authoritative balance is re-read server-side from `CoinWallet` and the
+  // request is clamped by `computeRedeemableCoins` against the live balance,
+  // the `minRedeemCoins` floor and the `maxRedeemPercentOfOrder` ceiling.
+  coinsRedeem = 0,
   customerId = null,
   session = null,
 }) {
@@ -486,6 +585,37 @@ export async function buildCheckoutPricingSnapshot({
   // grandTotal proportionate to their share. No-op when the flag is off.
   applyWalletAllocationToSellerBreakdowns(sellerBreakdownEntries, walletAmount);
 
+  // Athreya Coins redemption runs LAST so it clamps against the true
+  // remaining payable (post handling, free-delivery, tip and wallet).
+  const coinSettings = await getCoinSettings({ session });
+  const requestedCoins = Math.max(0, Math.floor(Number(coinsRedeem) || 0));
+  let coinsApplied = { coins: 0, rupeeValue: 0, cappedBy: null };
+  let coinBalance = 0;
+
+  if (coinSettings.enabled && customerId) {
+    coinBalance = await getCoinBalance(customerId, { session });
+    if (requestedCoins > 0) {
+      const payableBeforeCoins = round2(
+        sellerBreakdownEntries.reduce(
+          (sum, entry) => sum + Number(entry?.breakdown?.grandTotal || 0),
+          0,
+        ),
+      );
+      coinsApplied = computeRedeemableCoins({
+        requestedCoins,
+        balance: coinBalance,
+        orderAmount: payableBeforeCoins,
+        settings: coinSettings,
+      });
+    }
+  }
+
+  applyCoinsRedemptionToSellerBreakdowns(
+    sellerBreakdownEntries,
+    coinsApplied.rupeeValue,
+    coinsApplied.coins,
+  );
+
   // Final consistency pass: every breakdown should expose a `payableAmount`
   // that equals its `grandTotal`. The tip-allocation step does not touch
   // `payableAmount`, and the wallet-allocation step is a no-op when the
@@ -502,12 +632,69 @@ export async function buildCheckoutPricingSnapshot({
     sellerBreakdownEntries.map((entry) => entry.breakdown),
   );
 
+  const itemCount = hydratedItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+
+  // Dynamic ETA: quote against the FARTHEST seller in the checkout, because
+  // the customer's order is only complete once the last leg lands. Nearby
+  // addresses therefore quote a short window and distant ones a longer one,
+  // recomputed on every preview as the delivery address changes.
+  const maxDistanceKm = sellerBreakdownEntries.reduce(
+    (max, entry) => Math.max(max, Number(entry?.distanceKm || 0)),
+    0,
+  );
+  const deliveryEta = await estimateDeliveryEta({
+    distanceKm: maxDistanceKm,
+    itemCount,
+    session,
+  });
+
+  // Savings the customer realised on this order: catalog discount (MRP minus
+  // sale price) plus any coupon discount. This is the base Athreya Coins are
+  // minted from — deliberately NOT including the coins discount itself, which
+  // would let coins compound into more coins.
+  const savingsTotal = round2(
+    Number(aggregateBreakdown.productSavings || 0) + Number(aggregateBreakdown.discountTotal || 0),
+  );
+  const coinsEarned = computeCoinsForSavings(savingsTotal, coinSettings);
+
+  // Wallet Cashback: what this order will return to the customer's wallet
+  // once it is delivered. Quoted at checkout so the customer can see the
+  // retention loop before they pay; the money only moves on delivery.
+  const cashbackSettings = await getCashbackSettings({ session });
+  const cashbackEarned = computeCashbackForSavings(savingsTotal, cashbackSettings);
+
+  aggregateBreakdown.savingsTotal = savingsTotal;
+  aggregateBreakdown.coinsEarned = coinsEarned;
+  aggregateBreakdown.cashbackEarned = cashbackEarned;
+  aggregateBreakdown.deliveryEta = deliveryEta;
+
   return {
     hydratedItems,
     sellerBreakdownEntries,
     aggregateBreakdown,
     sellerCount: sellerBreakdownEntries.length,
-    itemCount: hydratedItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+    itemCount,
+    deliveryEta,
+    // Wallet Cashback the customer will receive on delivery.
+    cashback: {
+      amount: cashbackEarned,
+      savingsBase: savingsTotal,
+      ratePercent: cashbackSettings.ratePercent,
+      settings: cashbackSettings,
+    },
+    // Athreya Coins outcome for this checkout. `coins` is what the server
+    // actually accepted after clamping — the placement service debits exactly
+    // this number, so preview and place-order can never disagree.
+    coins: {
+      requested: requestedCoins,
+      redeemed: coinsApplied.coins,
+      discount: coinsApplied.rupeeValue,
+      cappedBy: coinsApplied.cappedBy || null,
+      balance: coinBalance,
+      earned: coinsEarned,
+      savingsBase: savingsTotal,
+      settings: coinSettings,
+    },
     // Audit Phase 5 (C-2 + H-6): `null` when the flag is off OR no
     // coupon was supplied. When present, callers persist this on every
     // Order document so per-user usage counts and audits replay

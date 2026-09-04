@@ -366,6 +366,18 @@ export async function hydrateOrderItems(
       ? serverUnitPrice
       : normalizeLinePrice(item.price) || serverUnitPrice;
 
+    // Athreya Coins: the loyalty grant is a percentage of the savings the
+    // customer actually realised, so we need the struck-through MRP next to
+    // the price they pay. `Math.max` guards catalog rows where `salePrice`
+    // was (incorrectly) set above `price` — those yield zero savings rather
+    // than a negative reward.
+    const serverUnitMrp = normalizeLinePrice(
+      resolvedVariant
+        ? resolvedVariant.price || resolvedVariant.salePrice || product.price || product.salePrice
+        : product.price || product.salePrice,
+    );
+    const unitMrp = Math.max(serverUnitMrp, inferredUnitPrice);
+
     return {
       productId,
       productName: item.name || product.name,
@@ -377,6 +389,8 @@ export async function hydrateOrderItems(
       variantSku: rawVariantSku || "",
       variantName: resolvedVariant ? String(resolvedVariant?.name || "").trim() : "",
       gst: product.gst || 0,
+      mrp: unitMrp,
+      lineSavings: roundCurrency(Math.max(0, unitMrp - inferredUnitPrice) * quantity),
     };
   });
 }
@@ -434,6 +448,7 @@ export async function generateOrderPaymentBreakdown({
   let productSubtotal = 0;
   let sellerPayoutTotal = 0;
   let adminProductCommissionTotal = 0;
+  let productSavings = 0;
 
   const lineItems = normalizedItems.map((item) => {
     const category = categoryById.get(String(item.headerCategoryId));
@@ -444,12 +459,15 @@ export async function generateOrderPaymentBreakdown({
       adminProductCommissionTotal,
       commission.adminCommission,
     );
+    productSavings = addMoney(productSavings, item.lineSavings || 0);
 
     return {
       productId: item.productId,
       productName: item.productName,
       quantity: item.quantity,
       unitPrice: item.price,
+      unitMrp: roundCurrency(item.mrp || item.price),
+      lineSavings: roundCurrency(item.lineSavings || 0),
       itemSubtotal: commission.itemSubtotal,
       sellerPayout: commission.sellerPayout,
       adminProductCommission: commission.adminCommission,
@@ -534,6 +552,9 @@ export async function generateOrderPaymentBreakdown({
     lineItems,
     currency: "INR",
     productSubtotal,
+    // Struck-through MRP minus paid price, summed across lines. Combined with
+    // `discountTotal` this is the savings base Athreya Coins are minted from.
+    productSavings: roundCurrency(productSavings),
     deliveryFeeCharged: delivery.deliveryFeeCharged,
     handlingFeeCharged: handling.handlingFeeCharged,
     tipTotal: normalizedTip,

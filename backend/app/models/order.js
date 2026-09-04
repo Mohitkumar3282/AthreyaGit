@@ -226,7 +226,19 @@ const orderSchema = new mongoose.Schema(
       tipTotal: { type: Number, default: 0 },
       discountTotal: { type: Number, default: 0 },
       taxTotal: { type: Number, default: 0 },
+      // Pre-wallet, pre-coins customer-payable. Produced by
+      // `generateOrderPaymentBreakdown`; persisted so a reconciliation can
+      // replay the redemption chain without recomputing pricing.
+      grossTotal: { type: Number, default: 0 },
       grandTotal: { type: Number, default: 0 },
+      // Mirror of `grandTotal` after every redemption is applied. The
+      // frontend renders this as the "To Pay" line.
+      payableAmount: { type: Number, default: 0 },
+      // Catalog savings (MRP minus paid), the base Athreya Coins are minted from.
+      productSavings: { type: Number, default: 0 },
+      // Coin redemption applied to this order.
+      coinsRedeemed: { type: Number, default: 0 },
+      coinsDiscount: { type: Number, default: 0 },
       sellerPayoutTotal: { type: Number, default: 0 },
       adminProductCommissionTotal: { type: Number, default: 0 },
       riderPayoutBase: { type: Number, default: 0 },
@@ -362,6 +374,57 @@ const orderSchema = new mongoose.Schema(
     timeSlot: {
       type: String,
       default: "now",
+    },
+    /**
+     * Delivery-time estimate frozen at placement, derived from the
+     * seller-to-address distance by `services/deliveryEtaService.js`.
+     * Frozen (rather than recomputed on read) so the promise shown on the
+     * order detail page is the promise the customer actually accepted.
+     */
+    deliveryEta: {
+      minMinutes: { type: Number, default: null },
+      maxMinutes: { type: Number, default: null },
+      label: { type: String, default: null },
+      distanceKm: { type: Number, default: null },
+      quotedAt: { type: Date, default: null },
+    },
+    /**
+     * Wallet Cashback for this order.
+     *   amount       – rupees credited (or to be credited) to the customer's
+     *                  wallet, frozen at placement from the order's savings.
+     *   savingsBase  – the savings the rate was applied to, kept so a credit
+     *                  can be audited without re-deriving pricing.
+     *   ratePercent  – the rate in effect at placement, so a later config
+     *                  change cannot rewrite history.
+     *   credited     – flipped true once the money actually lands (on
+     *                  delivery). Doubles as the idempotency guard.
+     *   reversed     – true once a cancellation clawed the credit back.
+     */
+    cashback: {
+      amount: { type: Number, default: 0 },
+      savingsBase: { type: Number, default: 0 },
+      ratePercent: { type: Number, default: 0 },
+      credited: { type: Boolean, default: false },
+      creditedAt: { type: Date, default: null },
+      reversed: { type: Boolean, default: false },
+    },
+    /**
+     * Athreya Coins for this order.
+     *   earned          – projected grant, computed from the order's savings.
+     *   earnedCredited  – flipped true once the coins actually land (on
+     *                     delivery by default, see COIN_CREDIT_TRIGGER).
+     *   redeemed        – coins spent at checkout on this order.
+     *   redeemedValue   – the rupee discount those coins bought.
+     *   redeemedReversed– true once a cancellation handed the coins back.
+     */
+    coins: {
+      earned: { type: Number, default: 0 },
+      earnedCredited: { type: Boolean, default: false },
+      earnedCreditedAt: { type: Date, default: null },
+      savingsBase: { type: Number, default: 0 },
+      redeemed: { type: Number, default: 0 },
+      redeemedValue: { type: Number, default: 0 },
+      redeemedReversed: { type: Boolean, default: false },
     },
     deliveryBoy: {
       type: mongoose.Schema.Types.ObjectId,

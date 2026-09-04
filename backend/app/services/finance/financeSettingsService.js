@@ -84,15 +84,24 @@ export async function getOrCreateFinanceSettings({ session } = {}) {
   let settings = await Setting.findOne(query, null, options);
 
   if (!settings) {
-    settings = await Setting.create(
-      {
-        ...DEFAULT_FINANCE_SETTINGS,
-        pricingMode: DEFAULT_FINANCE_SETTINGS.deliveryPricingMode,
-        baseDeliveryCharge: DEFAULT_FINANCE_SETTINGS.customerBaseDeliveryFee,
-        fleetCommissionRatePerKm: DEFAULT_FINANCE_SETTINGS.deliveryPartnerRatePerKm,
-      },
+    // The array wrapper is required: `Model.create(doc, options)` only treats
+    // the second argument as options when `doc` is an ARRAY. Passing a plain
+    // object made Mongoose read `options` as a SECOND document, so bootstrap
+    // created a duplicate (all-defaults) Setting row — which then made every
+    // later `Setting.findOne({})` ambiguous — and returned an array, so the
+    // freshly seeded values were discarded by `normalizeFinanceSettings`.
+    const created = await Setting.create(
+      [
+        {
+          ...DEFAULT_FINANCE_SETTINGS,
+          pricingMode: DEFAULT_FINANCE_SETTINGS.deliveryPricingMode,
+          baseDeliveryCharge: DEFAULT_FINANCE_SETTINGS.customerBaseDeliveryFee,
+          fleetCommissionRatePerKm: DEFAULT_FINANCE_SETTINGS.deliveryPartnerRatePerKm,
+        },
+      ],
       options,
     );
+    settings = created[0];
   }
 
   return normalizeFinanceSettings(settings.toObject?.() || settings);

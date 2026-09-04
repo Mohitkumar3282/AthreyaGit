@@ -15,6 +15,10 @@ const mockCheckoutGroupFindOne = jest.fn();
 const mockCheckoutGroupSave = jest.fn();
 const mockOrderFind = jest.fn();
 const mockTransactionCreate = jest.fn();
+const mockCreditWallet = jest.fn();
+const mockDebitWallet = jest.fn();
+const mockGetCustomerBalance = jest.fn(async () => 0);
+const mockGetOrCreateWallet = jest.fn(async () => ({ _id: "wallet-1", availableBalance: 0 }));
 const mockReserveStockForItems = jest.fn();
 const mockBuildCheckoutPricingSnapshot = jest.fn();
 const mockGenerateUniqueCheckoutGroupId = jest.fn();
@@ -139,6 +143,28 @@ jest.unstable_mockModule("../app/services/idempotencyService.js", () => ({
   releaseIdempotencyLock: mockReleaseIdempotencyLock,
   isRetryableError: jest.fn((error) => Boolean(error?.retryable)),
   validateIdempotencyKey: mockValidateIdempotencyKey,
+}));
+
+jest.unstable_mockModule("../app/models/ledgerEntry.js", () => ({
+  default: { findOne: jest.fn(async () => null) },
+}));
+
+jest.unstable_mockModule("../app/services/finance/walletService.js", () => ({
+  creditWallet: mockCreditWallet,
+  debitWallet: mockDebitWallet,
+  getCustomerBalance: mockGetCustomerBalance,
+  getOrCreateWallet: mockGetOrCreateWallet,
+}));
+
+jest.unstable_mockModule("../app/services/coinsService.js", () => ({
+  creditCoins: jest.fn(),
+  debitCoins: jest.fn(),
+  getCoinBalance: jest.fn(async () => 0),
+}));
+
+jest.unstable_mockModule("../app/services/walletCashbackService.js", () => ({
+  computeCashbackForSavings: jest.fn(() => 0),
+  resolveSavingsBase: jest.fn(() => 0),
 }));
 
 jest.unstable_mockModule("../app/services/logger.js", () => ({
@@ -394,5 +420,55 @@ describe("checkout atomic service", () => {
       ]),
       expect.objectContaining({ session: mockSession }),
     );
+  });
+
+  it("writes the wallet-redemption Transaction as an array so the session survives", async () => {
+    // Regression: `Model.create(doc, options)` only honours `options` when
+    // `doc` is an ARRAY. Passing a plain object made Mongoose treat
+    // `{ session }` as a SECOND document — which failed validation with
+    // "user/userModel/type/amount/reference is required" — and silently
+    // dropped the session, so the row escaped the checkout transaction.
+    mockCustomerFindById.mockReturnValue({
+      session: jest.fn().mockResolvedValue({
+        _id: "67f0000000000000000000c1",
+        walletBalance: 100,
+        save: jest.fn().mockResolvedValue(true),
+      }),
+    });
+    mockGetCustomerBalance.mockResolvedValue(100);
+    mockDebitWallet.mockResolvedValue({ before: 100, after: 60, wallet: { _id: "w1" } });
+
+    await placeOrderAtomic({
+      customerId: "67f0000000000000000000c1",
+      payload: {
+        items: [{ product: "p1", quantity: 1 }],
+        address: { city: "Indore" },
+        paymentMode: "ONLINE",
+        walletAmount: 40,
+      },
+      idempotencyKey: null,
+    });
+
+    const walletCall = mockTransactionCreate.mock.calls.find(([docs]) =>
+      Array.isArray(docs) && docs.some((row) => row?.type === "Wallet Payment"),
+    );
+
+    expect(walletCall).toBeTruthy();
+    const [docs, options] = walletCall;
+    // Exactly one document — never the options object masquerading as a second.
+    expect(docs).toHaveLength(1);
+    expect(docs[0]).toMatchObject({
+      user: "67f0000000000000000000c1",
+      userModel: "User",
+      type: "Wallet Payment",
+      amount: -40,
+      reference: "WLT-CHOUT-CHK-01JSRTEST0000000000000000",
+    });
+    // Every field the Transaction schema marks required is present.
+    for (const field of ["user", "userModel", "type", "amount", "reference"]) {
+      expect(docs[0][field]).toBeDefined();
+    }
+    // And the session reached the driver rather than being dropped.
+    expect(options).toEqual(expect.objectContaining({ session: mockSession }));
   });
 });

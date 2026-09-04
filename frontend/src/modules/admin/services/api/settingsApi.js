@@ -14,6 +14,12 @@ export const adminSettingsApi = {
     updateDeliveryFinanceSettings: (data) =>
         axiosInstance.put('/admin/settings/delivery', data),
 
+    // Athreya Coins — read-only views over the customer loyalty wallet.
+    getCoinWallets: (params) =>
+        axiosInstance.get('/admin/coins/wallets', { params }),
+    getCoinTransactions: (params) =>
+        axiosInstance.get('/admin/coins/transactions', { params }),
+
     // Centralized settings (public GET, admin PUT)
     getSettings: () => axiosInstance.get('/settings'),
     updateSettings: (data) => axiosInstance.put('/settings', data),

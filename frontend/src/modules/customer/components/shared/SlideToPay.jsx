@@ -14,7 +14,7 @@ const SlideToPay = ({
     const x = useMotionValue(0);
     const containerRef = useRef(null);
     const [containerWidth, setContainerWidth] = useState(0);
-    const [sliderWidth, setSliderWidth] = useState(56); // Width of the sliding circle
+    const [sliderWidth, setSliderWidth] = useState(48); // Width of the sliding circle
 
     // Maximum drag distance
     const maxDrag = Math.max(0, containerWidth - sliderWidth - 8); // 8px padding
@@ -36,7 +36,7 @@ const SlideToPay = ({
 
     const handleDragEnd = async () => {
         const currentX = x.get();
-        if (currentX >= maxDrag * 0.9) {
+        if (currentX >= maxDrag * 0.85) {
             setIsCompleted(true);
             controls.start({ x: maxDrag });
             if (onSuccess) {
@@ -67,16 +67,13 @@ const SlideToPay = ({
             }
         };
 
-        // Measure initially
         updateWidth();
 
-        // Observe size changes
         const observer = new ResizeObserver(() => {
             updateWidth();
         });
         observer.observe(containerRef.current);
 
-        // Window resize fallback
         window.addEventListener('resize', updateWidth);
 
         return () => {
@@ -88,7 +85,7 @@ const SlideToPay = ({
     return (
         <div
             ref={containerRef}
-            className="relative h-16 w-full rounded-full overflow-hidden select-none touch-none bg-[#1a6e2e] border-none"
+            className="relative h-14 w-full rounded-full overflow-hidden select-none touch-none bg-gradient-to-r from-[#0d4d29] via-[#125c34] to-[#0a3f22] shadow-md border border-emerald-600/30"
         >
             {/* Progress Fill */}
             <motion.div
@@ -96,13 +93,13 @@ const SlideToPay = ({
                 style={{ width: fillWidth }}
             />
 
-            {/* Shimmer Effect Background (continuous sweep) */}
+            {/* Shimmer Effect Background */}
             <motion.div
                 className="absolute inset-0 overflow-hidden pointer-events-none"
                 style={{ opacity: shimmerOpacity }}
             >
                 <motion.div
-                    className="absolute inset-y-0 -inset-x-1 bg-linear-to-r from-transparent via-white/35 to-transparent skew-x-[-20deg]"
+                    className="absolute inset-y-0 -inset-x-1 bg-gradient-to-r from-transparent via-white/25 to-transparent skew-x-[-20deg]"
                     initial={{ x: "-100%" }}
                     animate={{ x: "100%" }}
                     transition={{ duration: 1.6, repeat: Infinity, ease: "linear" }}
@@ -111,15 +108,15 @@ const SlideToPay = ({
 
             {/* Text Label */}
             <motion.div
-                className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
+                className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none px-4"
                 style={{ opacity: textOpacity }}
             >
-                <span className="text-white font-black text-sm md:text-[13px] tracking-[0.25em] uppercase flex items-center gap-2">
-                    {text} <span className="text-white/40">|</span> <span className="text-[#A3E635] font-extrabold">₹{amount}</span>
+                <span className="text-white font-[1000] text-xs md:text-sm tracking-[0.18em] uppercase flex items-center gap-2">
+                    {text} <span className="text-white/40">|</span> <span className="text-[#fcd34d] font-[1000]">₹{amount}</span>
                 </span>
 
                 <div className="absolute right-4 animate-pulse text-white/70">
-                    <ChevronsRight size={20} />
+                    <ChevronsRight size={18} />
                 </div>
             </motion.div>
 
@@ -128,7 +125,7 @@ const SlideToPay = ({
                 <motion.div
                     className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
                 >
-                    <span className="text-white font-black text-lg tracking-wide uppercase flex items-center gap-2">
+                    <span className="text-white font-[1000] text-sm md:text-base tracking-wider uppercase flex items-center gap-2">
                         Processing <span className="animate-pulse">...</span>
                     </span>
                 </motion.div>
@@ -136,8 +133,8 @@ const SlideToPay = ({
 
             {/* Draggable Circle */}
             <motion.div
-                className="absolute left-1 top-1 bottom-1 w-14 h-14 bg-white rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing z-20 border border-[#1a6e2e]/20"
-                drag={!isCompleted && !isLoading ? "x" : false}
+                className="absolute left-1 top-1 bottom-1 w-12 h-12 bg-white rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing z-20 shadow-md border border-emerald-100"
+                drag={!isCompleted && !isLoading && !disabled ? "x" : false}
                 dragConstraints={{ left: 0, right: maxDrag }}
                 dragElastic={0.05}
                 dragMomentum={false}
@@ -145,25 +142,24 @@ const SlideToPay = ({
                 animate={controls}
                 style={{ x }}
                 whileTap={{ scale: 0.95 }}
-                whileHover={{ scale: 1.05 }}
             >
                 {isLoading || isCompleted ? (
                     <motion.div
-                        className="h-6 w-6 border-2 border-white border-t-transparent rounded-full animate-spin"
+                        className="h-5 w-5 border-2 border-[#0d4d29] border-t-transparent rounded-full animate-spin"
                     />
                 ) : (
                     <motion.div
                         className="relative w-full h-full flex items-center justify-center"
                         style={{ rotate }}
                     >
-                        <motion.div className="text-[#1a6e2e]" style={{ opacity: arrowsOpacity }}>
-                            <ChevronRight size={28} strokeWidth={3} />
+                        <motion.div className="text-[#0d4d29]" style={{ opacity: arrowsOpacity }}>
+                            <ChevronRight size={24} strokeWidth={3.5} />
                         </motion.div>
                         <motion.div
-                            className="absolute inset-0 flex items-center justify-center text-[#1a6e2e]"
+                            className="absolute inset-0 flex items-center justify-center text-[#0d4d29]"
                             style={{ opacity: checkOpacity }}
                         >
-                            <Check size={24} strokeWidth={3} />
+                            <Check size={22} strokeWidth={3.5} />
                         </motion.div>
                     </motion.div>
                 )}

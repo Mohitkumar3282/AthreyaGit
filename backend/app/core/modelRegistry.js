@@ -58,6 +58,10 @@ import "../models/payout.js";
 import "../models/transaction.js";
 import "../models/wallet.js";
 
+// Athreya Coins (loyalty) models — deliberately outside the money ledger.
+import "../models/coinWallet.js";
+import "../models/coinTransaction.js";
+
 // CMS / configuration models
 import "../models/experienceSection.js";
 import "../models/faq.js";
@@ -121,6 +125,10 @@ export const REQUIRED_MODELS = Object.freeze([
   "Wallet",
   "Payout",
   "FinanceAuditLog",
+
+  // Athreya Coins (loyalty)
+  "CoinWallet",
+  "CoinTransaction",
 
   // OTP & auth
   "OtpVerification",

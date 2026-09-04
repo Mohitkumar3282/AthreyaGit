@@ -25,6 +25,23 @@ const ProfilePage = () => {
     const logoUrl = settings?.logoUrl || LogoTransparent;
     const appName = settings?.appName || 'App';
     const [isTestingPush, setIsTestingPush] = React.useState(false);
+    // Coin balance shown inline on the profile menu, so the customer can see
+    // what they have to spend without opening the wallet screen.
+    const [coinSummary, setCoinSummary] = React.useState(null);
+
+    React.useEffect(() => {
+        if (!user) {
+            setCoinSummary(null);
+            return;
+        }
+        customerApi
+            .getCoins()
+            .then((res) => {
+                if (!res.data?.success) return;
+                setCoinSummary(res.data.result || null);
+            })
+            .catch(() => { });
+    }, [user]);
 
     const formatIndiaPhone = (value) => {
         const raw = String(value || '').trim();
@@ -181,8 +198,12 @@ const ProfilePage = () => {
                             />
                             <MenuItem
                                 icon={Wallet}
-                                label="Wallet"
-                                sub="Balance & return refunds"
+                                label="Athreya Wallet"
+                                sub={
+                                    coinSummary == null
+                                        ? 'Athreya Coins, balance & refunds'
+                                        : `${coinSummary.balance.toLocaleString('en-IN')} coins (₹${Number(coinSummary.rupeeValue || 0).toFixed(2)})`
+                                }
                                 path="/wallet"
                             />
                             <MenuItem

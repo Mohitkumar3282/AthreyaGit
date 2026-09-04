@@ -39,6 +39,10 @@ import {
     updatePlatformSettings
 } from "../controller/adminController.js";
 import {
+    getCoinWallets,
+    getCoinTransactions,
+} from "../controller/admin/coinsController.js";
+import {
     exportAdminFinanceStatementController,
     getAdminFinanceLedgerController,
     getAdminFinancePayoutsController,
@@ -181,6 +185,13 @@ router.delete(
 
 router.get("/active-fleet", verifyToken, allowRoles("admin"), getActiveFleet);
 router.get("/wallet-data", verifyToken, allowRoles("admin"), getAdminWalletData);
+
+// Athreya Coins — read-only admin views over the loyalty wallet. Coins are
+// minted by delivery settlement and spent at checkout, so there is no admin
+// mint endpoint: an unaudited grant would break the invariant that every
+// coin traces back to a real order's savings.
+router.get("/coins/wallets", verifyToken, allowRoles("admin"), getCoinWallets);
+router.get("/coins/transactions", verifyToken, allowRoles("admin"), getCoinTransactions);
 
 // Delivery Payouts / Funds
 router.get("/delivery-transactions", verifyToken, allowRoles('admin'), getDeliveryTransactions);
