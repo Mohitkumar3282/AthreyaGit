@@ -642,37 +642,72 @@ const ShopDetails = () => {
           </div>
         )}
 
+        {/* Keeps the last product row reachable above the sticky cart bar. */}
+        {cartCount > 0 && <div className="shop-sticky-cart-spacer" aria-hidden="true" />}
       </div>
 
-      {/* 9. Mobile Sticky Bottom Cart Bar */}
-      {cartCount > 0 && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#1a6e2e]/20 px-4 py-4.5 z-50 rounded-t-[2rem] flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-11 w-11 bg-[#1a6e2e]/10 text-[#1a6e2e] rounded-2xl flex items-center justify-center">
-              <ShoppingCart size={20} className="fill-current" />
+      {/*
+        9. Sticky Bottom Cart Bar
+
+        Appears the instant the first item is added (it reads `cartCount`
+        straight off CartContext, which ProductCard's ADD updates) and hides
+        itself only when the cart empties.
+
+        Positioning matters here: `.shop-sticky-cart-bar` lifts it clear of the
+        mobile BottomNav. It used to sit at `bottom-0 z-50` while the nav is
+        `bottom-0 z-[500]`, so the nav covered it completely — the bar was
+        being rendered the whole time, just underneath the navigation.
+      */}
+      <AnimatePresence>
+        {cartCount > 0 && (
+          <motion.div
+            key="shop-sticky-cart"
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+            className="shop-sticky-cart-bar fixed left-0 right-0 z-[501] bg-white border-t border-[#1a6e2e]/20 px-4 py-4.5 rounded-t-[2rem] md:rounded-t-none shadow-[0_-8px_24px_rgba(15,23,42,0.10)]">
+            <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="h-11 w-11 bg-[#1a6e2e]/10 text-[#1a6e2e] rounded-2xl flex items-center justify-center shrink-0">
+                  <ShoppingCart size={20} className="fill-current" />
+                </div>
+                <div className="flex flex-col leading-none min-w-0">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">
+                    {cartCount} {cartCount === 1 ? "item" : "items"} added
+                  </span>
+                  <span className="text-base font-black text-slate-800 mt-1">
+                    ₹{cartTotal}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate("/checkout")}
+                className="bg-[#1a6e2e] hover:bg-[#1a6e2e]/90 text-white px-7 py-3 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-transform border border-transparent shrink-0">
+                View Cart <ChevronRight size={14} />
+              </button>
             </div>
-            <div className="flex flex-col leading-none">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{cartCount} {cartCount === 1 ? 'item' : 'items'} added</span>
-              <span className="text-base font-black text-slate-800 mt-1">₹{cartTotal}</span>
-            </div>
-          </div>
-          <button onClick={() => navigate("/checkout")} className="bg-[#1a6e2e] hover:bg-[#1a6e2e]/90 text-white px-7 py-3 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-transform border border-transparent">
-            View Cart <ChevronRight size={14} />
-          </button>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 10. Filters Bottom Modal / Drawer */}
       <AnimatePresence>
         {isFilterModalOpen && (
           <>
-            {/* Backdrop */}
+            {/*
+              Backdrop.
+
+              Sits above the z-[500] BottomNav. At z-50 the nav rendered on top
+              of the open filter drawer and stayed tappable straight through
+              the backdrop, so the drawer's own controls were partly covered.
+            */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsFilterModalOpen(false)}
-              className="fixed inset-0 bg-black/60 z-50 "
+              className="fixed inset-0 bg-black/60 z-[600]"
             />
 
             {/* Bottom Drawer */}
@@ -681,7 +716,7 @@ const ShopDetails = () => {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 250 }}
-              className="fixed bottom-0 left-0 right-0 max-h-[85vh] md:max-h-[75vh] bg-white rounded-t-[2rem] md:max-w-2xl md:mx-auto md:bottom-[5vh] md:rounded-[2rem] border border-[#1a6e2e]/20 flex flex-col overflow-hidden z-50"
+              className="fixed bottom-0 left-0 right-0 max-h-[85vh] md:max-h-[75vh] bg-white rounded-t-[2rem] md:max-w-2xl md:mx-auto md:bottom-[5vh] md:rounded-[2rem] border border-[#1a6e2e]/20 flex flex-col overflow-hidden z-[601]"
             >
               {/* Header */}
               <div className="relative p-5 border-b border-slate-100 flex items-center justify-between">

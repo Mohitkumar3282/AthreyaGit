@@ -60,6 +60,7 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
   cartTotal,
   selectedCoupon,
   discountAmount,
+  coinValue = 0.01,
 }) {
   // Collapsed by default: the customer sees only the single "Total Bill"
   // figure, and opens the breakdown deliberately. Delivery fee, platform fee
@@ -80,6 +81,12 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
   // rejected server-side) the rows must still reconcile with the total.
   const couponDiscount = Number(pricingPreview?.discountTotal ?? discountAmount ?? 0);
   const savingsTotal = Number(pricingPreview?.savingsTotal || 0) + couponDiscount + Number(coinsDiscount || 0);
+
+  // Coins this order will mint, straight from the server's own calculation —
+  // never re-derived here, so the banner can never quote a reward the ledger
+  // will not actually credit.
+  const coinsToEarn = Math.max(0, Math.floor(Number(pricingPreview?.coinsEarned || 0)));
+  const coinsToEarnValue = coinsToEarn * Number(coinValue || 0.01);
 
   const distanceHint =
     typeof pricingPreview?.distanceKmActual === "number" &&
@@ -217,8 +224,17 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
         </div>
       </motion.div>
 
-      {/* SAVED MONEY ON THIS ORDER Highlight Card — matches reference image */}
-      {savingsTotal > 0 && (
+      {/*
+        Reward banner.
+
+        Deliberately future-tense ("You'll earn", "will be added"). Coins are
+        minted by delivery settlement, not at checkout — this card renders
+        before the order even exists, so "Earned" / "Added Successfully" would
+        promise a wallet credit the customer does not yet have, and would be a
+        lie outright if they abandoned the page or the order was cancelled.
+        The celebration lands on the Order Success screen instead.
+      */}
+      {(coinsToEarn > 0 || savingsTotal > 0) && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -228,16 +244,35 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
               <span className="h-3.5 w-3.5 rounded-full bg-amber-500 text-white flex items-center justify-center text-[9px]">
                 ✓
               </span>
-              <span>SAVED MONEY ON THIS ORDER</span>
+              <span>{coinsToEarn > 0 ? "REWARD ON THIS ORDER" : "SAVED MONEY ON THIS ORDER"}</span>
             </div>
 
-            <div className="text-3xl md:text-4xl font-[1000] text-[#0d592e] tracking-tight pt-1">
-              ₹{savingsTotal.toFixed(2)}
-            </div>
-
-            <p className="text-xs font-bold text-amber-950/80">
-              Great! You saved ₹{Math.round(savingsTotal)} on this order.
-            </p>
+            {coinsToEarn > 0 ? (
+              <>
+                <div className="text-2xl md:text-3xl font-[1000] text-[#0d592e] tracking-tight pt-1 flex items-baseline gap-1.5 flex-wrap">
+                  <span>🪙 {coinsToEarn.toLocaleString("en-IN")}</span>
+                  <span className="text-sm md:text-base">Athreya Coins</span>
+                </div>
+                <p className="text-xs font-bold text-amber-950/80">
+                  Worth <span className="font-[1000]">{currency(coinsToEarnValue)}</span> — added to
+                  your wallet once this order is delivered.
+                </p>
+                {savingsTotal > 0 && (
+                  <p className="text-[11px] font-bold text-amber-900/70">
+                    🛒 You also saved {currency(savingsTotal)} on this order.
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="text-3xl md:text-4xl font-[1000] text-[#0d592e] tracking-tight pt-1">
+                  {currency(savingsTotal)}
+                </div>
+                <p className="text-xs font-bold text-amber-950/80">
+                  Great! You saved {currency(savingsTotal)} on this order.
+                </p>
+              </>
+            )}
           </div>
 
           <div className="h-20 w-20 md:h-24 md:w-24 shrink-0 rounded-2xl overflow-hidden bg-white/70 p-1.5 shadow-sm border border-amber-200">

@@ -547,3 +547,35 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/*
+  Sticky "View Cart" bar on the shop page.
+
+  It has to clear the mobile BottomNav, which is `fixed bottom-0` at
+  `z-[500]` and 65px tall. The bar previously sat at `bottom-0; z-50`, so
+  the nav painted straight over it — the bar was rendering correctly all
+  along, just underneath the navigation, which is why customers had to
+  leave the shop to see their cart.
+
+  Expressed as a class rather than a Tailwind arbitrary value because the
+  offset needs `env(safe-area-inset-bottom)` on notched devices and a
+  different value at the md breakpoint, where there is no BottomNav.
+*/
+.shop-sticky-cart-bar {
+  bottom: calc(65px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Reserves room so the last product row is never trapped behind the bar. */
+.shop-sticky-cart-spacer {
+  height: calc(88px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  .shop-sticky-cart-bar {
+    bottom: 0;
+  }
+
+  .shop-sticky-cart-spacer {
+    height: 88px;
+  }
+}
+

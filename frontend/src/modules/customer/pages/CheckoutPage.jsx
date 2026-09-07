@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Lottie from "lottie-react";
 import { useInViewAnimation } from "@/core/hooks/useInViewAnimation";
@@ -989,6 +989,20 @@ const CheckoutPage = () => {
     };
   }, [orderId, showSuccess]);
 
+  // "Use Coins on Next Order" from the success modal. The modal auto-redirects
+  // to order tracking after 3s, so this MUST cancel that timer first —
+  // otherwise the pending navigation fires a moment later and yanks the
+  // customer off the wallet they just chose to open.
+  const handleUseCoinsFromSuccess = useCallback(() => {
+    if (postOrderNavigateRef.current) {
+      clearTimeout(postOrderNavigateRef.current);
+      postOrderNavigateRef.current = null;
+    }
+    setIsPlacingOrder(false);
+    setShowSuccess(false);
+    navigate("/wallet");
+  }, [navigate]);
+
   // ─── Empty cart state ────────────────────────────────────────────────────────
   if (cart.length === 0 && !showSuccess) {
     return (
@@ -1054,6 +1068,7 @@ const CheckoutPage = () => {
         cashbackEarned={cashbackEarned}
         savingsTotal={savingsTotal}
         coinValue={coinSettings.rupeeValuePerCoin}
+        onUseCoins={handleUseCoinsFromSuccess}
       />
 
       {/* Premium Header */}
@@ -1231,6 +1246,7 @@ const CheckoutPage = () => {
               cartTotal={cartTotal}
               selectedCoupon={selectedCoupon}
               discountAmount={discountAmount}
+              coinValue={coinSettings.rupeeValuePerCoin ?? 0.01}
             />
 
             {/* Payment Selector */}

@@ -35,7 +35,7 @@ const formatDate = (d) => {
 const rupees = (value) => Number(value || 0).toFixed(2);
 
 const COIN_TX_LABELS = {
-  EARN: "Coins Added",
+  EARN: "Order Reward",
   REDEEM: "Coins Used",
   REVERSAL: "Coins Returned",
   ADJUSTMENT: "Adjustment",
@@ -74,8 +74,13 @@ const CoinRow = ({ tx }) => {
             {COIN_TX_LABELS[tx.type] || tx.type}
           </h4>
           <p className="text-[11px] font-semibold text-slate-500 truncate">
+            {/*
+              Quote the rate this row actually paid, computed from the row's
+              own coins and savings base — not a fixed "1%". Historic rows keep
+              telling the truth after an admin retunes the earn rate.
+            */}
             {isCredit && tx.savingsBase > 0
-              ? `1% of ₹${rupees(tx.savingsBase)} Savings`
+              ? `${Number(((tx.rupeeValue || 0) / tx.savingsBase) * 100).toFixed(2).replace(/\.?0+$/, "")}% of ₹${rupees(tx.savingsBase)} savings`
               : tx.description || "Loyalty reward"}
             {tx.orderId ? ` (Order #${tx.orderId.slice(-6)})` : ""}
           </p>
@@ -196,13 +201,13 @@ const WalletPage = () => {
           </div>
           <div className="divide-y divide-slate-100 text-xs md:text-sm">
             <div className="px-5 py-3 flex items-center justify-between">
-              <span className="font-semibold text-slate-600">Total Coins</span>
+              <span className="font-semibold text-slate-600">🪙 Total Coins</span>
               <span className="font-[1000] text-slate-900">
                 {balance.toLocaleString("en-IN")} Coins
               </span>
             </div>
             <div className="px-5 py-3 flex items-center justify-between">
-              <span className="font-semibold text-slate-600">Rupee Value</span>
+              <span className="font-semibold text-slate-600">💰 Wallet Value</span>
               <span className="font-[1000] text-slate-900">
                 ₹{rupees(balance * coinValue)}
               </span>

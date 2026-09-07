@@ -20,6 +20,7 @@ const formatRupees = (value) => {
  *   cashbackEarned – rupee wallet cashback
  *   savingsTotal   – savings amount
  *   coinValue      – rupee value of one coin (1 paisa by default)
+ *   onUseCoins     – navigate to the wallet; cancels the auto-redirect
  */
 const CheckoutOrderSuccess = React.memo(function CheckoutOrderSuccess({
   orderId,
@@ -28,10 +29,17 @@ const CheckoutOrderSuccess = React.memo(function CheckoutOrderSuccess({
   cashbackEarned = 0,
   savingsTotal = 0,
   coinValue = 0.01,
+  onUseCoins,
 }) {
   const earnedCoins = Number(coinsEarned || 0);
   const totalSaved = Number(savingsTotal || 0);
   const rupeeEarned = (earnedCoins * Number(coinValue || 0.01)).toFixed(2);
+  // Effective return as a percentage of savings, derived from the live config
+  // rather than hardcoded — an admin changing the earn rate or coin value must
+  // not leave this screen quoting a percentage the engine no longer applies.
+  const effectiveRatePercent = totalSaved > 0
+    ? Number(((Number(rupeeEarned) / totalSaved) * 100).toFixed(2))
+    : 0;
 
   return (
     <AnimatePresence>
@@ -93,15 +101,13 @@ const CheckoutOrderSuccess = React.memo(function CheckoutOrderSuccess({
                     <p className="text-[11px] font-bold text-slate-600">on this order</p>
                   </div>
 
-                  {/* Math Equation */}
-                  <div className="bg-white py-1.5 px-3 rounded-xl border border-slate-200 text-xs font-black text-slate-700 flex items-center justify-center gap-1.5 shadow-2xs">
+                  {/* Math Equation — rate derived from live config, not fixed */}
+                  <div className="bg-white py-1.5 px-3 rounded-xl border border-slate-200 text-xs font-black text-slate-700 flex items-center justify-center gap-1.5 shadow-2xs flex-wrap">
                     <span>₹{formatRupees(totalSaved)}</span>
-                    <span className="text-slate-400 font-normal">(₹)</span>
                     <span className="text-slate-400">×</span>
-                    <span>1%</span>
-                    <span className="text-slate-500 font-medium">Rupee</span>
+                    <span>{effectiveRatePercent}%</span>
                     <span className="text-slate-400">=</span>
-                    <span className="text-[#0d4d29] font-[1000]">{rupeeEarned} Rupee</span>
+                    <span className="text-[#0d4d29] font-[1000]">₹{rupeeEarned}</span>
                   </div>
 
                   {/* Coins to Rupee visual flow */}
@@ -134,9 +140,9 @@ const CheckoutOrderSuccess = React.memo(function CheckoutOrderSuccess({
                         <Check size={16} strokeWidth={3.5} />
                       </div>
                       <div>
-                        <p className="text-[10px] font-bold text-slate-600 uppercase">You Earned</p>
+                        <p className="text-[10px] font-bold text-slate-600 uppercase">Your Reward</p>
                         <p className="text-base font-[1000] text-[#0d592e] leading-tight">
-                          {earnedCoins.toLocaleString("en-IN")} Coins
+                          🪙 {earnedCoins.toLocaleString("en-IN")} Athreya Coins
                         </p>
                       </div>
                     </div>
@@ -144,6 +150,27 @@ const CheckoutOrderSuccess = React.memo(function CheckoutOrderSuccess({
                       ₹{rupeeEarned} Value
                     </span>
                   </div>
+
+                  {/*
+                    Coins are minted by delivery settlement, so at "order
+                    placed" they are promised, not banked. Saying "added to
+                    your wallet" here would be wrong for every order that is
+                    still in flight — and a plain lie for one that gets
+                    cancelled, where the credit never happens at all.
+                  */}
+                  <p className="text-[10px] font-bold text-slate-500">
+                    Credited to your Athreya Wallet once this order is delivered.
+                  </p>
+
+                  {onUseCoins && (
+                    <button
+                      type="button"
+                      onClick={onUseCoins}
+                      className="w-full rounded-xl bg-[#0d592e] text-white py-2.5 text-xs font-[1000] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[#0a4a26] active:scale-[0.98] transition-all">
+                      Use Coins on Next Order
+                      <ArrowRight size={14} strokeWidth={3} />
+                    </button>
+                  )}
                 </div>
               )}
 
