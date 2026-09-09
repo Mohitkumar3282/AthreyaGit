@@ -62,37 +62,36 @@ function makeWallet(overrides = {}) {
   };
 }
 
-describe("Athreya Coins — every ₹1 saved earns 1 paisa coin", () => {
+describe("Athreya Coins — ₹100 saved earns 1,000 Athreya Coins (1,000 coins = ₹1)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSettingFindOne.mockReturnValue(createQueryChain(null));
   });
 
-  it("grants one coin per rupee saved", () => {
-    // The three worked examples from the programme rules.
-    expect(computeCoinsForSavings(1)).toBe(1);
-    expect(computeCoinsForSavings(100)).toBe(100);
-    expect(computeCoinsForSavings(500)).toBe(500);
+  it("grants 10 coins per rupee saved", () => {
+    expect(computeCoinsForSavings(1)).toBe(10);
+    expect(computeCoinsForSavings(100)).toBe(1000);
+    expect(computeCoinsForSavings(500)).toBe(5000);
   });
 
-  it("values coins at a paisa each", () => {
-    expect(coinsToRupees(1)).toBe(0.01);
-    expect(coinsToRupees(100)).toBe(1);
-    expect(coinsToRupees(500)).toBe(5);
-    expect(coinsToRupees(1000)).toBe(10);
-    expect(coinsToRupees(1250)).toBe(12.5);
+  it("values 1,000 coins at ₹1", () => {
+    expect(coinsToRupees(10)).toBe(0.01);
+    expect(coinsToRupees(1000)).toBe(1);
+    expect(coinsToRupees(5000)).toBe(5);
+    expect(coinsToRupees(10000)).toBe(10);
+    expect(coinsToRupees(12500)).toBe(12.5);
   });
 
   it("matches the worked order example end to end", () => {
-    // ₹36 of savings on a delivered order -> 36 coins -> ₹0.36 of value.
-    const coins = computeCoinsForSavings(36);
-    expect(coins).toBe(36);
-    expect(coinsToRupees(coins)).toBe(0.36);
+    // ₹100 of savings on a delivered order -> 1,000 coins -> ₹1.00 of value.
+    const coins = computeCoinsForSavings(100);
+    expect(coins).toBe(1000);
+    expect(coinsToRupees(coins)).toBe(1);
   });
 
   it("floors partial rupees rather than minting fractional coins", () => {
-    expect(computeCoinsForSavings(36.8)).toBe(36);
-    expect(computeCoinsForSavings(0.99)).toBe(0);
+    expect(computeCoinsForSavings(36.8)).toBe(368);
+    expect(computeCoinsForSavings(0.009)).toBe(0);
   });
 
   it("grants nothing when there were no savings", () => {
@@ -115,25 +114,25 @@ describe("Athreya Coins — every ₹1 saved earns 1 paisa coin", () => {
   });
 
   it("scales with an admin-configured earn rate", () => {
-    // A 2x promotional rate: ₹100 saved returns 200 coins (₹2).
-    expect(computeCoinsForSavings(100, { coinsPerRupeeSaved: 2 })).toBe(200);
+    // A 200x promotional rate: ₹100 saved returns 20,000 coins (₹20).
+    expect(computeCoinsForSavings(100, { coinsPerRupeeSaved: 200 })).toBe(20000);
   });
 
   it("converts rupees back into coins consistently", () => {
-    expect(rupeesToCoins(1)).toBe(100);
-    expect(rupeesToCoins(12.5)).toBe(1250);
+    expect(rupeesToCoins(1)).toBe(1000);
+    expect(rupeesToCoins(12.5)).toBe(12500);
   });
 });
 
 describe("Athreya Coins — redemption at checkout", () => {
   it("applies the typed redemption against the order", () => {
-    // The worked checkout example: 500 coins off a ₹380 bill.
+    // 5,000 coins off a ₹380 bill = ₹5 discount.
     const result = computeRedeemableCoins({
-      requestedCoins: 500,
-      balance: 1250,
+      requestedCoins: 5000,
+      balance: 12500,
       orderAmount: 380,
     });
-    expect(result.coins).toBe(500);
+    expect(result.coins).toBe(5000);
     expect(result.rupeeValue).toBe(5);
     expect(result.cappedBy).toBeNull();
     expect(Number((380 - result.rupeeValue).toFixed(2))).toBe(375);
@@ -141,35 +140,35 @@ describe("Athreya Coins — redemption at checkout", () => {
 
   it("caps redemption at the customer's balance", () => {
     const result = computeRedeemableCoins({
-      requestedCoins: 5000,
-      balance: 1250,
+      requestedCoins: 50000,
+      balance: 12500,
       orderAmount: 380,
     });
-    expect(result.coins).toBe(1250);
+    expect(result.coins).toBe(12500);
     expect(result.rupeeValue).toBe(12.5);
     expect(result.cappedBy).toBe("BALANCE");
   });
 
   it("never lets coins exceed the order value", () => {
-    // 100,000 coins is ₹1000 of value against a ₹250 order.
+    // 1,000,000 coins is ₹1000 of value against a ₹250 order.
     const result = computeRedeemableCoins({
-      requestedCoins: 100000,
-      balance: 100000,
+      requestedCoins: 1000000,
+      balance: 1000000,
       orderAmount: 250,
     });
     expect(result.rupeeValue).toBeLessThanOrEqual(250);
-    expect(result.coins).toBe(25000);
+    expect(result.coins).toBe(250000);
     expect(result.cappedBy).toBe("ORDER_CAP");
   });
 
   it("honours a tightened per-order percentage cap", () => {
     const result = computeRedeemableCoins({
-      requestedCoins: 100000,
-      balance: 100000,
-      orderAmount: 400, // 20% of ₹400 = ₹80 = 8000 coins
+      requestedCoins: 1000000,
+      balance: 1000000,
+      orderAmount: 400, // 20% of ₹400 = ₹80 = 80,000 coins
       settings: { maxRedeemPercentOfOrder: 20 },
     });
-    expect(result.coins).toBe(8000);
+    expect(result.coins).toBe(80000);
     expect(result.rupeeValue).toBe(80);
   });
 
@@ -215,9 +214,9 @@ describe("Athreya Coins — redemption at checkout", () => {
   });
 
   it("reports the largest redemption the customer could make", () => {
-    // Whole balance fits inside a ₹380 order (₹12.50 of coins).
-    const result = computeMaxRedeemableCoins({ balance: 1250, orderAmount: 380 });
-    expect(result.coins).toBe(1250);
+    // Whole balance fits inside a ₹380 order (₹12.50 of coins = 12,500 coins).
+    const result = computeMaxRedeemableCoins({ balance: 12500, orderAmount: 380 });
+    expect(result.coins).toBe(12500);
     expect(result.rupeeValue).toBe(12.5);
   });
 
@@ -243,27 +242,27 @@ describe("Athreya Coins — ledger movements", () => {
   });
 
   it("credits coins and records the movement with its rupee value", async () => {
-    const wallet = makeWallet({ balance: 1214 });
+    const wallet = makeWallet({ balance: 12140 });
     mockCoinWalletFindOne.mockResolvedValue(wallet);
 
     const result = await creditCoins({
       customerId: "cust-1",
-      coins: 36,
+      coins: 360,
       orderId: "AD12345",
     });
 
     expect(result.applied).toBe(true);
-    expect(result.balance).toBe(1250);
-    expect(wallet.lifetimeEarned).toBe(36);
+    expect(result.balance).toBe(12500);
+    expect(wallet.lifetimeEarned).toBe(360);
     expect(wallet.save).toHaveBeenCalled();
 
     const [rows] = mockCoinTxCreate.mock.calls[0];
     expect(rows[0]).toMatchObject({
       direction: "CREDIT",
-      coins: 36,
+      coins: 360,
       rupeeValue: 0.36,
-      balanceBefore: 1214,
-      balanceAfter: 1250,
+      balanceBefore: 12140,
+      balanceAfter: 12500,
       orderId: "AD12345",
     });
   });
@@ -325,14 +324,14 @@ describe("Athreya Coins — ledger movements", () => {
 
   it("summarises the balance alongside its rupee value and live config", async () => {
     mockCoinWalletFindOne.mockReturnValue(
-      createQueryChain({ balance: 1250, lifetimeEarned: 1350, lifetimeRedeemed: 100 }),
+      createQueryChain({ balance: 12500, lifetimeEarned: 13500, lifetimeRedeemed: 1000 }),
     );
 
     const summary = await getCoinSummary("cust-1");
-    expect(summary.balance).toBe(1250);
+    expect(summary.balance).toBe(12500);
     expect(summary.rupeeValue).toBe(12.5);
-    expect(summary.lifetimeEarned).toBe(1350);
-    expect(summary.settings.coinsPerRupeeSaved).toBe(1);
-    expect(summary.settings.rupeeValuePerCoin).toBe(0.01);
+    expect(summary.lifetimeEarned).toBe(13500);
+    expect(summary.settings.coinsPerRupeeSaved).toBe(10);
+    expect(summary.settings.rupeeValuePerCoin).toBe(0.001);
   });
 });

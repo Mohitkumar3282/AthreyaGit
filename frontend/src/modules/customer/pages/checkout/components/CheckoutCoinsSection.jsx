@@ -41,7 +41,7 @@ const CheckoutCoinsSection = React.memo(function CheckoutCoinsSection({
 }) {
   const [draft, setDraft] = useState(null);
 
-  const rupeePerCoin = Number(settings.rupeeValuePerCoin || 0.01);
+  const rupeePerCoin = Number(settings.rupeeValuePerCoin || 0.0001);
   const minRedeem = Number(settings.minRedeemCoins || 1);
   const canRedeem = maxRedeemable >= Math.max(1, minRedeem);
 
@@ -56,11 +56,11 @@ const CheckoutCoinsSection = React.memo(function CheckoutCoinsSection({
             🪙
           </div>
           <div>
-            <h4 className="text-xs font-[1000] text-[#0d4d29] uppercase tracking-wide">
+            <h4 className="text-xs font-[1000] text-[#0d592e] uppercase tracking-wide">
               Athreya Coin Wallet
             </h4>
             <p className="text-[11px] font-semibold text-slate-600">
-              100 Coins = ₹1 Rupee · Earn 1% on this order
+              10,000 Coins = ₹1.00 · ₹1 Saved = 100 Coins
             </p>
           </div>
         </div>
@@ -104,7 +104,7 @@ const CheckoutCoinsSection = React.memo(function CheckoutCoinsSection({
                 Athreya Coin Wallet
               </span>
               <span className="bg-[#fcd34d] text-[#0d4d29] text-[9px] font-[1000] px-1.5 py-0.5 rounded">
-                100 = ₹1
+                10k = ₹1
               </span>
             </div>
             <div className="text-sm font-[1000] text-[#fcd34d] tracking-tight mt-0.5">

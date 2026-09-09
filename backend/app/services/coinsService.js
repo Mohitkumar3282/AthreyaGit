@@ -43,10 +43,10 @@ export function normalizeCoinSettings(raw = {}) {
   const source =
     raw && raw.athreyaCoins && typeof raw.athreyaCoins === "object" ? raw.athreyaCoins : raw || {};
 
-  // A coin is worth a paisa, so this floors at one paisa — never zero, which
-  // would make the coins-to-rupees conversion divide by zero.
+  // Value per coin floors above zero to prevent divide-by-zero.
+  // 10,000 coins = ₹1.00 (0.0001 per coin).
   const rupeeValuePerCoin = Math.max(
-    0.01,
+    0.00001,
     toFiniteNumber(source.rupeeValuePerCoin, DEFAULT_COIN_SETTINGS.rupeeValuePerCoin),
   );
 
@@ -125,7 +125,7 @@ export function computeCoinsForSavings(savingsAmount, settings = DEFAULT_COIN_SE
   const savings = Math.max(0, toFiniteNumber(savingsAmount, 0));
   if (savings <= 0 || config.coinsPerRupeeSaved <= 0) return 0;
 
-  let coins = Math.floor(savings * config.coinsPerRupeeSaved);
+  let coins = Math.floor(Math.round(savings * config.coinsPerRupeeSaved * 1e4) / 1e4);
   if (config.maxEarnPerOrder > 0) {
     coins = Math.min(coins, config.maxEarnPerOrder);
   }

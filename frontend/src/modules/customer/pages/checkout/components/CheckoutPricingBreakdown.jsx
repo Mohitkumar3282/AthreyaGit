@@ -6,7 +6,7 @@ import piggyBankImg from "@/assets/coins/piggy_bank.jpg";
 /**
  * CheckoutPricingBreakdown
  *
- * Implements the Bill Summary + "SAVED MONEY ON THIS ORDER" card matching the reference image.
+ * Implements the Bill Summary and Athreya Coins Reward Banner.
  *
  * Props:
  *   pricingPreview    – breakdown object from the preview API (or null)
@@ -60,7 +60,7 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
   cartTotal,
   selectedCoupon,
   discountAmount,
-  coinValue = 0.01,
+  coinValue = 0.001,
 }) {
   // Collapsed by default: the customer sees only the single "Total Bill"
   // figure, and opens the breakdown deliberately. Delivery fee, platform fee
@@ -80,13 +80,19 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
   // value. If the two ever disagree (coupon partially applied, capped, or
   // rejected server-side) the rows must still reconcile with the total.
   const couponDiscount = Number(pricingPreview?.discountTotal ?? discountAmount ?? 0);
-  const savingsTotal = Number(pricingPreview?.savingsTotal || 0) + couponDiscount + Number(coinsDiscount || 0);
 
   // Coins this order will mint, straight from the server's own calculation —
-  // never re-derived here, so the banner can never quote a reward the ledger
-  // will not actually credit.
-  const coinsToEarn = Math.max(0, Math.floor(Number(pricingPreview?.coinsEarned || 0)));
-  const coinsToEarnValue = coinsToEarn * Number(coinValue || 0.01);
+  // ₹100 Saved = 1000 Athreya Coins.
+  const coinsToEarn = Math.max(
+    0,
+    Math.floor(
+      Number(
+        pricingPreview?.coinsEarned ??
+          (pricingPreview?.savingsTotal ? Number(pricingPreview.savingsTotal) * 10 : 0),
+      ),
+    ),
+  );
+  const coinsToEarnValue = coinsToEarn * Number(coinValue || 0.001);
 
   const distanceHint =
     typeof pricingPreview?.distanceKmActual === "number" &&
@@ -225,60 +231,33 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
       </motion.div>
 
       {/*
-        Reward banner.
-
-        Deliberately future-tense ("You'll earn", "will be added"). Coins are
-        minted by delivery settlement, not at checkout — this card renders
-        before the order even exists, so "Earned" / "Added Successfully" would
-        promise a wallet credit the customer does not yet have, and would be a
-        lie outright if they abandoned the page or the order was cancelled.
-        The celebration lands on the Order Success screen instead.
+        Athreya Coins Reward Banner
+        "🎉 You Earned 10,000 Athreya Coins on This Order"
       */}
-      {(coinsToEarn > 0 || savingsTotal > 0) && (
+      {coinsToEarn > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="rounded-3xl bg-[#fefce8] border-2 border-[#fef08a] p-4 md:p-5 flex items-center justify-between gap-4 shadow-sm relative overflow-hidden">
-          <div className="space-y-1 z-10 min-w-0">
-            <div className="inline-flex items-center gap-1.5 bg-[#fde047]/60 px-2.5 py-1 rounded-full text-[10px] font-[1000] text-amber-900 uppercase tracking-wider">
-              <span className="h-3.5 w-3.5 rounded-full bg-amber-500 text-white flex items-center justify-center text-[9px]">
-                ✓
-              </span>
-              <span>{coinsToEarn > 0 ? "REWARD ON THIS ORDER" : "SAVED MONEY ON THIS ORDER"}</span>
+          <div className="space-y-1.5 z-10 min-w-0">
+            <div className="inline-flex items-center gap-1.5 bg-[#fde047]/70 px-3 py-1 rounded-full text-[11px] font-[1000] text-amber-950 uppercase tracking-wider">
+              <span>🎉</span>
+              <span>You Earned {coinsToEarn.toLocaleString("en-IN")} Athreya Coins on This Order</span>
             </div>
 
-            {coinsToEarn > 0 ? (
-              <>
-                <div className="text-2xl md:text-3xl font-[1000] text-[#0d592e] tracking-tight pt-1 flex items-baseline gap-1.5 flex-wrap">
-                  <span>🪙 {coinsToEarn.toLocaleString("en-IN")}</span>
-                  <span className="text-sm md:text-base">Athreya Coins</span>
-                </div>
-                <p className="text-xs font-bold text-amber-950/80">
-                  Worth <span className="font-[1000]">{currency(coinsToEarnValue)}</span> — added to
-                  your wallet once this order is delivered.
-                </p>
-                {savingsTotal > 0 && (
-                  <p className="text-[11px] font-bold text-amber-900/70">
-                    🛒 You also saved {currency(savingsTotal)} on this order.
-                  </p>
-                )}
-              </>
-            ) : (
-              <>
-                <div className="text-3xl md:text-4xl font-[1000] text-[#0d592e] tracking-tight pt-1">
-                  {currency(savingsTotal)}
-                </div>
-                <p className="text-xs font-bold text-amber-950/80">
-                  Great! You saved {currency(savingsTotal)} on this order.
-                </p>
-              </>
-            )}
+            <div className="text-2xl md:text-3xl font-[1000] text-[#0d592e] tracking-tight pt-0.5 flex items-baseline gap-1.5 flex-wrap">
+              <span>🪙 {coinsToEarn.toLocaleString("en-IN")}</span>
+              <span className="text-sm md:text-base text-[#166534]">Athreya Coins</span>
+            </div>
+            <p className="text-xs font-bold text-amber-950/80">
+              Added to your Athreya Wallet once delivered (Value: <span className="font-[1000] text-[#0d592e]">{currency(coinsToEarnValue)}</span>).
+            </p>
           </div>
 
           <div className="h-20 w-20 md:h-24 md:w-24 shrink-0 rounded-2xl overflow-hidden bg-white/70 p-1.5 shadow-sm border border-amber-200">
             <img
               src={piggyBankImg}
-              alt="Savings Piggy Bank"
+              alt="Athreya Coins Reward"
               className="h-full w-full object-contain"
             />
           </div>

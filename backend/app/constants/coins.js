@@ -50,27 +50,22 @@ export const COIN_CREDIT_TRIGGER = {
 export const ALL_COIN_CREDIT_TRIGGERS = Object.values(COIN_CREDIT_TRIGGER);
 
 /**
- * "Every ₹1 you save = 1 Paisa Coin."
+ * Athreya Coins Conversion:
+ *   ₹100 saved -> 1,000 Athreya Coins (10 coins per ₹1 saved)
  *
- *   ₹1 saved   -> 1 coin    (₹0.01)
- *   ₹100 saved -> 100 coins (₹1)
- *   ₹500 saved -> 500 coins (₹5)
- *
- * One coin is one paisa, so the programme returns 1% of realised savings —
- * denominated in coins because that is what the customer sees.
+ * Wallet value:
+ *   1,000 Coins = ₹1.00 (1 coin = ₹0.001)
  */
 export const DEFAULT_COIN_SETTINGS = {
   enabled: true,
   // Coins granted per rupee of realised savings (MRP discount + coupon).
-  coinsPerRupeeSaved: 1,
-  // Rupee value of one coin. 1 coin = 1 paisa, so 100 coins = ₹1.
-  rupeeValuePerCoin: 0.01,
-  // Smallest redemption allowed. A single coin is worth a paisa, so there is
-  // no meaningful floor to enforce — the customer types what they want to use.
+  // ₹100 saved = 1,000 Athreya Coins.
+  coinsPerRupeeSaved: 10,
+  // Rupee value of one coin. 1,000 coins = ₹1.00, so 1 coin = ₹0.001.
+  rupeeValuePerCoin: 0.001,
+  // Smallest redemption allowed.
   minRedeemCoins: 1,
-  // Hard ceiling on how much of an order's payable coins may settle. At a
-  // paisa a coin this is effectively non-binding; it exists so ops can
-  // tighten it without a deploy.
+  // Hard ceiling on how much of an order's payable coins may settle.
   maxRedeemPercentOfOrder: 100,
   // 0 = uncapped.
   maxEarnPerOrder: 0,

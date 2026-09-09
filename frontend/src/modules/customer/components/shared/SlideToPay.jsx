@@ -36,7 +36,7 @@ const SlideToPay = ({
 
     const handleDragEnd = async () => {
         const currentX = x.get();
-        if (currentX >= maxDrag * 0.85) {
+        if (currentX >= maxDrag * 0.75) {
             setIsCompleted(true);
             controls.start({ x: maxDrag });
             if (onSuccess) {

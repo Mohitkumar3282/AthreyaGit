@@ -1,8 +1,6 @@
 import React from "react";
 import { ShoppingBag, Star, ArrowRight, ShoppingCart, Sparkles, Check } from "lucide-react";
-import piggyBankImg from "@/assets/coins/piggy_bank.jpg";
 import walletCoinsImg from "@/assets/coins/wallet_coins.jpg";
-import deliveryBagImg from "@/assets/coins/delivery_bag.jpg";
 
 /**
  * CoinsPromoBanner
@@ -27,15 +25,11 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
           </div>
           <ArrowRight size={14} className="text-emerald-300" />
           <div className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-lg">
-            <span className="text-amber-300">🐷</span> You Save Money
+            <span className="text-amber-300">🪙</span> You Earn Coins
           </div>
           <ArrowRight size={14} className="text-emerald-300" />
           <div className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-lg">
-            <span className="text-yellow-300">⭐</span> You Earn Coins (1% of Savings)
-          </div>
-          <ArrowRight size={14} className="text-emerald-300" />
-          <div className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-lg">
-            <span className="text-amber-400">🪙</span> 100 Coins = ₹1 Rupee
+            <span className="text-yellow-300">⭐</span> 1,000 Coins = ₹1.00
           </div>
           <ArrowRight size={14} className="text-emerald-300" />
           <div className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-lg">
@@ -50,11 +44,11 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
               ★
             </span>
             <span className="text-[11px] font-black uppercase tracking-wider text-white">
-              MORE YOU SAVE, MORE YOU EARN!
+              EARN COINS & SAVE MONEY!
             </span>
           </div>
           <p className="text-xs font-black text-[#f7d154] tracking-tight mt-0.5">
-            100 COINS = ₹1 RUPEE
+            1,000 COINS = ₹1.00 IN YOUR WALLET
           </p>
         </div>
       </div>
@@ -76,14 +70,14 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
             <div className="min-w-0 flex-1">
               <div className="flex items-center flex-wrap gap-1.5">
                 <h4 className="text-xs md:text-sm font-[1000] text-white tracking-wide uppercase">
-                  EARN COINS, SAVE MONEY!
+                  EARN ATHREYA COINS!
                 </h4>
                 <span className="bg-[#fcd34d] text-[#0d4d29] text-[9px] md:text-[10px] font-[1000] px-1.5 py-0.5 rounded shadow-2xs">
-                  100 = ₹1
+                  1,000 Coins = ₹1.00
                 </span>
               </div>
               <p className="text-[11px] font-semibold text-emerald-100 mt-0.5 leading-snug">
-                1% of your total order savings credited as coins to your wallet.
+                Earn Athreya Coins on your order and redeem directly in your wallet on future purchases.
               </p>
             </div>
           </div>
@@ -96,7 +90,7 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
     );
   }
 
-  // Full variant (Hero Header Banner matching the top of the reference image)
+  // Full variant (Hero Header Banner)
   return (
     <div className={`w-full rounded-3xl bg-white border border-emerald-100 shadow-sm overflow-hidden ${className}`}>
       {/* Top Header Banner */}
@@ -115,10 +109,10 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
               EARN COINS, SAVE MONEY!
             </h2>
             <div className="inline-block mt-1 px-3 py-1 bg-[#f7d154] text-[#0a3f22] text-sm md:text-base font-black rounded-lg shadow-sm">
-              100 COINS = ₹1 RUPEE
+              1,000 ATHREYA COINS = ₹1.00
             </div>
             <p className="text-xs md:text-sm font-semibold text-emerald-100 mt-2">
-              Save More, Earn Coins, Use on Next Order
+              Earn Coins on every order and use on your next purchase (1,000 Coins = ₹1.00)
             </p>
           </div>
 
@@ -140,7 +134,7 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
           {/* Step 1 */}
           <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-col items-center text-center relative group hover:border-emerald-200 transition-all">
             <span className="text-[11px] font-black uppercase text-slate-700 tracking-wider mb-2">
-              YOU SAVE
+              1. ORDER ITEMS
             </span>
             <div className="h-14 w-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-3 relative">
               <ShoppingBag size={24} className="text-[#0d592e]" />
@@ -149,14 +143,14 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
               </div>
             </div>
             <p className="text-xs font-semibold text-slate-600">
-              You save money on every order
+              Pick your favourite products and checkout
             </p>
           </div>
 
           {/* Step 2 */}
           <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-col items-center text-center relative group hover:border-emerald-200 transition-all">
             <span className="text-[11px] font-black uppercase text-slate-700 tracking-wider mb-2">
-              YOU EARN COINS
+              2. YOU WIN COINS
             </span>
             <div className="h-14 w-14 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center mb-3">
               <div className="h-10 w-10 rounded-full bg-gradient-to-b from-[#f7d154] to-[#e0a800] text-[#7a5200] flex items-center justify-center shadow-inner">
@@ -164,18 +158,18 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
               </div>
             </div>
             <p className="text-xs font-semibold text-slate-600">
-              1% of your savings credited as coins
+              Win Athreya Coins automatically
             </p>
           </div>
 
           {/* Step 3 */}
           <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-col items-center text-center relative group hover:border-emerald-200 transition-all">
             <span className="text-[11px] font-black uppercase text-slate-700 tracking-wider mb-2">
-              100 COINS = ₹1 RUPEE
+              3. WALLET VALUE
             </span>
             <div className="h-14 w-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-3 gap-1">
-              <span className="h-8 w-8 rounded-full bg-[#f7d154] text-[#7a5200] text-[10px] font-black flex items-center justify-center shadow-sm">
-                100
+              <span className="h-8 px-1.5 rounded-full bg-[#f7d154] text-[#7a5200] text-[9px] font-black flex items-center justify-center shadow-sm">
+                1,000
               </span>
               <span className="text-xs font-black text-slate-400">=</span>
               <span className="h-8 w-8 rounded-full bg-[#0d592e] text-white text-[11px] font-black flex items-center justify-center shadow-sm">
@@ -183,14 +177,14 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
               </span>
             </div>
             <p className="text-xs font-semibold text-slate-600">
-              100 Coins is equal to 1 Rupee in your wallet
+              1,000 Coins = ₹1.00 in your wallet
             </p>
           </div>
 
           {/* Step 4 */}
           <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-col items-center text-center relative group hover:border-emerald-200 transition-all">
             <span className="text-[11px] font-black uppercase text-slate-700 tracking-wider mb-2">
-              USE ON NEXT ORDER
+              4. USE ON NEXT ORDER
             </span>
             <div className="h-14 w-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-3 relative">
               <ShoppingCart size={24} className="text-[#0d592e]" />

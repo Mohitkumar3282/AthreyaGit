@@ -221,24 +221,25 @@ const CartPage = () => {
                                 </div>
                             </div>
 
-                            {/* SAVED MONEY ON THIS ORDER Card */}
+                            {/* Athreya Coins Reward Card */}
                             {totalCartSavings > 0 && (
                                 <div className="rounded-3xl bg-[#fefce8] border-2 border-[#fef08a] p-4 flex items-center justify-between gap-3 shadow-xs">
-                                    <div className="space-y-0.5 min-w-0">
-                                        <div className="inline-flex items-center gap-1 bg-[#fde047]/70 px-2 py-0.5 rounded-full text-[9px] font-[1000] text-amber-900 uppercase">
-                                            <span>✓</span> SAVED ON THIS ORDER
+                                    <div className="space-y-1 min-w-0">
+                                        <div className="inline-flex items-center gap-1 bg-[#fde047]/70 px-2.5 py-0.5 rounded-full text-[9px] font-[1000] text-amber-950 uppercase">
+                                            <span>🎉</span> ATHREYA REWARD
                                         </div>
-                                        <div className="text-2xl font-[1000] text-[#0d592e]">
-                                            ₹{totalCartSavings.toFixed(2)}
+                                        <div className="text-xl md:text-2xl font-[1000] text-[#0d592e] flex items-center gap-1.5 flex-wrap">
+                                            <span>🪙 {Math.floor(totalCartSavings * 100).toLocaleString("en-IN")}</span>
+                                            <span className="text-xs md:text-sm font-bold text-[#166534]">Coins</span>
                                         </div>
-                                        <p className="text-[11px] font-bold text-amber-900">
-                                            You will earn {Math.floor(totalCartSavings)} Athreya Coins!
+                                        <p className="text-[11px] font-bold text-amber-950/80">
+                                            You will earn {Math.floor(totalCartSavings * 100).toLocaleString("en-IN")} Athreya Coins on this order!
                                         </p>
                                     </div>
                                     <div className="h-16 w-16 shrink-0 rounded-2xl overflow-hidden bg-white/70 p-1 border border-amber-200">
                                         <img
                                             src={piggyBankImg}
-                                            alt="Piggy Bank Savings"
+                                            alt="Athreya Coins Reward"
                                             className="h-full w-full object-contain"
                                         />
                                     </div>

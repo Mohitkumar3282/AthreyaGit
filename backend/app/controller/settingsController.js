@@ -167,8 +167,8 @@ const updateSettingsSchema = Joi.object({
   // Athreya Coins loyalty configuration (coinsService).
   athreyaCoins: Joi.object({
     enabled: Joi.boolean(),
-    coinsPerRupeeSaved: Joi.number().min(0).max(1000),
-    rupeeValuePerCoin: Joi.number().min(0.01).max(1000),
+    coinsPerRupeeSaved: Joi.number().min(0).max(100000),
+    rupeeValuePerCoin: Joi.number().min(0.00001).max(1000),
     minRedeemCoins: Joi.number().integer().min(0),
     maxRedeemPercentOfOrder: Joi.number().min(0).max(100),
     maxEarnPerOrder: Joi.number().integer().min(0),

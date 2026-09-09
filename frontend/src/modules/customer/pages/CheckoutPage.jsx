@@ -284,9 +284,17 @@ const CheckoutPage = () => {
   const walletApplied = Number(
     pricingPreview?.walletAmount ?? (useWallet ? walletAmountToUse : 0),
   );
+  const fallbackGrandTotal = Math.max(
+    0,
+    Number(cartTotal || 0) +
+      Number(selectedTip || 0) -
+      Number(discountAmount || 0) -
+      Number(useWallet ? walletAmountToUse : 0) -
+      Number(useCoins ? appliedCoinsDiscount : 0),
+  );
   const finalAmountToPay = Math.max(
     0,
-    Number(pricingPreview?.payableAmount ?? pricingPreview?.grandTotal ?? 0),
+    Number(pricingPreview?.payableAmount ?? pricingPreview?.grandTotal ?? fallbackGrandTotal),
   );
 
   const coinSettings = coinsResult?.settings || {};
@@ -295,7 +303,7 @@ const CheckoutPage = () => {
   // Ceiling for this order: the percentage cap applies to the pre-coins total,
   // which is `grandTotal + discount already granted`.
   const coinsOrderBase =
-    Number(pricingPreview?.grandTotal || 0) + Number(appliedCoinsDiscount || 0);
+    Number(pricingPreview?.grandTotal || fallbackGrandTotal) + Number(appliedCoinsDiscount || 0);
   const maxRedeemableCoins = useMemo(() => {
     const perCoin = Number(coinSettings.rupeeValuePerCoin || 1);
     const percent = Number(coinSettings.maxRedeemPercentOfOrder ?? 100);
@@ -335,7 +343,11 @@ const CheckoutPage = () => {
 
     return {
       ...currentAddress,
-      location: hasAddrLoc ? { lat: addrLoc.lat, lng: addrLoc.lng } : undefined,
+      location: hasAddrLoc
+        ? { lat: addrLoc.lat, lng: addrLoc.lng }
+        : currentLocation?.latitude && currentLocation?.longitude
+          ? { lat: currentLocation.latitude, lng: currentLocation.longitude }
+          : undefined,
     };
   };
 
@@ -718,6 +730,8 @@ const CheckoutPage = () => {
       })),
       address: buildAddressForOrder(),
       discountTotal: discountAmount,
+      couponCode: selectedCoupon?.code || undefined,
+      couponId: selectedCoupon?._id || selectedCoupon?.id || undefined,
       taxTotal: 0,
       tipAmount: selectedTip,
       paymentMode: selectedPayment === "online" ? "ONLINE" : "COD",
@@ -742,6 +756,10 @@ const CheckoutPage = () => {
         }
       } catch (error) {
         console.error("Checkout preview failed", error);
+        const msg = error?.response?.data?.message;
+        if (msg && !msg.toLowerCase().includes("unauthorized")) {
+          showToast(msg, "warning");
+        }
       } finally {
         setIsPreviewLoading(false);
       }
@@ -853,6 +871,8 @@ const CheckoutPage = () => {
         address: buildAddressForOrder(),
         paymentMode: selectedPayment === "online" ? "ONLINE" : "COD",
         discountTotal: discountAmount,
+        couponCode: selectedCoupon?.code || undefined,
+        couponId: selectedCoupon?._id || selectedCoupon?.id || undefined,
         taxTotal: taxAmount,
         tipAmount: selectedTip,
         timeSlot: selectedTimeSlot,
@@ -1261,7 +1281,8 @@ const CheckoutPage = () => {
               <SlideToPay
                 amount={finalAmountToPay}
                 onSuccess={handlePlaceOrder}
-                isLoading={isPlacingOrder || isPreviewLoading || !pricingPreview}
+                isLoading={isPlacingOrder || isPreviewLoading}
+                disabled={cart.length === 0 || isPlacingOrder}
                 text={finalAmountToPay === 0 ? "Place Free Order" : "Order Now"}
               />
               <p className="text-center text-[10px] text-slate-400 font-bold mt-2 uppercase tracking-[0.1em]">
@@ -1281,7 +1302,8 @@ const CheckoutPage = () => {
           <SlideToPay
             amount={finalAmountToPay}
             onSuccess={handlePlaceOrder}
-            isLoading={isPlacingOrder || isPreviewLoading || !pricingPreview}
+            isLoading={isPlacingOrder || isPreviewLoading}
+            disabled={cart.length === 0 || isPlacingOrder}
             text={finalAmountToPay === 0 ? "Place Free Order" : "Slide to Order"}
           />
         </div>

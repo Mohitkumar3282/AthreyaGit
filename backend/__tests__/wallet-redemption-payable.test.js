@@ -149,9 +149,9 @@ describe("Wallet redemption reduces the amount the customer pays", () => {
 
   it("quotes the Athreya Coins the order will return on delivery", async () => {
     const snapshot = await priceWith();
-    // ₹100 of catalog savings -> 100 coins (₹1).
+    // ₹100 of catalog savings -> 10,000 coins (₹1.00).
     expect(snapshot.aggregateBreakdown.savingsTotal).toBe(100);
-    expect(snapshot.coins.earned).toBe(100);
+    expect(snapshot.coins.earned).toBe(10000);
     // Rupee cashback is the opt-in alternative and ships disabled, so the
     // same savings are never rewarded twice.
     expect(snapshot.cashback.amount).toBe(0);

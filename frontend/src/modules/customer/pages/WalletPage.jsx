@@ -143,8 +143,8 @@ const WalletPage = () => {
   }, []);
 
   const balance = coins?.balance ?? 0;
-  const coinValue = coins?.settings?.rupeeValuePerCoin ?? 0.01;
-  const perRupee = coins?.settings?.coinsPerRupeeSaved ?? 1;
+  const coinValue = coins?.settings?.rupeeValuePerCoin ?? 0.0001;
+  const perRupee = coins?.settings?.coinsPerRupeeSaved ?? 100;
   const rupeeBalance = wallet?.balance ?? 0;
 
   return (
