@@ -232,10 +232,10 @@ const settingSchema = new mongoose.Schema(
          */
         athreyaCoins: {
             enabled: { type: Boolean, default: true },
-            // Coins minted per rupee of realised savings (MRP discount + coupon).
-            coinsPerRupeeSaved: { type: Number, default: 1, min: 0 },
-            // Rupee value of one coin. 1 coin = 1 paisa.
-            rupeeValuePerCoin: { type: Number, default: 0.01, min: 0.01 },
+            // Coins minted per rupee of realised savings (MRP discount + coupon). ₹100 saved = 1,000 coins (10 coins / ₹1).
+            coinsPerRupeeSaved: { type: Number, default: 10, min: 0 },
+            // Rupee value of one coin. 1,000 coins = ₹1.00 (1 coin = ₹0.001).
+            rupeeValuePerCoin: { type: Number, default: 0.001, min: 0 },
             // Smallest redemption allowed in a single checkout.
             minRedeemCoins: { type: Number, default: 1, min: 0 },
             // Ceiling on how much of an order payable coins may settle.

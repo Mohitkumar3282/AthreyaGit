@@ -149,8 +149,8 @@ describe("checkout pricing — Athreya Coins", () => {
     mockSettingFindOne.mockReturnValue(
       createQueryChain({ athreyaCoins: { enabled: true } }),
     );
-    // ₹100 of coins in hand (1 coin = 1 paisa).
-    mockCoinWalletFindOne.mockReturnValue(createQueryChain({ balance: 10000 }));
+    // ₹100 of coins in hand (1,000 coins = ₹1, so 100,000 coins = ₹100).
+    mockCoinWalletFindOne.mockReturnValue(createQueryChain({ balance: 100000 }));
     mockSellerFindById.mockReturnValue(
       createQueryChain({
         _id: "seller-a",
@@ -177,10 +177,10 @@ describe("checkout pricing — Athreya Coins", () => {
       address: NEAR_ADDRESS,
     });
 
-    // (500 - 400) * 2 = ₹200 saved -> 1 coin per rupee -> 200 coins (₹2)
+    // (500 - 400) * 2 = ₹200 saved -> 10 coins per rupee -> 2,000 coins (₹2)
     expect(snapshot.aggregateBreakdown.productSavings).toBe(200);
     expect(snapshot.coins.savingsBase).toBe(200);
-    expect(snapshot.coins.earned).toBe(200);
+    expect(snapshot.coins.earned).toBe(2000);
   });
 
   it("subtracts a redemption from the payable and leaves the rider payout intact", async () => {
@@ -192,14 +192,14 @@ describe("checkout pricing — Athreya Coins", () => {
     const redeemed = await buildCheckoutPricingSnapshot({
       orderItems: [{ product: "p1", quantity: 1 }],
       address: NEAR_ADDRESS,
-      coinsRedeem: 5000,
+      coinsRedeem: 50000,
       customerId: "cust-1",
     });
 
-    // 5000 coins is ₹50 of value.
-    expect(redeemed.coins.redeemed).toBe(5000);
+    // 50,000 coins is ₹50 of value.
+    expect(redeemed.coins.redeemed).toBe(50000);
     expect(redeemed.coins.discount).toBe(50);
-    expect(redeemed.aggregateBreakdown.coinsRedeemed).toBe(5000);
+    expect(redeemed.aggregateBreakdown.coinsRedeemed).toBe(50000);
     expect(redeemed.aggregateBreakdown.coinsDiscount).toBe(50);
     expect(redeemed.aggregateBreakdown.grandTotal).toBe(
       Number((baseline.aggregateBreakdown.grandTotal - 50).toFixed(2)),
@@ -223,24 +223,24 @@ describe("checkout pricing — Athreya Coins", () => {
     const snapshot = await buildCheckoutPricingSnapshot({
       orderItems: [{ product: "p1", quantity: 1 }],
       address: NEAR_ADDRESS,
-      coinsRedeem: 999999,
+      coinsRedeem: 99999999,
       customerId: "cust-1",
     });
 
-    // Balance is 10000 coins (₹100) against a ₹430 order.
-    expect(snapshot.coins.redeemed).toBe(10000);
+    // Balance is 100,000 coins (₹100) against a ₹430 order.
+    expect(snapshot.coins.redeemed).toBe(100000);
     expect(snapshot.coins.cappedBy).toBe("BALANCE");
     expect(snapshot.aggregateBreakdown.grandTotal).toBe(330);
   });
 
   it("never lets a huge balance overpay the order", async () => {
-    // ₹5000 of coins against a ₹430 order — capped at the order value.
-    mockCoinWalletFindOne.mockReturnValue(createQueryChain({ balance: 500000 }));
+    // ₹5000 of coins against a ₹430 order — capped at the order value (430,000 coins).
+    mockCoinWalletFindOne.mockReturnValue(createQueryChain({ balance: 5000000 }));
 
     const snapshot = await buildCheckoutPricingSnapshot({
       orderItems: [{ product: "p1", quantity: 1 }],
       address: NEAR_ADDRESS,
-      coinsRedeem: 500000,
+      coinsRedeem: 5000000,
       customerId: "cust-1",
     });
 

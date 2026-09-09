@@ -875,9 +875,8 @@ const OrderDetailPage = () => {
       <CoinsEarnedModal
         isOpen={showCoinsEarnedModal}
         onClose={() => setShowCoinsEarnedModal(false)}
-        savingsAmount={totalSavingsOnOrder}
-        coinsEarned={order.coins?.earned || Math.floor(totalSavingsOnOrder)}
-        rupeeValue={order.coins?.earned ? order.coins.earned / 100 : totalSavingsOnOrder / 100}
+        coinsEarned={order.coins?.earned || 0}
+        rupeeValue={order.coins?.earned ? order.coins.earned / 1000 : 0}
       />
 
       {/* Dark Green Header matching Screen 1 */}
@@ -1344,42 +1343,7 @@ const OrderDetailPage = () => {
           </div>
         </motion.div>
 
-        {/* SAVED MONEY ON THIS ORDER Card matching Screen 1 */}
-        {totalSavingsOnOrder > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.32 }}
-            className="rounded-3xl bg-[#fefce8] border-2 border-[#fef08a] p-4 md:p-5 flex items-center justify-between gap-4 shadow-sm relative overflow-hidden"
-          >
-            <div className="space-y-1 z-10 min-w-0">
-              <div className="inline-flex items-center gap-1.5 bg-[#fde047]/60 px-2.5 py-1 rounded-full text-[10px] font-[1000] text-amber-900 uppercase tracking-wider">
-                <span className="h-3.5 w-3.5 rounded-full bg-amber-500 text-white flex items-center justify-center text-[9px]">
-                  ✓
-                </span>
-                <span>SAVED MONEY ON THIS ORDER</span>
-              </div>
-
-              <div className="text-3xl md:text-4xl font-[1000] text-[#0d592e] tracking-tight pt-1">
-                ₹{totalSavingsOnOrder.toFixed(2)}
-              </div>
-
-              <p className="text-xs font-bold text-amber-950/80">
-                Great! You saved ₹{Math.round(totalSavingsOnOrder)} on this order.
-              </p>
-            </div>
-
-            <div className="h-20 w-20 md:h-24 md:w-24 shrink-0 rounded-2xl overflow-hidden bg-white/70 p-1.5 shadow-sm border border-amber-200">
-              <img
-                src={piggyBankImg}
-                alt="Savings Piggy Bank"
-                className="h-full w-full object-contain"
-              />
-            </div>
-          </motion.div>
-        )}
-
-        {/* COINS EARNED Interactive Card matching Screen 2 trigger */}
+        {/* COINS EARNED Interactive Card */}
         {order.coins?.earned > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
@@ -1393,18 +1357,18 @@ const OrderDetailPage = () => {
                 <CheckCircle size={26} className="text-white fill-[#0d4d29]" />
               </div>
               <div>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider">You Earned</p>
-                <h4 className="text-xl font-[1000] text-[#0d592e] leading-tight">
-                  {order.coins.earned.toLocaleString("en-IN")} Coins
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider">🎉 You Earned</p>
+                <h4 className="text-lg md:text-xl font-[1000] text-[#0d592e] leading-tight">
+                  {order.coins.earned.toLocaleString("en-IN")} Athreya Coins
                 </h4>
                 <p className="text-xs font-bold text-slate-500">
-                  (₹{(order.coins.earned / 100).toFixed(2)} Added to Wallet)
+                  (Value: ₹{(order.coins.earned / 1000).toFixed(2)} in Your Wallet)
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-1 text-xs font-black text-[#0d592e] bg-white px-3 py-2 rounded-xl border border-emerald-200 shadow-2xs group-hover:bg-[#0d592e] group-hover:text-white transition-colors shrink-0">
-              <span>View Breakdown</span>
+              <span>View Details</span>
               <ArrowRight size={14} />
             </div>
           </motion.div>
@@ -1877,6 +1841,14 @@ const OrderDetailPage = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Coins Earned Modal */}
+      <CoinsEarnedModal
+        isOpen={showCoinsEarnedModal}
+        onClose={() => setShowCoinsEarnedModal(false)}
+        coinsEarned={order?.coins?.earned || 0}
+        rupeeValue={(order?.coins?.earned || 0) / 1000}
+      />
     </div>
   );
 };

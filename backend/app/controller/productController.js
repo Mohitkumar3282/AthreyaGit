@@ -275,9 +275,15 @@ export const getProducts = async (req, res) => {
       }
 
       if (targetCatId) {
+        // Direct children (Level 1)
         const childCategories = await Category.find({ parentId: targetCatId }).select("_id").lean();
         const childIds = childCategories.map(c => c._id);
-        const allCatIds = [targetCatId, ...childIds];
+        // Sub-children (Level 2)
+        const subCategories = childIds.length > 0
+          ? await Category.find({ parentId: { $in: childIds } }).select("_id").lean()
+          : [];
+        const subIds = subCategories.map(c => c._id);
+        const allCatIds = [targetCatId, ...childIds, ...subIds];
 
         query.$or = [
           { headerId: { $in: allCatIds } },
@@ -731,6 +737,30 @@ export const createProduct = async (req, res) => {
       }));
     }
 
+    // Auto-infer missing headerId / categoryId hierarchy if subcategory or category provided
+    if (!productData.headerId && productData.categoryId) {
+      try {
+        const cat = await Category.findById(productData.categoryId).select("parentId").lean();
+        if (cat?.parentId) {
+          productData.headerId = cat.parentId;
+        }
+      } catch (err) {}
+    }
+    if (!productData.categoryId && productData.subcategoryId) {
+      try {
+        const sub = await Category.findById(productData.subcategoryId).select("parentId").lean();
+        if (sub?.parentId) {
+          productData.categoryId = sub.parentId;
+          if (!productData.headerId) {
+            const parentCat = await Category.findById(sub.parentId).select("parentId").lean();
+            if (parentCat?.parentId) {
+              productData.headerId = parentCat.parentId;
+            }
+          }
+        }
+      } catch (err) {}
+    }
+
     let moderationUpdate = {};
     let successMessage = "Product created successfully";
 
@@ -911,6 +941,30 @@ export const updateProduct = async (req, res) => {
             ? variant.sku
             : makeProductSku(skuBaseName, idx + 1),
       }));
+    }
+
+    // Auto-infer missing headerId / categoryId hierarchy if subcategory or category provided
+    if (!productData.headerId && productData.categoryId) {
+      try {
+        const cat = await Category.findById(productData.categoryId).select("parentId").lean();
+        if (cat?.parentId) {
+          productData.headerId = cat.parentId;
+        }
+      } catch (err) {}
+    }
+    if (!productData.categoryId && productData.subcategoryId) {
+      try {
+        const sub = await Category.findById(productData.subcategoryId).select("parentId").lean();
+        if (sub?.parentId) {
+          productData.categoryId = sub.parentId;
+          if (!productData.headerId) {
+            const parentCat = await Category.findById(sub.parentId).select("parentId").lean();
+            if (parentCat?.parentId) {
+              productData.headerId = parentCat.parentId;
+            }
+          }
+        }
+      } catch (err) {}
     }
 
     let moderationUpdate = {};

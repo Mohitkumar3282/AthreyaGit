@@ -51,11 +51,44 @@ const CategoryProductsPage = () => {
             }
 
             // Fetch products, categories tree, and sellers in parallel
-            const [prodRes, catRes, sellersRes] = await Promise.all([
+            let [prodRes, catRes, sellersRes] = await Promise.all([
                 customerApi.getProducts(prodParams),
                 customerApi.getCategories({ tree: true }),
                 customerApi.getNearbySellers(sellerParams),
             ]);
+
+            // Fallback: If location-restricted products return empty, retry without lat/lng
+            if (prodParams.lat && prodRes.data?.success) {
+                const initialItems = prodRes.data.results || prodRes.data.result?.items || prodRes.data.result || [];
+                if (!Array.isArray(initialItems) || initialItems.length === 0) {
+                    try {
+                        const fallbackProdRes = await customerApi.getProducts({ categoryId: cleanCatParam });
+                        if (fallbackProdRes.data?.success) {
+                            const fallbackItems = fallbackProdRes.data.results || fallbackProdRes.data.result?.items || fallbackProdRes.data.result || [];
+                            if (Array.isArray(fallbackItems) && fallbackItems.length > 0) {
+                                prodRes = fallbackProdRes;
+                            }
+                        }
+                    } catch (fbErr) {
+                        console.warn("Fallback product fetch warning:", fbErr);
+                    }
+                }
+            }
+
+            // Fallback: If location-restricted sellers return empty, retry without lat/lng
+            if (sellerParams.lat && sellersRes.data?.success) {
+                const initialSellers = sellersRes.data.results || sellersRes.data.result || [];
+                if (!Array.isArray(initialSellers) || initialSellers.length === 0) {
+                    try {
+                        const fallbackSellersRes = await customerApi.getNearbySellers({});
+                        if (fallbackSellersRes.data?.success) {
+                            sellersRes = fallbackSellersRes;
+                        }
+                    } catch (fbSellerErr) {
+                        console.warn("Fallback sellers fetch warning:", fbSellerErr);
+                    }
+                }
+            }
 
             if (sellersRes.data?.success) {
                 setAllSellers(sellersRes.data.results || sellersRes.data.result || []);
@@ -117,9 +150,11 @@ const CategoryProductsPage = () => {
                     const subs = (currentCat.children || []).map(s => ({
                         id: s._id,
                         name: s.name,
-                        icon: s.image || 'https://cdn-icons-png.flaticon.com/128/2321/2321801.png'
+                        slug: s.slug,
+                        icon: s.image || 'https://cdn-icons-png.flaticon.com/128/2321/2321801.png',
+                        children: s.children || []
                     }));
-                    setSubCategories([{ id: 'all', name: 'All', icon: 'https://cdn-icons-png.flaticon.com/128/2321/2321831.png' }, ...subs]);
+                    setSubCategories([{ id: 'all', name: 'All', icon: 'https://cdn-icons-png.flaticon.com/128/2321/2321831.png', children: [] }, ...subs]);
                 } else {
                     setCategory({ name: cleanCatParam });
                 }
@@ -138,28 +173,70 @@ const CategoryProductsPage = () => {
 
     const safeProducts = Array.isArray(products) ? products : [];
 
-    // Filter products by selected subcategory or category
-    const filteredProducts = safeProducts.filter(p =>
-        selectedSubCategory === 'all' || 
-        p.subcategoryId?._id === selectedSubCategory || 
-        p.subcategoryId === selectedSubCategory ||
-        p.categoryId?._id === selectedSubCategory ||
-        p.categoryId === selectedSubCategory
-    );
+    // Filter products by selected subcategory or category with resilient ID and name matching
+    const filteredProducts = React.useMemo(() => {
+        if (!selectedSubCategory || selectedSubCategory === 'all') {
+            return safeProducts;
+        }
+
+        const selStr = String(selectedSubCategory).trim().toLowerCase();
+
+        // Match active subcategory object
+        const activeSub = subCategories.find(s => 
+            String(s.id).toLowerCase() === selStr || 
+            String(s.name || '').toLowerCase() === selStr ||
+            String(s.slug || '').toLowerCase() === selStr
+        );
+
+        const targetId = activeSub ? String(activeSub.id).toLowerCase() : selStr;
+        const targetName = activeSub ? String(activeSub.name || '').toLowerCase() : selStr;
+        const childIds = (activeSub?.children || []).map(c => String(c._id || c.id || '').toLowerCase());
+        const childNames = (activeSub?.children || []).map(c => String(c.name || '').toLowerCase());
+
+        return safeProducts.filter(p => {
+            const pSubId = String(p.subcategoryId?._id || p.subcategoryId || '').toLowerCase();
+            const pSubName = String(p.subcategoryId?.name || '').toLowerCase();
+            const pCatId = String(p.categoryId?._id || p.categoryId || '').toLowerCase();
+            const pCatName = String(p.categoryId?.name || '').toLowerCase();
+            const pHeadId = String(p.headerId?._id || p.headerId || '').toLowerCase();
+            const pHeadName = String(p.headerId?.name || '').toLowerCase();
+            const pName = String(p.name || '').toLowerCase();
+            const pTags = Array.isArray(p.tags) ? p.tags.map(t => String(t).toLowerCase()) : [];
+
+            // 1. Direct ID match on Category, Subcategory, or Header
+            if (pCatId === targetId || pSubId === targetId || pHeadId === targetId) return true;
+
+            // 2. Direct Name match on Category, Subcategory, or Header
+            if (targetName) {
+                if (pCatName === targetName || pSubName === targetName || pHeadName === targetName) return true;
+                if (pCatName && (pCatName.includes(targetName) || targetName.includes(pCatName))) return true;
+                if (pSubName && (pSubName.includes(targetName) || targetName.includes(pSubName))) return true;
+                // If product title contains the category term (e.g. "dhosa" / "dosa")
+                if (pName && (pName.includes(targetName) || targetName.includes(pName))) return true;
+                // Tags match
+                if (pTags.some(t => t.includes(targetName) || targetName.includes(t))) return true;
+            }
+
+            // 3. Match child subcategories (e.g., Level 2 items under selected Level 1 category)
+            if (childIds.length > 0 && (childIds.includes(pSubId) || childIds.includes(pCatId))) return true;
+            if (childNames.length > 0 && (childNames.includes(pSubName) || childNames.includes(pCatName))) return true;
+
+            return false;
+        });
+    }, [safeProducts, selectedSubCategory, subCategories]);
 
     // Group the filtered products by their sellerId
     const groupedSellers = React.useMemo(() => {
         const groupedMap = {};
         filteredProducts.forEach((product) => {
             const sellerIdVal = product.sellerId?._id || product.sellerId;
-            if (!sellerIdVal) return;
-            const sellerIdStr = String(sellerIdVal);
+            const sellerIdStr = sellerIdVal ? String(sellerIdVal) : 'default-store';
 
             if (!groupedMap[sellerIdStr]) {
                 const matchedSeller = allSellers.find(s => String(s._id || s.id) === sellerIdStr);
                 groupedMap[sellerIdStr] = {
                     _id: sellerIdStr,
-                    shopName: matchedSeller?.shopName || product.sellerId?.shopName || 'Store',
+                    shopName: matchedSeller?.shopName || product.sellerId?.shopName || 'Athreya Store',
                     shopLogo: matchedSeller?.shopLogo || matchedSeller?.storeFrontImage || '',
                     rating: matchedSeller?.rating || '4.5',
                     storeTimings: matchedSeller?.storeTimings || '20-25 mins',
