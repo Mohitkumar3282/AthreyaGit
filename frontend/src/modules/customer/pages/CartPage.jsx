@@ -18,7 +18,7 @@ import CoinsPromoBanner from '../components/CoinsPromoBanner';
 import piggyBankImg from '@/assets/coins/piggy_bank.jpg';
 
 const CartPage = () => {
-    const { cart, removeFromCart, updateQuantity, cartTotal, clearCart } = useCart();
+    const { cart, removeFromCart, updateQuantity, cartTotal, cartMrpTotal, clearCart } = useCart();
     const { showToast } = useToast();
     const itemCount = cart.reduce((count, item) => count + (Number(item.quantity) || 1), 0);
     const [emptyBoxData, setEmptyBoxData] = useState(null);
@@ -191,7 +191,14 @@ const CartPage = () => {
                                 <div className="space-y-2.5 text-xs md:text-sm">
                                     <div className="flex justify-between text-slate-600 font-semibold">
                                         <span>Subtotal</span>
-                                        <span className="font-bold text-slate-900">₹{Number(cartTotal).toFixed(2)}</span>
+                                        <div className="flex items-center gap-1.5 sm:gap-2">
+                                            {Number(cartMrpTotal) > Number(cartTotal) && (
+                                                <span className="text-xs md:text-sm font-semibold text-slate-400 line-through">
+                                                    ₹{Number(cartMrpTotal).toFixed(2).replace(/\.00$/, "")}
+                                                </span>
+                                            )}
+                                            <span className="font-bold text-slate-900">₹{Number(cartTotal).toFixed(2).replace(/\.00$/, "")}</span>
+                                        </div>
                                     </div>
                                     <div className="flex justify-between text-slate-600 font-semibold">
                                         <span>Delivery Fee</span>
@@ -199,7 +206,14 @@ const CartPage = () => {
                                     </div>
                                     <div className="border-t border-slate-200 pt-3 flex items-center justify-between">
                                         <span className="text-base font-[1000] text-slate-900 uppercase">Total Paid</span>
-                                        <span className="text-2xl font-[1000] tracking-tight text-slate-900">₹{Number(cartTotal).toFixed(2)}</span>
+                                        <div className="flex items-baseline gap-2">
+                                            {Number(cartMrpTotal) > Number(cartTotal) && (
+                                                <span className="font-bold text-slate-400 text-base md:text-lg line-through">
+                                                    ₹{Number(cartMrpTotal).toFixed(2).replace(/\.00$/, "")}
+                                                </span>
+                                            )}
+                                            <span className="text-2xl font-[1000] tracking-tight text-slate-900">₹{Number(cartTotal).toFixed(2).replace(/\.00$/, "")}</span>
+                                        </div>
                                     </div>
                                 </div>
 

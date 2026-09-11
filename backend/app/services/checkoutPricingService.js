@@ -108,6 +108,7 @@ function buildAggregateBreakdown(sellerBreakdowns = []) {
   const aggregate = {
     currency: sellerBreakdowns[0]?.currency || "INR",
     productSubtotal: sumField(sellerBreakdowns, "productSubtotal"),
+    productMrpTotal: sumField(sellerBreakdowns, "productMrpTotal") || round2(sumField(sellerBreakdowns, "productSubtotal") + sumField(sellerBreakdowns, "productSavings")),
     // Athreya Coins: MRP-vs-paid savings, and the coin redemption applied
     // to this checkout (`coinsRedeemed` is a coin count, `coinsDiscount`
     // is the rupee value it bought).

@@ -26,7 +26,7 @@ import piggyBankImg from "@/assets/coins/piggy_bank.jpg";
 
 const currency = (value) => `₹${Number(value || 0).toFixed(2).replace(/\.00$/, "")}`;
 
-function BillRow({ label, value, hint, tone = "default", isBold = false }) {
+function BillRow({ label, value, originalValue, hint, tone = "default", isBold = false }) {
   const valueTone =
     tone === "credit" ? "text-[#1a6e2e]" : isBold ? "text-slate-900 font-[1000]" : "text-slate-800 font-bold";
   return (
@@ -41,7 +41,14 @@ function BillRow({ label, value, hint, tone = "default", isBold = false }) {
           </span>
         )}
       </div>
-      <span className={`text-sm md:text-base ${valueTone}`}>{value}</span>
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        {originalValue && (
+          <span className="text-xs md:text-sm font-semibold text-slate-400 line-through">
+            {originalValue}
+          </span>
+        )}
+        <span className={`text-sm md:text-base ${valueTone}`}>{value}</span>
+      </div>
     </div>
   );
 }
@@ -58,6 +65,7 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
   coinsRedeemed = 0,
   finalAmountToPay,
   cartTotal,
+  cartMrpTotal,
   selectedCoupon,
   discountAmount,
   coinValue = 0.001,
@@ -67,7 +75,15 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
   // and taxes must not be on screen until then.
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const itemTotal = pricingPreview?.productSubtotal ?? cartTotal;
+  const itemTotal = Number(pricingPreview?.productSubtotal ?? cartTotal ?? 0);
+  const itemMrpTotal = Number(
+    pricingPreview?.productMrpTotal ??
+      (Number(pricingPreview?.productSavings || 0) > 0
+        ? itemTotal + Number(pricingPreview.productSavings)
+        : cartMrpTotal || itemTotal),
+  );
+  const hasMrpSavings = itemMrpTotal > itemTotal;
+
   const deliveryFee = pricingPreview?.deliveryFeeCharged || 0;
   // `?? 0`, not `|| 3`: a genuine zero platform fee is falsy, so the old
   // fallback invented a 3 rupee charge that was never billed. Harmless while
@@ -80,6 +96,14 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
   // value. If the two ever disagree (coupon partially applied, capped, or
   // rejected server-side) the rows must still reconcile with the total.
   const couponDiscount = Number(pricingPreview?.discountTotal ?? discountAmount ?? 0);
+
+  const originalTotalBill = hasMrpSavings
+    ? itemMrpTotal + deliveryFee + handlingFee + taxAmount + tipAmount
+    : 0;
+  const currentTotalToPay = Number(
+    finalAmountToPay ??
+      itemTotal + deliveryFee + handlingFee + taxAmount + tipAmount - couponDiscount - Number(walletAmountToUse || 0) - Number(coinsDiscount || 0),
+  );
 
   // Coins this order will mint, straight from the server's own calculation —
   // ₹100 Saved = 1000 Athreya Coins.
@@ -158,7 +182,11 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               className="space-y-2 overflow-hidden border-b border-slate-100 pb-3">
-              <BillRow label="Item Total" value={currency(itemTotal)} />
+              <BillRow
+                label="Item Total"
+                value={currency(itemTotal)}
+                originalValue={hasMrpSavings ? currency(itemMrpTotal) : null}
+              />
 
               <BillRow
                 label="Delivery Fee"
@@ -222,11 +250,18 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
             charge — and the breakdown rows, now that customers can open
             them, would not have summed to the headline figure either.
           */}
-          <span className="font-[1000] text-slate-900 text-2xl md:text-3xl tracking-tight">
-            {isPreviewLoading
-              ? "Calculating…"
-              : currency(finalAmountToPay || itemTotal + deliveryFee + handlingFee)}
-          </span>
+          <div className="flex items-baseline gap-2">
+            {!isPreviewLoading && originalTotalBill > currentTotalToPay && (
+              <span className="font-bold text-slate-400 text-base md:text-lg line-through">
+                {currency(originalTotalBill)}
+              </span>
+            )}
+            <span className="font-[1000] text-slate-900 text-2xl md:text-3xl tracking-tight">
+              {isPreviewLoading
+                ? "Calculating…"
+                : currency(currentTotalToPay)}
+            </span>
+          </div>
         </div>
       </motion.div>
 

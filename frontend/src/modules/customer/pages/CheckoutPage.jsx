@@ -80,6 +80,7 @@ const CheckoutPage = () => {
     cart,
     addToCart,
     cartTotal,
+    cartMrpTotal,
     cartCount,
     updateQuantity,
     removeFromCart,
@@ -1264,6 +1265,7 @@ const CheckoutPage = () => {
               coinsRedeemed={appliedCoins}
               finalAmountToPay={finalAmountToPay}
               cartTotal={cartTotal}
+              cartMrpTotal={cartMrpTotal}
               selectedCoupon={selectedCoupon}
               discountAmount={discountAmount}
               coinValue={coinSettings.rupeeValuePerCoin ?? 0.01}

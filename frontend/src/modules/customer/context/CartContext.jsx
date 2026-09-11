@@ -276,6 +276,13 @@ export const CartProvider = ({ children }) => {
         : Number(item.price || 0);
     return total + unit * Number(item.quantity || 0);
   }, 0);
+  const cartMrpTotal = cart.reduce((total, item) => {
+    const qty = Math.max(1, Number(item.quantity || 1));
+    const rawMrp = Number(item.price || item.mrp || 0);
+    const rawSale = Number(item.salePrice || item.price || 0);
+    const unitMrp = rawMrp > 0 ? rawMrp : rawSale;
+    return total + unitMrp * qty;
+  }, 0);
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   const cartValue = useMemo(() => ({
@@ -285,10 +292,11 @@ export const CartProvider = ({ children }) => {
     updateQuantity,
     clearCart,
     cartTotal,
+    cartMrpTotal,
     cartCount,
     loading,
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [cart, cartTotal, cartCount, loading]);
+  }), [cart, cartTotal, cartMrpTotal, cartCount, loading]);
 
   return (
     <CartContext.Provider value={cartValue}>

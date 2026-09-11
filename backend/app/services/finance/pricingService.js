@@ -568,6 +568,7 @@ export async function generateOrderPaymentBreakdown({
     lineItems,
     currency: "INR",
     productSubtotal,
+    productMrpTotal: roundCurrency(productSubtotal + productSavings),
     // Struck-through MRP minus paid price, summed across lines. Combined with
     // `discountTotal` this is the savings base Athreya Coins are minted from.
     productSavings: roundCurrency(productSavings),

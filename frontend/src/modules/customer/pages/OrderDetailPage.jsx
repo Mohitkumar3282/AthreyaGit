@@ -1267,81 +1267,107 @@ const OrderDetailPage = () => {
         </motion.div>
 
         {/* Bill Summary matching Screen 1 */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-xs space-y-4"
-        >
-          <h3 className="text-base font-[1000] text-slate-800 uppercase tracking-tight border-b border-slate-100 pb-2">
-            Bill Summary
-          </h3>
-          <div className="space-y-2.5 text-xs md:text-sm">
-            <div className="flex justify-between text-slate-600 font-semibold px-1">
-              <span>Subtotal</span>
-              <span className="font-bold text-slate-800">₹{Number(order.pricing.subtotal || 0).toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-slate-600 font-semibold px-1">
-              <span>Delivery Fee</span>
-              <span
-                className={
-                  order.pricing.deliveryFee === 0 ? "text-[#0d4d29] font-[1000]" : "font-bold text-slate-800"
-                }>
-                {order.pricing.deliveryFee === 0
-                  ? "FREE"
-                  : `₹${Number(order.pricing.deliveryFee).toFixed(2)}`}
-              </span>
-            </div>
-            {Number(order.pricing.platformFee || 0) > 0 && (
-              <div className="flex justify-between text-slate-600 font-semibold px-1">
-                <span>Platform Fee</span>
-                <span className="font-bold text-slate-800">₹{Number(order.pricing.platformFee).toFixed(2)}</span>
+        {(() => {
+          const orderMrpTotal = order.items?.reduce((acc, i) => acc + (Number(i.mrp || i.originalPrice || i.price || 0) * Math.max(1, Number(i.quantity || 1))), 0) || 0;
+          const subtotalNum = Number(order.pricing?.subtotal || 0);
+          const hasOrderMrpSavings = orderMrpTotal > subtotalNum;
+          const originalOrderTotal = hasOrderMrpSavings
+            ? orderMrpTotal + Number(order.pricing?.deliveryFee || 0) + Number(order.pricing?.platformFee || 0) + Number(order.pricing?.gst || 0) + Number(order.pricing?.tip || 0)
+            : 0;
+          const totalPaidNum = Number(order.pricing?.total || 0);
+
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-xs space-y-4"
+            >
+              <h3 className="text-base font-[1000] text-slate-800 uppercase tracking-tight border-b border-slate-100 pb-2">
+                Bill Summary
+              </h3>
+              <div className="space-y-2.5 text-xs md:text-sm">
+                <div className="flex justify-between text-slate-600 font-semibold px-1">
+                  <span>Subtotal</span>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    {hasOrderMrpSavings && (
+                      <span className="text-xs md:text-sm font-semibold text-slate-400 line-through">
+                        ₹{orderMrpTotal.toFixed(2).replace(/\.00$/, "")}
+                      </span>
+                    )}
+                    <span className="font-bold text-slate-800">₹{subtotalNum.toFixed(2).replace(/\.00$/, "")}</span>
+                  </div>
+                </div>
+                <div className="flex justify-between text-slate-600 font-semibold px-1">
+                  <span>Delivery Fee</span>
+                  <span
+                    className={
+                      order.pricing?.deliveryFee === 0 ? "text-[#0d4d29] font-[1000]" : "font-bold text-slate-800"
+                    }>
+                    {order.pricing?.deliveryFee === 0
+                      ? "FREE"
+                      : `₹${Number(order.pricing?.deliveryFee || 0).toFixed(2).replace(/\.00$/, "")}`}
+                  </span>
+                </div>
+                {Number(order.pricing?.platformFee || 0) > 0 && (
+                  <div className="flex justify-between text-slate-600 font-semibold px-1">
+                    <span>Platform Fee</span>
+                    <span className="font-bold text-slate-800">₹{Number(order.pricing.platformFee).toFixed(2).replace(/\.00$/, "")}</span>
+                  </div>
+                )}
+                {Number(order.pricing?.gst || 0) > 0 && (
+                  <div className="flex justify-between text-slate-600 font-semibold px-1">
+                    <span>Taxes &amp; Other Charges</span>
+                    <span className="font-bold text-slate-800">₹{Number(order.pricing.gst).toFixed(2).replace(/\.00$/, "")}</span>
+                  </div>
+                )}
+                {Number(order.pricing?.discount || 0) > 0 && (
+                  <div className="flex justify-between text-[#0d4d29] font-semibold px-1">
+                    <span>Coupon Discount</span>
+                    <span className="font-bold">-₹{Number(order.pricing.discount).toFixed(2).replace(/\.00$/, "")}</span>
+                  </div>
+                )}
+                {Number(order.pricing?.tip || 0) > 0 && (
+                  <div className="flex justify-between text-slate-600 font-semibold px-1">
+                    <span>Delivery Partner Tip</span>
+                    <span className="font-bold text-slate-800">₹{Number(order.pricing.tip).toFixed(2).replace(/\.00$/, "")}</span>
+                  </div>
+                )}
+                {Number(order.pricing?.walletAmount || 0) > 0 && (
+                  <div className="flex justify-between text-[#0d4d29] font-semibold px-1">
+                    <span>Wallet Balance Used</span>
+                    <span className="font-bold">
+                      -₹{Number(order.pricing.walletAmount).toFixed(2).replace(/\.00$/, "")}
+                    </span>
+                  </div>
+                )}
+                {Number(order.coins?.redeemed || 0) > 0 && (
+                  <div className="flex justify-between text-[#0d4d29] font-semibold px-1">
+                    <span>Athreya Coins ({order.coins.redeemed.toLocaleString('en-IN')})</span>
+                    <span className="font-bold">
+                      -₹{Number(order.coins.redeemedValue).toFixed(2).replace(/\.00$/, "")}
+                    </span>
+                  </div>
+                )}
+                <div className="border-t border-slate-200 mt-3 pt-3 flex justify-between items-center px-1">
+                  <span className="text-base font-[1000] text-slate-900 uppercase">
+                    Total Paid
+                  </span>
+                  <div className="flex items-baseline gap-2">
+                    {originalOrderTotal > totalPaidNum && (
+                      <span className="font-bold text-slate-400 text-base md:text-lg line-through">
+                        ₹{originalOrderTotal.toFixed(2).replace(/\.00$/, "")}
+                      </span>
+                    )}
+                    <span className="text-2xl font-[1000] text-slate-900">
+                      ₹{totalPaidNum.toFixed(2).replace(/\.00$/, "")}
+                    </span>
+                  </div>
+                </div>
               </div>
-            )}
-            {Number(order.pricing.gst || 0) > 0 && (
-              <div className="flex justify-between text-slate-600 font-semibold px-1">
-                <span>Taxes &amp; Other Charges</span>
-                <span className="font-bold text-slate-800">₹{Number(order.pricing.gst).toFixed(2)}</span>
-              </div>
-            )}
-            {Number(order.pricing.discount || 0) > 0 && (
-              <div className="flex justify-between text-[#0d4d29] font-semibold px-1">
-                <span>Coupon Discount</span>
-                <span className="font-bold">-₹{Number(order.pricing.discount).toFixed(2)}</span>
-              </div>
-            )}
-            {Number(order.pricing.tip || 0) > 0 && (
-              <div className="flex justify-between text-slate-600 font-semibold px-1">
-                <span>Delivery Partner Tip</span>
-                <span className="font-bold text-slate-800">₹{Number(order.pricing.tip).toFixed(2)}</span>
-              </div>
-            )}
-            {Number(order.pricing?.walletAmount || 0) > 0 && (
-              <div className="flex justify-between text-[#0d4d29] font-semibold px-1">
-                <span>Wallet Balance Used</span>
-                <span className="font-bold">
-                  -₹{Number(order.pricing.walletAmount).toFixed(2)}
-                </span>
-              </div>
-            )}
-            {Number(order.coins?.redeemed || 0) > 0 && (
-              <div className="flex justify-between text-[#0d4d29] font-semibold px-1">
-                <span>Athreya Coins ({order.coins.redeemed.toLocaleString('en-IN')})</span>
-                <span className="font-bold">
-                  -₹{Number(order.coins.redeemedValue).toFixed(2)}
-                </span>
-              </div>
-            )}
-            <div className="border-t border-slate-200 mt-3 pt-3 flex justify-between items-center px-1">
-              <span className="text-base font-[1000] text-slate-900 uppercase">
-                Total Paid
-              </span>
-              <span className="text-2xl font-[1000] text-slate-900">
-                ₹{Number(order.pricing.total || 0).toFixed(2)}
-              </span>
-            </div>
-          </div>
-        </motion.div>
+            </motion.div>
+          );
+        })()}
 
         {/* COINS EARNED Interactive Card */}
         {order.coins?.earned > 0 && (
