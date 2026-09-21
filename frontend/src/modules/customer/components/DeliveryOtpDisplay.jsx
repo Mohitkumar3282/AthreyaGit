@@ -5,6 +5,9 @@ import {
   onCustomerOtp,
   onDeliveryOtpGenerated,
   onDeliveryOtpValidated,
+  onCustomerPickupOtp,
+  onDeliveryPickupOtpGenerated,
+  onDeliveryPickupOtpValidated,
 } from "@/core/services/orderSocket";
 import { createSocketTokenReader } from "@core/utils/authStorage";
 import { STORAGE_KEYS } from "@core/utils/storage";
@@ -33,7 +36,8 @@ const matchesOrderIdentifier = (payloadOrderId, identifiers = []) => {
     .includes(normalizedPayloadId);
 };
 
-const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null, initialOtp = null, initialOtpExpiresAt = null }) => {
+const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null, initialOtp = null, initialOtpExpiresAt = null, stage = "delivery" }) => {
+  const isPickupStage = stage === "pickup";
   const [otpData, setOtpData] = useState(null);
   const [isDelivered, setIsDelivered] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
@@ -93,10 +97,13 @@ const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null, initialOtp = null
     console.log(`[DeliveryOtpDisplay] Socket connection status:`, socket?.connected);
     console.log(`[DeliveryOtpDisplay] Socket ID:`, socket?.id);
     const acceptedOrderIds = [orderId, checkoutGroupId];
+    const generatedListener = isPickupStage ? onDeliveryPickupOtpGenerated : onDeliveryOtpGenerated;
+    const customerOtpListener = isPickupStage ? onCustomerPickupOtp : onCustomerOtp;
+    const validatedListener = isPickupStage ? onDeliveryPickupOtpValidated : onDeliveryOtpValidated;
 
     // Listen for OTP generation event
-    const offGenerated = onDeliveryOtpGenerated(getToken, (payload) => {
-      console.log(`[DeliveryOtpDisplay] Received delivery:otp:generated event:`, payload);
+    const offGenerated = generatedListener(getToken, (payload) => {
+      console.log(`[DeliveryOtpDisplay:${stage}] Received otp:generated event:`, payload);
       if (matchesOrderIdentifier(payload?.orderId, acceptedOrderIds)) {
         setOtpData({
           otp: payload.otp,
@@ -109,8 +116,8 @@ const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null, initialOtp = null
     });
 
     // Support legacy/workflow event name consistency
-    const offCustomerOtp = onCustomerOtp(getToken, (payload) => {
-      console.log(`[DeliveryOtpDisplay] Received order:otp event:`, payload);
+    const offCustomerOtp = customerOtpListener(getToken, (payload) => {
+      console.log(`[DeliveryOtpDisplay:${stage}] Received order:otp event:`, payload);
       if (matchesOrderIdentifier(payload?.orderId, acceptedOrderIds) && (payload?.code || payload?.otp)) {
         const otpValue = payload.otp || payload.code;
         setOtpData({
@@ -124,8 +131,8 @@ const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null, initialOtp = null
     });
 
     // Listen for OTP validation event
-    const offValidated = onDeliveryOtpValidated(getToken, (payload) => {
-      console.log(`[DeliveryOtpDisplay] Received delivery:otp:validated event:`, payload);
+    const offValidated = validatedListener(getToken, (payload) => {
+      console.log(`[DeliveryOtpDisplay:${stage}] Received otp:validated event:`, payload);
       if (matchesOrderIdentifier(payload?.orderId, acceptedOrderIds)) {
         setIsDelivered(true);
         setOtpData(null);
@@ -137,7 +144,7 @@ const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null, initialOtp = null
       offCustomerOtp();
       offValidated();
     };
-  }, [orderId, checkoutGroupId]);
+  }, [orderId, checkoutGroupId, isPickupStage, stage]);
 
   // Countdown timer
   // Requirement 7.5: Display countdown timer showing remaining validity
@@ -181,10 +188,12 @@ const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null, initialOtp = null
           </div>
         </div>
         <h3 className="text-lg font-bold text-[#1a6e2e] mb-1">
-          Delivery Confirmed!
+          {isPickupStage ? "Pickup Confirmed!" : "Delivery Confirmed!"}
         </h3>
         <p className="text-sm text-[#1a6e2e]">
-          Your order has been successfully delivered
+          {isPickupStage
+            ? "The rider has collected your parcel and is on the way to drop it off"
+            : "Your order has been successfully delivered"}
         </p>
       </div>
     );
@@ -205,7 +214,7 @@ const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null, initialOtp = null
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-[#1a6e2e] uppercase tracking-wider">
-                Delivery Partner Nearby
+                {isPickupStage ? "Rider Nearby for Pickup" : "Delivery Partner Nearby"}
               </p>
               <p className="text-xs text-[#1a6e2e]">
                 Within 0-120 meters of your location
@@ -231,7 +240,7 @@ const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null, initialOtp = null
                 isExpiringSoon ? "text-amber-800" : "text-purple-800"
               }`}
             >
-              Delivery OTP
+              {isPickupStage ? "Pickup OTP" : "Delivery OTP"}
             </p>
           </div>
 
@@ -247,7 +256,9 @@ const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null, initialOtp = null
           </div>
 
           <p className={`text-xs ${isExpiringSoon ? "text-amber-700" : "text-purple-700"}`}>
-            Share this code with your delivery partner
+            {isPickupStage
+              ? "Share this code with the rider collecting your parcel"
+              : "Share this code with your delivery partner"}
           </p>
         </div>
 

@@ -206,7 +206,6 @@ const Topbar = ({ onMenuClick }) => {
                               src={logoUrl} 
                               alt={appName} 
                               className="h-full w-full object-contain" 
-                              style={{ filter: "url(#logo-yellow-watch-green-rider)" }}
                             />
                         </div>
                     ) : (

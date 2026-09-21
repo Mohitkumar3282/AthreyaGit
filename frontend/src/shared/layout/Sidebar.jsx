@@ -232,7 +232,6 @@ const SidebarContent = ({ items, title, onClose, openMenu, handleToggle, hovered
                 src={settings.logoUrl} 
                 alt={appName} 
                 className="h-full w-full object-contain" 
-                style={{ filter: "url(#logo-yellow-watch-green-rider)" }}
               />
             </div>
           ) : (
@@ -296,7 +295,6 @@ const SidebarContent = ({ items, title, onClose, openMenu, handleToggle, hovered
                     src={settings.logoUrl} 
                     alt={appName} 
                     className="h-full w-full object-contain" 
-                    style={{ filter: "url(#logo-yellow-watch-green-rider)" }}
                   />
                 </div>
               ) : (

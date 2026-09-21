@@ -31,12 +31,28 @@ import {
 } from "../utils/deliveryLastLocation";
 import { createSocketTokenReader } from "@core/utils/authStorage";
 import { STORAGE_KEYS } from "@core/utils/storage";
+import { computeRiderEta } from "@/shared/utils/eta";
 import {
   getOrderSocket,
   joinOrderRoom,
   leaveOrderRoom,
   onOrderStatusUpdate,
 } from "@/core/services/orderSocket";
+
+// Athreya Express orders (orderType "custom_pickup") have no seller shop to
+// pick up from — the rider goes to the address the customer typed instead.
+const getPickupLocation = (order) => {
+  if (order?.orderType === "custom_pickup") {
+    const loc = order?.pickupAddress?.location;
+    return typeof loc?.lat === "number" && typeof loc?.lng === "number"
+      ? loc
+      : null;
+  }
+  const sellerCoords = order?.seller?.location?.coordinates;
+  return Array.isArray(sellerCoords) && sellerCoords.length >= 2
+    ? { lat: sellerCoords[1], lng: sellerCoords[0] }
+    : null;
+};
 
 const getPublicStatusStage = (internalStep) => {
   if (internalStep >= 4) return 3;
@@ -111,55 +127,6 @@ const getPersistedRiderStep = (order) => {
   return 1;
 };
 
-const DEFAULT_CITY_SPEED_KMPH = 24;
-
-const hasValidLatLng = (location) =>
-  location &&
-  typeof location.lat === "number" &&
-  typeof location.lng === "number" &&
-  Number.isFinite(location.lat) &&
-  Number.isFinite(location.lng);
-
-const toRadians = (value) => (value * Math.PI) / 180;
-
-const distanceMeters = (from, to) => {
-  if (!hasValidLatLng(from) || !hasValidLatLng(to)) return null;
-  const r = 6371000;
-  const dLat = toRadians(to.lat - from.lat);
-  const dLng = toRadians(to.lng - from.lng);
-  const lat1 = toRadians(from.lat);
-  const lat2 = toRadians(to.lat);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
-  return 2 * r * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
-
-const formatArrivalTime = (arrivalMs) =>
-  new Date(arrivalMs).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-
-const formatArrivingIn = (minutes) => {
-  if (!Number.isFinite(minutes) || minutes < 0) return "Soon";
-  const rounded = Math.max(1, Math.round(minutes));
-  return `${rounded} min${rounded === 1 ? "" : "s"}`;
-};
-
-const formatDistance = (meters) => {
-  if (!Number.isFinite(meters) || meters <= 0) return "—";
-  if (meters < 1000) {
-    return `${Math.max(50, Math.round(meters / 10) * 10)} m`;
-  }
-  return `${(meters / 1000).toFixed(meters >= 10000 ? 1 : 2)} km`;
-};
-
-const estimateMinutesFromDistance = (meters) => {
-  if (!Number.isFinite(meters) || meters <= 0) return null;
-  return (meters * 60) / (DEFAULT_CITY_SPEED_KMPH * 1000);
-};
-
 const mergeOrderUpdates = (prev, updated) => {
   if (!prev) return updated;
   if (!updated) return prev;
@@ -216,6 +183,7 @@ const OrderDetails = () => {
   const [dragX, setDragX] = useState(0);
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [showDropOtpInput, setShowDropOtpInput] = useState(false);
+  const [showPickupOtpInput, setShowPickupOtpInput] = useState(false); // Athreya Express: OTP from sender at pickup
   const [pickupProofSubmitted, setPickupProofSubmitted] = useState(false);
   const [routeStats, setRouteStats] = useState(null);
   const [clockTick, setClockTick] = useState(Date.now());
@@ -264,6 +232,7 @@ const OrderDetails = () => {
   };
 
   const isReturn = order?.returnStatus && order.returnStatus !== "none";
+  const isExpress = order?.orderType === "custom_pickup";
 
   useEffect(() => {
     const fetchOrderDetails = async () => {
@@ -362,16 +331,16 @@ const OrderDetails = () => {
     return [
       {
         id: 1,
-        label: "Navigate to Store",
-        action: "ARRIVED AT STORE",
+        label: isExpress ? "Navigate to Pickup" : "Navigate to Store",
+        action: isExpress ? "ARRIVED AT PICKUP" : "ARRIVED AT STORE",
         color: "bg-black ",
         bg: "bg-brand-50",
         text: "text-brand-600",
       },
       {
         id: 2,
-        label: "At Store",
-        action: "PICKED UP ORDER",
+        label: isExpress ? "At Pickup Point" : "At Store",
+        action: isExpress ? "VERIFY PICKUP OTP" : "PICKED UP ORDER",
         color: "bg-orange-500",
         bg: "bg-orange-50",
         text: "text-orange-600",
@@ -393,7 +362,7 @@ const OrderDetails = () => {
         text: "text-brand-700",
       },
     ];
-  }, [order?.returnStatus]);
+  }, [order?.returnStatus, isExpress]);
 
   // For return flow: 5 steps map to 3 public stages
   // Steps 1-2 = Stage 1 (Return Assigned)
@@ -422,16 +391,8 @@ const OrderDetails = () => {
       };
     }
 
-    const routeDistanceMeters = Number(
-      routeStats?.routeDistanceMeters ?? routeStats?.distanceMeters,
-    );
-    const routeDurationSeconds = Number(routeStats?.routeDurationSeconds);
     const riderLocation = routeStats?.rider || cachedRiderLocation;
-    const sellerCoords = order?.seller?.location?.coordinates;
-    const sellerLocation =
-      Array.isArray(sellerCoords) && sellerCoords.length >= 2
-        ? { lat: sellerCoords[1], lng: sellerCoords[0] }
-        : null;
+    const sellerLocation = getPickupLocation(order);
     // Return: steps 1-2 navigate to customer, steps 3-4 navigate to seller
     const targetLocation = isReturn
       ? step <= 2
@@ -441,28 +402,26 @@ const OrderDetails = () => {
         ? sellerLocation
         : destinationLocation;
 
-    let minutes = null;
-    if (Number.isFinite(routeDurationSeconds) && routeDurationSeconds > 0) {
-      minutes = routeDurationSeconds / 60;
-    } else {
-      minutes =
-        estimateMinutesFromDistance(routeDistanceMeters) ??
-        estimateMinutesFromDistance(distanceMeters(riderLocation, targetLocation));
-    }
+    // A routed duration only describes the leg it was requested for. Ignore a
+    // snapshot from the previous leg while the new one is still loading.
+    const expectedPhase = step <= 2 ? "pickup" : "delivery";
+    const route =
+      routeStats && (!routeStats.phase || routeStats.phase === expectedPhase)
+        ? {
+            duration: routeStats.routeDurationSeconds,
+            distanceMeters: routeStats.routeDistanceMeters,
+            origin: routeStats.routeOrigin,
+          }
+        : null;
 
-    if (!Number.isFinite(minutes) || minutes <= 0) {
-      minutes = isReturn ? (step <= 2 ? 10 : 8) : step <= 2 ? 10 : 8;
-    }
-
-    const arrivalMs = clockTick + minutes * 60 * 1000;
-    const totalDistanceMeters =
-      routeDistanceMeters || distanceMeters(riderLocation, targetLocation);
-
-    return {
-      arrivalTimeText: formatArrivalTime(arrivalMs),
-      arrivingInText: formatArrivingIn(minutes),
-      totalDistanceText: formatDistance(totalDistanceMeters),
-    };
+    // Live: counts down as the rider's GPS moves, instead of re-quoting the
+    // duration from when the route was fetched (up to 10 min ago).
+    return computeRiderEta({
+      rider: riderLocation,
+      dest: targetLocation,
+      route,
+      now: Date.now(),
+    });
   }, [
     cachedRiderLocation,
     clockTick,
@@ -551,11 +510,7 @@ const OrderDetails = () => {
   };
 
   const handleNavigate = () => {
-    const sellerCoords = order?.seller?.location?.coordinates;
-    const sellerLocation =
-      Array.isArray(sellerCoords) && sellerCoords.length >= 2
-        ? { lat: sellerCoords[1], lng: sellerCoords[0] }
-        : null;
+    const sellerLocation = getPickupLocation(order);
     const customerLocation = order?.address?.location;
 
     const dest = isReturn
@@ -629,6 +584,36 @@ const OrderDetails = () => {
 
   const handleOtpValidationError = (error) => {
     console.error("OTP validation error:", error);
+  };
+
+  // Athreya Express: sender hands over the parcel only after reading the
+  // rider a 4-digit code from their app.
+  const handlePickupOtpGenerated = () => {
+    setShowPickupOtpInput(true);
+    toast.success("OTP sent to sender!");
+  };
+
+  const handlePickupOtpGenerationError = (error) => {
+    console.error("Failed to generate pickup OTP:", error);
+  };
+
+  const handlePickupOtpValidationSuccess = (data) => {
+    let updatedOrder = data?.result || data?.data?.result;
+    if (updatedOrder && updatedOrder.order) {
+      updatedOrder = updatedOrder.order;
+    }
+
+    setShowPickupOtpInput(false);
+    setIsSlideComplete(false);
+    setDragX(0);
+    setStep(3);
+    if (updatedOrder) setOrder((prev) => mergeOrderUpdates(prev, updatedOrder));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    toast.success("✅ Pickup verified! Head to the drop location.");
+  };
+
+  const handlePickupOtpValidationError = (error) => {
+    console.error("Pickup OTP validation error:", error);
   };
 
   const handleAcceptReturn = async () => {
@@ -940,7 +925,7 @@ const OrderDetails = () => {
                 <div className="p-4 border-b border-gray-100 bg-orange-50/50 flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="p-2 bg-white rounded-full shadow-sm mr-3">
-                      {isReturn ? (
+                      {isReturn || isExpress ? (
                         <User className="text-orange-600" size={20} />
                       ) : (
                         <Store className="text-orange-600" size={20} />
@@ -951,17 +936,17 @@ const OrderDetails = () => {
                         {isReturn ? "Customer Pickup" : "Pickup Location"}
                       </h2>
                       <p className="text-xs text-orange-600 font-medium">
-                        {isReturn ? "Customer Address" : "Store Location"}
+                        {isReturn ? "Customer Address" : isExpress ? "Athreya Express Pickup" : "Store Location"}
                       </p>
                     </div>
                   </div>
-                  {(isReturn ? order.address?.phone : order.seller?.phone) && (
+                  {(isReturn ? order.address?.phone : isExpress ? order.pickupAddress?.phone : order.seller?.phone) && (
                     <Button
                       variant="outline"
                       size="icon"
                       className="h-9 w-9"
                       onClick={() =>
-                        (window.location.href = `tel:${isReturn ? order.address?.phone : order.seller?.phone}`)
+                        (window.location.href = `tel:${isReturn ? order.address?.phone : isExpress ? order.pickupAddress?.phone : order.seller?.phone}`)
                       }
                     >
                       <Phone size={18} />
@@ -972,16 +957,20 @@ const OrderDetails = () => {
                   <h3 className="font-bold text-lg mb-1">
                     {isReturn
                       ? order.address?.name || "Customer"
-                      : order.seller?.shopName || "Seller Store"}
+                      : isExpress
+                        ? order.pickupAddress?.name || "Pickup Contact"
+                        : order.seller?.shopName || "Seller Store"}
                   </h3>
                   <p className="text-gray-500 text-sm mb-4 leading-relaxed">
                     {isReturn
                       ? order.address?.address || "Address not available"
-                      : order.seller?.address || "Address not available"}
+                      : isExpress
+                        ? order.pickupAddress?.address || "Address not available"
+                        : order.seller?.address || "Address not available"}
                   </p>
                   <Button onClick={handleNavigate} className="w-full" variant="outline">
                     <Navigation size={18} className="mr-2" />{" "}
-                    {isReturn ? "Navigate to Customer" : "Navigate to Store"}
+                    {isReturn ? "Navigate to Customer" : isExpress ? "Navigate to Pickup" : "Navigate to Store"}
                   </Button>
                 </div>
               </Card>
@@ -1271,6 +1260,45 @@ const OrderDetails = () => {
           </motion.div>
         )}
 
+        {/* Athreya Express Step 2: request pickup OTP from the sender */}
+        {!isReturn && isExpress && step === 2 && !showPickupOtpInput && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+            <Card className="p-6 rounded-3xl shadow-sm border border-slate-100">
+              <div className="flex items-center mb-4 text-gray-800">
+                <ShieldCheck className="mr-2 text-orange-600" size={24} />
+                <h3 className="font-bold text-lg">Request Pickup OTP</h3>
+              </div>
+              <p className="text-gray-500 text-sm mb-4">
+                Slide to send a 4-digit code to the sender. Ask them for it before taking the parcel.
+              </p>
+              <DeliverySlideButton
+                orderId={orderId}
+                onSuccess={handlePickupOtpGenerated}
+                onError={handlePickupOtpGenerationError}
+                isPickup={true}
+                bgColor="bg-orange-500"
+                bgColorLight="bg-orange-50"
+                label="SLIDE TO SEND PICKUP OTP"
+              />
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Athreya Express Step 2: pickup OTP input */}
+        {showPickupOtpInput && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            <Card className="p-6 rounded-3xl shadow-sm border border-slate-100">
+              <OtpInput
+                orderId={orderId}
+                isPickup={true}
+                onSuccess={handlePickupOtpValidationSuccess}
+                onError={handlePickupOtpValidationError}
+                onCancel={() => setShowPickupOtpInput(false)}
+              />
+            </Card>
+          </motion.div>
+        )}
+
         {/* Normal delivery Step 3: generate OTP for customer */}
         {!isReturn && step === 3 && !showOtpInput && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
@@ -1360,8 +1388,9 @@ const OrderDetails = () => {
 
       </div>
 
-      {/* Slide button: for returns shown at steps 1 and 3 (navigation steps); for standard shown at steps 1-2 */}
-      {((isReturn && (step === 1 || step === 3) && isAssignedRider) || (!isReturn && step <= 2)) && (
+      {/* Slide button: for returns shown at steps 1 and 3 (navigation steps); for standard shown at steps 1-2.
+          Athreya Express skips the plain swipe-confirm at step 2 — pickup there requires the sender's OTP instead. */}
+      {((isReturn && (step === 1 || step === 3) && isAssignedRider) || (!isReturn && (step === 1 || (step === 2 && !isExpress)))) && (
         <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur-md shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)]">
           <div className="max-w-2xl mx-auto p-4">
             <div className="relative h-16 bg-slate-100 rounded-full overflow-hidden select-none">

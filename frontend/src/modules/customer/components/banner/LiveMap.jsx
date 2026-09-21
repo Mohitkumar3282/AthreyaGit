@@ -26,7 +26,7 @@ const LiveMap = memo(({
         <div className="w-full h-[220px] rounded-xl overflow-hidden shadow-md relative border border-[#0d4f1c] bg-[#021f0b]">
             <LiveTrackingMap
                 status={status}
-                eta={eta || "10 mins"}
+                eta={eta || "--"}
                 riderName={riderName || "Delivery Partner"}
                 riderLocation={riderLocation}
                 sellerLocation={sellerLocation}

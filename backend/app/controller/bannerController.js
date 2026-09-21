@@ -4,6 +4,16 @@ import BannerVideo from "../models/bannerVideo.js";
 import handleResponse from "../utils/helper.js";
 import { WORKFLOW_STATUS } from "../constants/orderWorkflow.js";
 import { getFirebaseRealtimeDb } from "../config/firebaseAdmin.js";
+import { distanceMeters } from "../utils/geoUtils.js";
+import {
+    getEtaSettings,
+    estimateTravelMinutes,
+    formatMinutesLabel,
+} from "../services/deliveryEtaService.js";
+
+// Time the rider spends at the pickup point (parcel handover / shop counter)
+// between arriving and setting off for the customer.
+const PICKUP_HANDOVER_MINUTES = 2;
 
 const getTimeOfDay = () => {
     // Force Indian Standard Time (IST, UTC+5:30) for calculations
@@ -211,17 +221,52 @@ export const getRiderLocation = async (req, res) => {
             }
         }
 
-        if (!riderCoords) {
-            const destLat = order.address?.location?.lat || 17.6145;
-            const destLng = order.address?.location?.lng || 80.8925;
-            const sellerLat = order.seller?.location?.coordinates?.[1] || 17.6105;
-            const sellerLng = order.seller?.location?.coordinates?.[0] || 80.8875;
+        // No rider position yet (not assigned / not reporting). Do NOT invent a
+        // mid-point: a made-up position produced a made-up ETA and distance.
+        // Clients render "finding rider" and fall back to the quote frozen at
+        // placement instead.
+        const isExpress = order.orderType === "custom_pickup";
+        const inDeliveryPhase =
+            order.workflowStatus === WORKFLOW_STATUS.OUT_FOR_DELIVERY ||
+            Boolean(order.pickupConfirmedAt);
 
-            riderCoords = {
-                lat: (sellerLat + destLat) / 2,
-                lng: (sellerLng + destLng) / 2
-            };
-            lastUpdatedAt = new Date().toISOString();
+        const validPoint = (p) =>
+            p && Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng))
+                ? { lat: Number(p.lat), lng: Number(p.lng) }
+                : null;
+        const sellerPoint = Array.isArray(order.seller?.location?.coordinates)
+            ? validPoint({
+                lat: order.seller.location.coordinates[1],
+                lng: order.seller.location.coordinates[0],
+            })
+            : null;
+        const customerPoint = validPoint(order.address?.location);
+        // Express jobs are collected from the sender's address, not a shop.
+        const pickupPoint = isExpress
+            ? validPoint(order.pickupAddress?.location)
+            : sellerPoint;
+
+        // Live ETA: remaining trip measured from where the rider is RIGHT NOW,
+        // using the same minutes-per-km the checkout quote is built from.
+        //  - heading to pickup  -> rider->pickup + handover + pickup->customer
+        //  - out for delivery   -> rider->customer
+        let etaMinutes = null;
+        let remainingDistanceKm = null;
+        if (riderCoords && customerPoint && (inDeliveryPhase || pickupPoint)) {
+            const etaSettings = await getEtaSettings();
+            const km = (a, b) =>
+                distanceMeters(a.lat, a.lng, b.lat, b.lng) / 1000;
+
+            let totalKm;
+            let extraMinutes = 0;
+            if (inDeliveryPhase) {
+                totalKm = km(riderCoords, customerPoint);
+            } else {
+                totalKm = km(riderCoords, pickupPoint) + km(pickupPoint, customerPoint);
+                extraMinutes = PICKUP_HANDOVER_MINUTES;
+            }
+            remainingDistanceKm = Number(totalKm.toFixed(2));
+            etaMinutes = estimateTravelMinutes(totalKm, etaSettings) + extraMinutes;
         }
 
         const payload = {
@@ -235,9 +280,19 @@ export const getRiderLocation = async (req, res) => {
             sellerLocation: order.seller?.location
                 ? { lat: order.seller.location.coordinates[1], lng: order.seller.location.coordinates[0] }
                 : { lat: 17.6105, lng: 80.8875 },
+            pickupLocation: pickupPoint,
             lastLocationAt: lastUpdatedAt,
-            eta: "8-12 mins",
-            remainingDistanceKm: 1.8
+            phase: inDeliveryPhase ? "delivery" : "pickup",
+            // Real figures only — null when they cannot be computed.
+            eta: etaMinutes != null ? formatMinutesLabel(etaMinutes) : null,
+            etaMinutes: etaMinutes != null ? Math.max(1, Math.round(etaMinutes)) : null,
+            etaAt:
+                etaMinutes != null
+                    ? new Date(Date.now() + etaMinutes * 60 * 1000).toISOString()
+                    : null,
+            remainingDistanceKm,
+            // Frozen at placement — what the customer was promised.
+            quotedEta: order.deliveryEta?.label || null,
         };
 
         return handleResponse(res, 200, "Rider location fetched successfully", payload);

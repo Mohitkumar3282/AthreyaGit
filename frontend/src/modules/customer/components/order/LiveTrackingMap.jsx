@@ -50,7 +50,7 @@ function hasValidLatLng(location) {
 
 const LiveTrackingMap = memo(({
   status = "out for delivery",
-  eta = "8 mins",
+  eta = "--",
   riderName = "Ramesh Kumar",
   riderLocation,
   sellerLocation,
@@ -372,7 +372,7 @@ const LiveTrackingMap = memo(({
         {shouldShowStoreMarker && (
           <Marker
             position={sellerLocation}
-            title="Store Location"
+            title="Pickup Location"
             icon={storeMarkerIcon}
           />
         )}

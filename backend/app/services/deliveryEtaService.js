@@ -134,6 +134,27 @@ export function formatEtaLabel(minMinutes, maxMinutes) {
 }
 
 /**
+ * Straight-line kilometres -> travel minutes, using the SAME coefficient the
+ * checkout quote is built from. Live tracking falls back to this when there is
+ * no routed duration, so the number a customer sees while the rider is on the
+ * road never disagrees with the promise they accepted at checkout.
+ */
+export function estimateTravelMinutes(distanceKm, settings = DEFAULT_ETA_SETTINGS) {
+  const config = normalizeEtaSettings(settings);
+  return Math.max(0, toFiniteNumber(distanceKm, 0)) * config.minutesPerKm;
+}
+
+/** "8 mins", "1 min", "1 hr 5 mins" — a single live figure, not a range. */
+export function formatMinutesLabel(minutes) {
+  const total = Math.max(1, Math.round(Number(minutes) || 0));
+  if (total < 60) return `${total} min${total === 1 ? "" : "s"}`;
+  const hrs = Math.floor(total / 60);
+  const mins = total % 60;
+  const hrLabel = `${hrs} hr${hrs === 1 ? "" : "s"}`;
+  return mins ? `${hrLabel} ${mins} min${mins === 1 ? "" : "s"}` : hrLabel;
+}
+
+/**
  * Pure ETA calculation — no I/O, so it is directly unit-testable and can be
  * reused by any caller that already holds the settings object.
  */
@@ -211,6 +232,8 @@ export default {
   calculateDeliveryEta,
   estimateDeliveryEta,
   formatEtaLabel,
+  formatMinutesLabel,
+  estimateTravelMinutes,
   getEtaSettings,
   normalizeEtaSettings,
   DEFAULT_ETA_SETTINGS,

@@ -170,7 +170,17 @@ function createApp() {
       return compression.filter(req, res);
     },
   }));
-  app.use(helmet());
+  app.use(helmet({
+    // This is a pure REST API server — the frontend (Vite/React) serves its
+    // own HTML and manages its own CSP. Sending a default helmet CSP of
+    // "script-src 'none'" on every API JSON response causes the browser to
+    // apply it to the *page*, which blocks Vite's injected HMR client and all
+    // inline scripts, producing the CSP errors seen in the dev console.
+    contentSecurityPolicy: false,
+    // Keep all other useful security headers
+    crossOriginEmbedderPolicy: false, // allow loading external images / fonts
+    crossOriginResourcePolicy: { policy: "cross-origin" }, // allow CDN assets
+  }));
   app.use(cors(corsOptions));
   app.use(globalApiRateLimiter);
 

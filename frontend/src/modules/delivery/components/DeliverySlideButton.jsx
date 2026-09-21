@@ -25,6 +25,7 @@ const DeliverySlideButton = ({
   onError,
   isReturn = false,
   isReturnDrop = false,
+  isPickup = false,
   label = "SLIDE TO GENERATE OTP",
   bgColor = "bg-black ",
   bgColorLight = "bg-brand-50",
@@ -58,10 +59,12 @@ const DeliverySlideButton = ({
         ? await deliveryApi.requestReturnDropOtp(orderId, {})
         : isReturn
           ? await deliveryApi.requestReturnOtp(orderId, {})
-          : await deliveryApi.requestDeliveryOtp(orderId, {});
+          : isPickup
+            ? await deliveryApi.requestPickupOtp(orderId, {})
+            : await deliveryApi.requestDeliveryOtp(orderId, {});
 
       // Handle success
-      toast.success(response.data?.message || "OTP generated and sent to customer");
+      toast.success(response.data?.message || (isPickup ? "OTP generated and sent to sender" : "OTP generated and sent to customer"));
 
       if (onSuccess) {
         onSuccess(response.data);
@@ -132,7 +135,7 @@ const DeliverySlideButton = ({
         <div className="absolute inset-0 flex items-center justify-center">
           <Loader2 className="animate-spin text-primary" size={24} />
           <span className="ml-2 text-sm font-medium text-gray-600">
-            {isReturn ? "Requesting OTP..." : "Generating OTP..."}
+            {isReturn || isPickup ? "Requesting OTP..." : "Generating OTP..."}
           </span>
         </div>
       )}

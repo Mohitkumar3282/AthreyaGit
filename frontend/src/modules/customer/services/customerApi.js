@@ -87,6 +87,9 @@ export const customerApi = {
     axiosInstance.post(`/orders/${orderId}/cod/reconcile`, data),
   placeOrder: (data) =>
     axiosInstance.post("/orders/place", data, { timeout: 120000 }),
+  // Server-computed Athreya Express fare + ETA: the number the booking screen
+  // shows is the number that is charged.
+  quoteExpressFare: (data) => axiosInstance.post("/orders/express/quote", data),
   placeCustomPickupOrder: (data) =>
     axiosInstance.post("/orders/custom-pickup", data, { timeout: 120000 }),
   getMyOrders: () => getWithDedupe("/orders/my-orders"),

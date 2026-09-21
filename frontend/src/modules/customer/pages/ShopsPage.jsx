@@ -7,6 +7,7 @@ import { useCart } from '../context/CartContext';
 import { useLocation } from '../context/LocationContext';
 import MiniCart from '../components/shared/MiniCart';
 import LogoTransparent from '@/assets/LogoTransparent.png';
+import LogoWhiteBike from '@/assets/LogoWhiteBike.png';
 
 
 
@@ -100,7 +101,7 @@ const ShopsPage = () => {
                         </button>
                         
                         <div onClick={() => navigate("/")} className="cursor-pointer flex items-center gap-1.5">
-                            <img src={LogoTransparent} alt="Athreya Delivery" className="h-8.5 w-auto object-contain rounded-full" />
+                            <img src={LogoWhiteBike} alt="Athreya Delivery" className="h-8.5 w-auto object-contain rounded-full" />
                             <div className="flex flex-col items-start leading-none font-sans">
                                 <span className="text-[12.5px] font-black text-white tracking-wide uppercase">ATHREYA</span>
                                 <span className="text-[8.5px] font-bold text-white tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>

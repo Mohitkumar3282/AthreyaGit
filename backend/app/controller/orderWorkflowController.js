@@ -5,6 +5,8 @@ import {
   advanceDeliveryRiderUiAtomic,
   requestHandoffOtpAtomic,
   verifyHandoffOtpAndDeliver,
+  requestPickupOtpAtomic,
+  verifyPickupOtpAndConfirm,
 } from "../services/orderWorkflowService.js";
 import { getCachedRoute } from "../services/mapsRouteService.js";
 import { geocodeAddress } from "../services/mapsGeocodeService.js";
@@ -138,6 +140,63 @@ export const verifyDeliveryOtp = async (req, res) => {
 };
 
 /**
+ * Athreya Express — pickup OTP (collected from the sender before the rider
+ * leaves the pickup address). See requestPickupOtpAtomic.
+ */
+export const requestPickupOtp = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { location, lat: bodyLat, lng: bodyLng } = req.body || {};
+    const lat =
+      typeof bodyLat === "number"
+        ? bodyLat
+        : typeof location?.lat === "number"
+          ? location.lat
+          : undefined;
+    const lng =
+      typeof bodyLng === "number"
+        ? bodyLng
+        : typeof location?.lng === "number"
+          ? location.lng
+          : undefined;
+    const result = await requestPickupOtpAtomic(req.user.id, orderId, lat, lng);
+    return handleResponse(
+      res,
+      200,
+      result.message || "OTP generated and sent to sender",
+      result,
+    );
+  } catch (e) {
+    return handleResponse(res, e.statusCode || 500, e.message, {
+      error: {
+        code: e.code || "OTP_REQUEST_FAILED",
+        message: e.message,
+      },
+    });
+  }
+};
+
+export const verifyPickupOtp = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { code, otp } = req.body || {};
+    const entered = String(code ?? otp ?? "").trim();
+    const result = await verifyPickupOtpAndConfirm(req.user.id, orderId, entered);
+    return handleResponse(res, 200, "Pickup confirmed by sender OTP", result);
+  } catch (e) {
+    return handleResponse(res, e.statusCode || 500, e.message, {
+      error: {
+        code: e.code || "VALIDATION_FAILED",
+        message: e.message,
+        ...(typeof e.attemptsRemaining === "number"
+          ? { attemptsRemaining: e.attemptsRemaining }
+          : {}),
+      },
+    });
+  }
+};
+
+/**
  * Query: phase=pickup|drop, originLat, originLng (rider position).
  */
 export const getOrderRoute = async (req, res) => {
@@ -206,6 +265,21 @@ export const getOrderRoute = async (req, res) => {
             `Customer delivery location missing for order ${order.orderId}.`,
           );
         }
+      } else if (order.orderType === "custom_pickup") {
+        // Athreya Express: the rider's first stop is the sender's pickup point
+        // (home / shop / cargo office), NOT the fallback shop the order is
+        // anchored to. Routing to the shop made the pickup ETA + polyline wrong.
+        const p = order.pickupAddress?.location;
+        if (
+          !p ||
+          typeof p.lat !== "number" ||
+          typeof p.lng !== "number" ||
+          !Number.isFinite(p.lat) ||
+          !Number.isFinite(p.lng)
+        ) {
+          return handleResponse(res, 200, "Route", { polyline: null, degraded: true });
+        }
+        dest = { lat: p.lat, lng: p.lng };
       } else {
         if (!hasSellerLoc) {
           return handleResponse(res, 400, "Seller location missing or invalid in database");
@@ -274,7 +348,9 @@ export const getOrderRoute = async (req, res) => {
     }
 
     const route = await getCachedRoute(origin, dest, "driving", orderId, phase);
-    return handleResponse(res, 200, "Route", { ...route, destination: dest });
+    // `origin` lets clients keep the ETA live: they can measure how far the
+    // rider has moved since this routed duration was quoted.
+    return handleResponse(res, 200, "Route", { ...route, origin, destination: dest });
   } catch (e) {
     return handleResponse(res, 500, e.message);
   }

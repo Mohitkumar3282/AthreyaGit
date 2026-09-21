@@ -270,6 +270,30 @@ export function onDeliveryOtpValidated(getToken, handler) {
   };
 }
 
+// Athreya Express — pickup OTP the sender reads out to the rider before
+// handoff. Mirrors onCustomerOtp/onDeliveryOtpGenerated/onDeliveryOtpValidated
+// but on the "pickup" event names so both stages can run side by side.
+export function onCustomerPickupOtp(getToken, handler) {
+  const s = getOrderSocket(getToken);
+  if (!s || typeof handler !== "function") return () => {};
+  s.on("order:pickup-otp", handler);
+  return () => s.off("order:pickup-otp", handler);
+}
+
+export function onDeliveryPickupOtpGenerated(getToken, handler) {
+  const s = getOrderSocket(getToken);
+  if (!s || typeof handler !== "function") return () => {};
+  s.on("delivery:pickup-otp:generated", handler);
+  return () => s.off("delivery:pickup-otp:generated", handler);
+}
+
+export function onDeliveryPickupOtpValidated(getToken, handler) {
+  const s = getOrderSocket(getToken);
+  if (!s || typeof handler !== "function") return () => {};
+  s.on("delivery:pickup-otp:validated", handler);
+  return () => s.off("delivery:pickup-otp:validated", handler);
+}
+
 export function onCancellationPickupOtp(getToken, handler) {
   const s = getOrderSocket(getToken);
   if (!s || typeof handler !== "function") return () => {};

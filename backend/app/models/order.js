@@ -617,6 +617,15 @@ const orderSchema = new mongoose.Schema(
       lat: Number,
       lng: Number,
     },
+    // Athreya Express: OTP the rider collects from the sender at the pickup
+    // point, before the parcel leaves for the drop address.
+    pickupOtpVerifiedAt: {
+      type: Date,
+    },
+    pickupOtpValidationLocation: {
+      lat: Number,
+      lng: Number,
+    },
     shopBillImage: {
       type: String,
       default: "",
@@ -639,6 +648,74 @@ const orderSchema = new mongoose.Schema(
     billAmount: {
       type: Number,
       default: 0,
+    },
+
+    /* ===============================
+       ATHREYA EXPRESS
+       Set on orderType === "custom_pickup". These orders skip seller
+       approval and broadcast straight to riders near `pickupAddress`.
+    ================================ */
+    expressService: {
+      type: String,
+      enum: [
+        "home_to_home",
+        "shop_to_home",
+        "cargo_to_home",
+        "rider_delivery",
+        "whatsapp",
+      ],
+    },
+    pickupAddress: {
+      name: { type: String },
+      phone: { type: String },
+      address: { type: String },
+      city: { type: String },
+      landmark: { type: String },
+      location: {
+        lat: { type: Number },
+        lng: { type: Number },
+      },
+    },
+    expressMeta: {
+      shopName: { type: String },
+      shopLocality: { type: String },
+      cargoPointName: { type: String },
+      lrNumber: { type: String },
+      originCity: { type: String },
+      senderContact: { type: String },
+      taskType: { type: String },
+      instructions: { type: String },
+      timing: { type: String, enum: ["instant", "scheduled"] },
+      scheduledAt: { type: Date },
+      parcelCategory: { type: String },
+      parcelWeight: { type: String },
+      senderName: { type: String },
+      senderPhone: { type: String },
+      receiverName: { type: String },
+      receiverPhone: { type: String },
+      // Items + weight (home_to_home, shop_to_home, cargo_to_home) and
+      // estimated trip distance in km (rider_delivery).
+      weight: { type: String },
+      itemsCount: { type: String },
+      distanceKm: { type: String },
+    },
+    /**
+     * Fare breakdown frozen at placement from the admin-managed Athreya Express
+     * fare table, so a later price change never rewrites what this customer
+     * was quoted and charged.
+     */
+    expressFare: {
+      baseFare: { type: Number },
+      distanceFare: { type: Number },
+      extraKm: { type: Number },
+      weightBand: { type: String },
+      weightSurcharge: { type: Number },
+      serviceFee: { type: Number },
+      nightCharge: { type: Number },
+      surgeAmount: { type: Number },
+      minimumFareTopUp: { type: Number },
+      total: { type: Number },
+      distanceKm: { type: Number },
     },
   },
   { timestamps: true },
@@ -667,6 +744,10 @@ orderSchema.index(
 orderSchema.index({ "stockReservation.status": 1, "stockReservation.expiresAt": 1 });
 orderSchema.index({ checkoutGroupId: 1, createdAt: -1 });
 orderSchema.index({ checkoutGroupId: 1, checkoutGroupIndex: 1 });
+orderSchema.index(
+  { orderType: 1, expressService: 1, createdAt: -1 },
+  { partialFilterExpression: { orderType: "custom_pickup" } },
+);
 orderSchema.index(
   { "placement.idempotencyKeyExpiry": 1 },
   { 

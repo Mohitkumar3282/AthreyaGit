@@ -7,7 +7,8 @@ const TrackingBanner = memo(({ order, stage, riderLocation, routePolyline, dynam
     if (!order) return null;
 
     const showMap = stage === 5; // Integrate Google Maps only after pickup
-    const eta = dynamicEta || "15-20 mins";
+    // No invented fallback: until a real estimate exists the card says so.
+    const eta = dynamicEta || null;
 
     return (
         <div className="w-full bg-[#021f0b] border border-[#0d4f1c] rounded-2xl overflow-hidden shadow-lg flex flex-col gap-3 p-3">
@@ -24,9 +25,12 @@ const TrackingBanner = memo(({ order, stage, riderLocation, routePolyline, dynam
                         riderName={order.deliveryBoy?.fullName}
                         riderLocation={riderLocation}
                         sellerLocation={
-                            order.seller?.location
-                                ? { lat: order.seller.location.coordinates[1], lng: order.seller.location.coordinates[0] }
-                                : null
+                            // Athreya Express is collected from the sender's address, not a shop.
+                            order.orderType === "custom_pickup"
+                                ? (order.pickupAddress?.location || null)
+                                : order.seller?.location
+                                    ? { lat: order.seller.location.coordinates[1], lng: order.seller.location.coordinates[0] }
+                                    : null
                         }
                         destinationLocation={order.address?.location}
                         workflowStatus={order.workflowStatus}

@@ -6,7 +6,8 @@ import mongoose from "mongoose";
 import Notification from "../models/notification.js";
 import { 
   getDeliveryPartnerIdsWithinSellerRadius,
-  getDeliveryPartnerIdsWithinCustomerRadius
+  getDeliveryPartnerIdsWithinCustomerRadius,
+  getDeliveryPartnerIdsWithinRadius
 } from "./deliveryNearbyService.js";
 import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
 import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
@@ -171,6 +172,71 @@ export async function emitDeliveryBroadcastForSeller(sellerId, payload) {
  * Retract an order request from every delivery partner except the winner.
  * This clears stale push/in-app notifications and closes any open popup.
  */
+/**
+ * Athreya Express broadcast. Express orders have no seller shop to anchor on —
+ * the pickup point is an address the customer typed (home, shop, cargo office),
+ * so riders are picked by proximity to that point instead of a store.
+ */
+export async function emitDeliveryBroadcastNearLocation(location, payload) {
+  const s = getIo();
+  const lat = Number(location?.lat);
+  const lng = Number(location?.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+  const radiusKm = Math.max(
+    1,
+    Math.round((payload?.radiusMeters || 5000) / 1000),
+  );
+  const ids = await getDeliveryPartnerIdsWithinRadius(lat, lng, radiusKm);
+
+  if (!ids.length) {
+    if (process.env.NODE_ENV !== "production" && s) {
+      s.to("delivery:online").emit("delivery:broadcast", {
+        ...payload,
+        at: new Date().toISOString(),
+        _devFallback: true,
+      });
+    }
+    return;
+  }
+
+  const body = { ...payload, at: new Date().toISOString() };
+
+  if (s) {
+    for (const id of ids) {
+      s.to(`delivery:${id}`).emit("delivery:broadcast", body);
+    }
+  }
+
+  if (!payload.retryAttempt) {
+    emitNotificationEvent(NOTIFICATION_EVENTS.NEW_DELIVERY_BROADCAST, {
+      orderId: payload.orderId,
+      deliveryIds: ids,
+    });
+
+    try {
+      await Notification.insertMany(
+        ids.map((id) => ({
+          recipient: new mongoose.Types.ObjectId(id),
+          recipientModel: "Delivery",
+          title: "New Athreya Express request",
+          message: `Express ${payload.orderId} nearby — tap Accept on the alert or open this list.`,
+          type: "order",
+          data: {
+            orderId: payload.orderId,
+            isExpress: true,
+            expressService: payload.expressService || null,
+            preview: payload.preview || null,
+          },
+        })),
+        { ordered: false },
+      );
+    } catch (e) {
+      console.warn("[emitDeliveryBroadcastNearLocation] notifications", e.message);
+    }
+  }
+}
+
 export async function retractDeliveryBroadcastForOrder(orderId, winnerDeliveryId) {
   const s = getIo();
   const winnerId = normalizeDeliveryId(winnerDeliveryId);

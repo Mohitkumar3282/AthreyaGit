@@ -22,6 +22,7 @@ import {
   Terminal,
   Sparkles,
   User,
+  Zap,
 } from "lucide-react";
 
 const Dashboard = React.lazy(() => import("../pages/Dashboard"));
@@ -95,6 +96,8 @@ const DailyNeeds = React.lazy(() => import("../pages/DailyNeeds"));
 const AdminSettings = React.lazy(() => import("../pages/AdminSettings"));
 const EnvSettings = React.lazy(() => import("../pages/EnvSettings"));
 const AdminProfile = React.lazy(() => import("../pages/AdminProfile"));
+const ExpressOrders = React.lazy(() => import("../pages/ExpressOrders"));
+const ExpressFareManagement = React.lazy(() => import("../pages/ExpressFareManagement"));
 
 const navItems = [
   {
@@ -187,6 +190,15 @@ const navItems = [
   },
   { label: "Customers", path: "/admin/customers", icon: Users, color: "sky" },
   { label: "FAQs", path: "/admin/faqs", icon: HelpCircle, color: "pink" },
+  {
+    label: "Athreya Express",
+    icon: Zap,
+    color: "amber",
+    children: [
+      { label: "Express Orders", path: "/admin/express" },
+      { label: "Fare Management", path: "/admin/express/fare" },
+    ],
+  },
   {
     label: "Orders",
     icon: ClipboardList,
@@ -281,6 +293,8 @@ const AdminRoutes = () => {
         <Route path="/customers" element={<CustomerManagement />} />
         <Route path="/customers/:id" element={<CustomerDetail />} />
         <Route path="/faqs" element={<FAQManagement />} />
+        <Route path="/express" element={<ExpressOrders />} />
+        <Route path="/express/fare" element={<ExpressFareManagement />} />
         <Route path="/orders/:status" element={<OrdersList />} />
         <Route path="/orders/view/:orderId" element={<OrderDetail />} />
         <Route path="/returns" element={<Returns />} />

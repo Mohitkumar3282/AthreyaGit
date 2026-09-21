@@ -18,6 +18,7 @@ import {
   shiftHex,
 } from "../../utils/headerTheme";
 import LogoTransparent from "../../../../assets/LogoTransparent.png";
+import LogoWhiteBike from "../../../../assets/LogoWhiteBike.png";
 
 // MUI Icons
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
@@ -209,6 +210,7 @@ const MainLocationHeader = ({
   const { settings } = useSettings();
   const appName = settings?.appName || "App";
   const logoUrl = settings?.logoUrl || LogoTransparent;
+  const logoUrlGreen = settings?.logoUrl || LogoWhiteBike;
   const navigate = useNavigate();
 
   // Search Logic
@@ -368,7 +370,7 @@ const MainLocationHeader = ({
                 onClick={() => navigate("/")}
                 className="flex items-center cursor-pointer group shrink-0 gap-2.5">
                 <img
-                  src={logoUrl}
+                  src={logoUrlGreen}
                   alt="Athreya Delivery"
                   loading="lazy"
                   className="h-14 w-auto object-contain transition-transform group-hover:scale-105 duration-300 rounded-full"
@@ -481,7 +483,7 @@ const MainLocationHeader = ({
                 {/* Left Section: Logo, Divider, Location */}
                 <div className="flex items-center gap-1.5 min-w-0 flex-1 pl-1">
                   <div onClick={() => navigate("/")} className="cursor-pointer shrink-0 flex items-center gap-1.5">
-                    <img src={logoUrl} alt="Athreya Delivery" className="h-8 sm:h-8.5 w-auto object-contain rounded-full" />
+                    <img src={logoUrlGreen} alt="Athreya Delivery" className="h-8 sm:h-8.5 w-auto object-contain rounded-full" />
                     <div className="flex flex-col items-start leading-none font-sans">
                       <span className="text-[10.5px] sm:text-[12.5px] font-black text-white tracking-wide uppercase">ATHREYA</span>
                       <span className="text-[7.5px] sm:text-[8.5px] font-extrabold text-amber-400 tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>

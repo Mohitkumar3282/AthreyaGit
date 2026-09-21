@@ -1,11 +1,11 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, LayoutGrid, ShoppingBag, User, Package } from 'lucide-react';
+import { Home, LayoutGrid, ShoppingBag, User, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
     { label: 'Home', teluguLabel: 'హోమ్', icon: Home, path: '/' },
-    { label: 'Pickup', teluguLabel: 'పికప్', icon: Package, path: '/pickup-delivery' },
+    { label: 'Wallet', teluguLabel: 'వాలెట్', icon: Wallet, path: '/wallet' },
     { label: 'Category', teluguLabel: 'కేటగిరీలు', icon: LayoutGrid, path: '/categories' },
     { label: 'Orders', teluguLabel: 'ఆర్డర్లు', icon: ShoppingBag, path: '/orders' },
     { label: 'Profile', teluguLabel: 'ప్రొఫైల్', icon: User, path: '/profile' },

@@ -13,9 +13,10 @@ const STATUS_TO_STAGE = {
 
 const OrderProgressTracker = ({
   order,
-  estimatedArrivalText = "12:45 PM",
-  arrivingInText = "8 mins",
+  estimatedArrivalText = "--",
+  arrivingInText = "--",
   totalDistanceText = "—",
+  pickupInText = null,
 }) => {
   const status = getLegacyStatusFromOrder(order);
   const currentStage = STATUS_TO_STAGE[status] || "confirmed";
@@ -177,6 +178,11 @@ const OrderProgressTracker = ({
                 <p className="text-xs text-amber-600 font-semibold">Arriving in</p>
                 <p className="text-2xl font-black text-amber-900">{arrivingInText}</p>
               </div>
+              {pickupInText && (
+                <div className="inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-[11px] font-bold text-amber-700 ring-1 ring-amber-200">
+                  Rider reaches pickup in {pickupInText}
+                </div>
+              )}
               <div className="inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-[11px] font-bold text-amber-700 ring-1 ring-amber-200">
                 Total distance: {totalDistanceText}
               </div>

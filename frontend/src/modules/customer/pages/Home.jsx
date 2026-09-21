@@ -11,17 +11,30 @@ import {
   FileText, 
   Tag, 
   Bus,
-  Volume2
+  Volume2,
+  ArrowRight,
+  Home as HomeIcon,
+  Store,
+  Truck,
+  Bike,
+  Sparkles,
+  MessageSquare
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Lottie from "lottie-react";
 import deliveryRiding from "@/assets/Delivery Riding.json";
+import { 
+  homeToHomeImg, 
+  shopToHomeImg, 
+  cargoToHomeImg 
+} from "@/assets/express";
 import { useLocation } from "../context/LocationContext";
 import { useCart } from "../context/CartContext";
 import { useSettings } from "@core/context/SettingsContext";
 import { useAuth } from "@core/context/AuthContext";
 import LocationDrawer from "../components/shared/LocationDrawer";
 import LogoTransparent from "@/assets/LogoTransparent.png";
+import LogoWhiteBike from "@/assets/LogoWhiteBike.png";
 import { customerApi } from "../services/customerApi";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
 import { getAreaName, getTeluguAreaName } from "../components/shared/MainLocationHeader";
@@ -421,7 +434,7 @@ const Home = () => {
         {/* Left Section: Logo, Divider, Location */}
         <div className="flex items-center gap-1.5 min-w-0 flex-1 pl-1">
           <div onClick={() => navigate("/")} className="cursor-pointer shrink-0 flex items-center gap-1.5">
-            <img src={LogoTransparent} alt="Athreya Delivery" className="h-8 sm:h-9 w-auto object-contain" />
+            <img src={LogoWhiteBike} alt="Athreya Delivery" className="h-8 sm:h-9 w-auto object-contain" />
             <div className="flex flex-col items-start leading-none font-sans">
               <span className="text-[10.5px] sm:text-[12.5px] font-black text-white tracking-wide uppercase">ATHREYA</span>
               <span className="text-[7.5px] sm:text-[8.5px] font-extrabold text-amber-400 tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
@@ -740,45 +753,219 @@ const Home = () => {
             </div>
           </div>
 
-          {/* 8. PARCEL PICKUP (పార్సెల్ పికప్) Section */}
-          <div className="mx-4 my-3 bg-[#03210b] border border-[#0d4f1c] rounded-2xl p-4 flex gap-4 items-center shadow-md">
-            {/* Cardboard Box 3D-like representation */}
-            <div className="w-16 h-16 shrink-0 bg-[#A3E635]/10 border border-[#0d4f1c] rounded-2xl flex items-center justify-center text-4xl">
-              📦
-            </div>
+          {/* 8. ⚡ ATHREYA EXPRESS BRANDED SECTION */}
+          <div className="mx-4 my-3 space-y-2.5" id="athreya-express-section">
             
-            <div className="flex-1 flex flex-col gap-2 min-w-0">
+            {/* Section Header with Tagline */}
+            <div className="flex items-center justify-between px-1">
               <div>
-                <h4 className="text-[12px] font-black text-[#A3E635] tracking-wide uppercase">
-                  PARCEL PICKUP (పార్సెల్ పికప్)
-                </h4>
-                <p className="text-[10px] font-black text-white mt-0.5 leading-tight">
-                  Send anything, anywhere <br />
-                  <span className="text-slate-300 font-bold text-[9px]">Fast & Safe Delivery</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-amber-400 font-black text-base animate-pulse">⚡</span>
+                  <h3 className="text-[13.5px] sm:text-[15px] font-black text-[#A3E635] tracking-wide uppercase">
+                    ATHREYA EXPRESS
+                  </h3>
+                </div>
+                <p className="text-[10px] sm:text-[11px] font-black text-white leading-tight mt-0.5">
+                  “Send anything, anywhere in Aswapuram instantly”
+                </p>
+                <p className="text-[8.5px] sm:text-[9.5px] font-bold text-slate-350 leading-tight">
+                  (అశ్వాపురంలో ఏదైనా, ఎక్కడికైనా తక్షణమే పంపండి)
                 </p>
               </div>
 
-              <div className="flex gap-1.5 mt-0.5 overflow-x-auto no-scrollbar">
-                <button 
-                  onClick={() => navigate('/pickup-delivery')} 
-                  className="px-2.5 py-1 bg-[#042A0F] border border-[#0d4f1c] text-white rounded-full text-[8.5px] font-black flex items-center gap-1 shrink-0 active:scale-95"
+              <button 
+                onClick={() => navigate('/pickup-delivery')}
+                className="text-[10px] font-black text-[#A3E635] bg-[#021f0b] border border-[#0d4f1c] px-2.5 py-1 rounded-full flex items-center gap-1 hover:bg-[#042A0F] active:scale-95 transition-all shrink-0"
+              >
+                <span>5 Services</span>
+                <ArrowRight size={11} />
+              </button>
+            </div>
+
+            {/* 2x2 Grid for 4 Express Services */}
+            <div className="grid grid-cols-2 gap-2.5">
+              
+              {/* Service 1: Home to Home Pickup */}
+              <div
+                onClick={() => navigate('/pickup-delivery?service=home_to_home')}
+                className="bg-gradient-to-br from-[#f0fdf4] via-white to-[#dcfce7] border border-emerald-300/60 rounded-2xl p-2.5 flex flex-col justify-between shadow-md cursor-pointer hover:shadow-lg transition-all active:scale-95 relative overflow-hidden group min-h-[175px]"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="w-7 h-7 rounded-xl bg-[#042A0F] text-[#A3E635] flex items-center justify-center shadow-xs">
+                      <HomeIcon size={14} />
+                    </div>
+                    <div className="w-6 h-6 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px] group-hover:translate-x-0.5 transition-transform">
+                      →
+                    </div>
+                  </div>
+
+                  <h4 className="text-[11px] sm:text-[12px] font-black text-slate-900 leading-tight">
+                    Home to Home <br />
+                    <span className="text-emerald-800">Pickup</span>
+                  </h4>
+                  <p className="text-[8px] font-bold text-emerald-900/80 leading-none mt-0.5">
+                    (ఇంటి నుండి ఇంటికి పార్సెల్)
+                  </p>
+                  <p className="text-[8px] font-medium text-slate-600 line-clamp-2 mt-1 leading-tight">
+                    Send parcels from your home to any home in Aswapuram.
+                  </p>
+                </div>
+
+                <div className="w-full h-14 rounded-xl overflow-hidden mt-1.5 border border-emerald-200/60 shadow-xs relative">
+                  <img 
+                    src={homeToHomeImg} 
+                    alt="Home to Home Delivery" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                  />
+                </div>
+              </div>
+
+              {/* Service 2: Shop to Home Pickup */}
+              <div
+                onClick={() => navigate('/pickup-delivery?service=shop_to_home')}
+                className="bg-gradient-to-br from-[#f0fdf4] via-white to-[#dcfce7] border border-emerald-300/60 rounded-2xl p-2.5 flex flex-col justify-between shadow-md cursor-pointer hover:shadow-lg transition-all active:scale-95 relative overflow-hidden group min-h-[175px]"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="w-7 h-7 rounded-xl bg-[#064e3b] text-[#A3E635] flex items-center justify-center shadow-xs">
+                      <Store size={14} />
+                    </div>
+                    <div className="w-6 h-6 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px] group-hover:translate-x-0.5 transition-transform">
+                      →
+                    </div>
+                  </div>
+
+                  <h4 className="text-[11px] sm:text-[12px] font-black text-slate-900 leading-tight">
+                    Shop to Home <br />
+                    <span className="text-emerald-800">Pickup</span>
+                  </h4>
+                  <p className="text-[8px] font-bold text-emerald-900/80 leading-none mt-0.5">
+                    (షాప్ నుండి ఇంటికి పార్సెల్)
+                  </p>
+                  <p className="text-[8px] font-medium text-slate-600 line-clamp-2 mt-1 leading-tight">
+                    Get items from local shops delivered to your home.
+                  </p>
+                </div>
+
+                <div className="w-full h-14 rounded-xl overflow-hidden mt-1.5 border border-emerald-200/60 shadow-xs relative">
+                  <img 
+                    src={shopToHomeImg} 
+                    alt="Shop to Home Delivery" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                  />
+                </div>
+              </div>
+
+              {/* Service 3: Cargo to Home Pickup */}
+              <div
+                onClick={() => navigate('/pickup-delivery?service=cargo_to_home')}
+                className="bg-gradient-to-br from-[#f0fdf4] via-white to-[#dcfce7] border border-emerald-300/60 rounded-2xl p-2.5 flex flex-col justify-between shadow-md cursor-pointer hover:shadow-lg transition-all active:scale-95 relative overflow-hidden group min-h-[175px]"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="w-7 h-7 rounded-xl bg-[#042A0F] text-[#A3E635] flex items-center justify-center shadow-xs">
+                      <Truck size={14} />
+                    </div>
+                    <div className="w-6 h-6 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px] group-hover:translate-x-0.5 transition-transform">
+                      →
+                    </div>
+                  </div>
+
+                  <h4 className="text-[11px] sm:text-[12px] font-black text-slate-900 leading-tight">
+                    Cargo to Home <br />
+                    <span className="text-emerald-800">Pickup</span>
+                  </h4>
+                  <p className="text-[8px] font-bold text-emerald-900/80 leading-none mt-0.5">
+                    (కార్గో / బస్సు పార్సెల్)
+                  </p>
+                  <p className="text-[8px] font-medium text-slate-600 line-clamp-2 mt-1 leading-tight">
+                    Transport parcels & cargo from bus/transport points.
+                  </p>
+                </div>
+
+                <div className="w-full h-14 rounded-xl overflow-hidden mt-1.5 border border-emerald-200/60 shadow-xs relative">
+                  <img 
+                    src={cargoToHomeImg} 
+                    alt="Cargo to Home Delivery" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                  />
+                </div>
+              </div>
+
+              {/* Service 4: Rider Pickup Request */}
+              <div
+                onClick={() => navigate('/pickup-delivery?service=rider_delivery')}
+                className="bg-gradient-to-br from-[#f0fdf4] via-white to-[#dcfce7] border border-emerald-300/60 rounded-2xl p-2.5 flex flex-col justify-between shadow-md cursor-pointer hover:shadow-lg transition-all active:scale-95 relative overflow-hidden group min-h-[175px]"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="w-7 h-7 rounded-xl bg-[#042A0F] text-[#A3E635] flex items-center justify-center shadow-xs">
+                      <Bike size={14} />
+                    </div>
+                    <div className="w-6 h-6 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px] group-hover:translate-x-0.5 transition-transform">
+                      →
+                    </div>
+                  </div>
+
+                  <h4 className="text-[11px] sm:text-[12px] font-black text-slate-900 leading-tight">
+                    Rider Pickup <br />
+                    <span className="text-emerald-800">Request</span>
+                  </h4>
+                  <p className="text-[8px] font-bold text-emerald-900/80 leading-none mt-0.5">
+                    (రైడర్ ద్వారా పికప్ / డ్రాప్)
+                  </p>
+                  <p className="text-[8px] font-medium text-slate-600 line-clamp-2 mt-1 leading-tight">
+                    Need something picked up and dropped? Book a rider now.
+                  </p>
+                </div>
+
+                <div className="w-full h-14 rounded-xl overflow-hidden mt-1.5 border border-emerald-200/60 shadow-xs relative bg-emerald-950/10 flex items-center justify-center">
+                  <Lottie 
+                    animationData={deliveryRiding} 
+                    loop={true} 
+                    className="w-full h-full object-contain scale-125"
+                  />
+                </div>
+              </div>
+
+            </div>
+
+            {/* Service 5: Full Width WhatsApp Direct Order Banner */}
+            <div
+              onClick={handleWhatsAppOrder}
+              className="bg-gradient-to-r from-[#dcfce7] via-[#f0fdf4] to-white border border-[#22c55e]/50 rounded-2xl p-3 flex items-center justify-between gap-2.5 shadow-md cursor-pointer hover:shadow-lg transition-all active:scale-[0.99] relative overflow-hidden"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-[#25D366] text-white flex items-center justify-center text-xl shadow-md shrink-0 border border-white/40">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                    <path d="M12.012 2c-5.506 0-9.989 4.478-9.99 9.984 0 1.762.459 3.48 1.332 5.001L2 22l5.12-1.335c1.472.802 3.134 1.226 4.887 1.227h.005c5.505 0 9.988-4.478 9.989-9.985 0-2.668-1.038-5.176-2.925-7.062A9.927 9.927 0 0012.012 2zm5.827 14.17c-.244.688-1.42 1.314-1.96 1.396-.54.083-1.222.115-3.525-.806-2.772-1.11-4.545-3.92-4.683-4.103-.138-.184-1.127-1.498-1.127-2.859 0-1.36.711-2.03.963-2.305.253-.276.552-.345.736-.345.184 0 .368.002.529.01.172.008.402-.065.629.478.23.542.782 1.908.851 2.046.069.138.115.3.023.483-.092.184-.138.299-.276.46-.138.161-.29.36-.414.483-.138.138-.282.288-.121.564.161.276.715 1.18 1.534 1.91 1.05.936 1.936 1.226 2.212 1.364.276.138.437.115.598-.069.161-.184.69-.805.874-1.081.184-.276.368-.23.62-.138.253.092 1.609.759 1.885.897.276.138.46.207.529.322.069.115.069.667-.175 1.355z"/>
+                  </svg>
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <div className="flex items-center gap-1">
+                    <span className="text-amber-500 text-xs">✨</span>
+                    <h4 className="text-[12px] sm:text-[13px] font-black text-[#042A0F] tracking-tight truncate">
+                      WhatsApp Direct Order
+                    </h4>
+                  </div>
+                  <span className="text-[9px] font-bold text-emerald-800 leading-tight">
+                    (వాట్సాప్ ద్వారా నేరుగా ఆర్డర్ చేయండి)
+                  </span>
+                </div>
+              </div>
+
+              <div className="shrink-0">
+                <button
+                  type="button"
+                  className="px-3 py-1.5 bg-[#042A0F] hover:bg-[#063A16] text-[#A3E635] rounded-full text-[10px] sm:text-[11px] font-black flex items-center gap-1 shadow-md active:scale-95 transition-transform"
                 >
-                  🛵 Request Pickup
-                </button>
-                <button 
-                  onClick={() => navigate('/pickup-delivery')} 
-                  className="px-2.5 py-1 bg-[#042A0F] border border-[#0d4f1c] text-white rounded-full text-[8.5px] font-black flex items-center gap-1 shrink-0 active:scale-95"
-                >
-                  📋 Add List
-                </button>
-                <button 
-                  onClick={() => navigate('/pickup-delivery')} 
-                  className="px-2.5 py-1 bg-[#042A0F] border border-[#0d4f1c] text-white rounded-full text-[8.5px] font-black flex items-center gap-1 shrink-0 active:scale-95"
-                >
-                  📷 Upload Photo
+                  <span>Order via WhatsApp</span>
+                  <span>&gt;</span>
                 </button>
               </div>
             </div>
+
           </div>
 
           {/* 9. Extra links row on dark green background */}

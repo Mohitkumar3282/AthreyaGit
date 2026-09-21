@@ -15,7 +15,7 @@ const orderOtpSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["delivery", "return_pickup", "return_drop", "cancellation_pickup", "cancellation_drop"],
+      enum: ["delivery", "pickup", "return_pickup", "return_drop", "cancellation_pickup", "cancellation_drop"],
       default: "delivery",
       index: true,
     },

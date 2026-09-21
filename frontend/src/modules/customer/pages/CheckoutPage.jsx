@@ -1108,7 +1108,6 @@ const CheckoutPage = () => {
                 src={settings?.logoUrl || LogoTransparent}
                 alt="Athreya Delivery"
                 className="h-8 md:h-9 w-auto object-contain"
-                style={{ filter: "url(#logo-yellow-watch-green-rider)" }}
               />
               <div className="flex flex-col items-start leading-none font-sans">
                 <span className="text-xs md:text-sm font-[1000] text-[#0d4d29] tracking-wide uppercase">ATHREYA</span>

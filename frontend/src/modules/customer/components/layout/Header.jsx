@@ -84,7 +84,6 @@ const Header = () => {
                                 alt="Athreya Delivery Logo"
                                 loading="lazy"
                                 className="h-10 md:h-20 w-auto object-contain transition-transform group-hover:scale-105 mr-1.5 md:-mr-3 scale-[1.1] md:scale-[1.2]"
-                                style={{ filter: "url(#logo-yellow-watch-green-rider)" }}
                             />
                             <span className="text-xs md:text-lg font-black tracking-tight flex flex-col md:flex-row md:gap-1 leading-tight text-slate-800">
                                 <span className="text-[#3a2a83]">ATHREYA</span>

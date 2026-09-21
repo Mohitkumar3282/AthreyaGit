@@ -134,7 +134,7 @@ const OrderStatusCard = memo(({ stage, order, eta, dynamicDistance }) => {
                     <div>
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Estimated Delivery Time</p>
                         <h5 className="text-[14px] font-black text-white leading-none mt-0.5 font-sans">
-                            {eta || "10 - 15 mins"}
+                            {eta || "Calculating…"}
                         </h5>
                     </div>
                 </div>

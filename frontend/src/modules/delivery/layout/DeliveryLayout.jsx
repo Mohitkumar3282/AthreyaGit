@@ -17,7 +17,18 @@ import {
   loadHandledIncomingOrderIds,
   markIncomingOrderHandled,
 } from "../utils/deliveryHandledOrders";
-import { saveDeliveryPartnerLocation } from "../utils/deliveryLastLocation";
+import {
+  saveDeliveryPartnerLocation,
+  getCachedDeliveryPartnerLocation,
+} from "../utils/deliveryLastLocation";
+import {
+  PICKUP_HANDOVER_MINUTES,
+  formatArrivingIn,
+  formatDistance,
+  minutesForStraightMeters,
+  toLatLng,
+  tripEstimate,
+} from "@/shared/utils/eta";
 import { createSocketTokenReader } from "@core/utils/authStorage";
 import { STORAGE_KEYS } from "@core/utils/storage";
 import orderAlertSound from "@/assets/sounds/order_alert.mp3";
@@ -29,6 +40,32 @@ function secondsLeftUntilDeliveryExpiry(expiresAt) {
   if (!expiresAt) return 60;
   const ms = new Date(expiresAt).getTime() - Date.now();
   return Math.max(0, Math.ceil(ms / 1000));
+}
+
+/**
+ * Distance + time for a new request card, from real inputs: the trip length the
+ * server priced the job on, plus the rider's own distance to the pickup.
+ * Returns nulls (card hides the row) rather than a placeholder when unknown.
+ */
+function estimateRequestTrip({ tripKm, pickup }) {
+  const trip = Number(tripKm);
+  const tripMeters = Number.isFinite(trip) && trip > 0 ? trip * 1000 : null;
+  const rider = getCachedDeliveryPartnerLocation(30 * 60 * 1000);
+  const toPickup = rider && pickup ? tripEstimate(rider, pickup) : null;
+
+  if (!tripMeters && !toPickup) return { distance: null, estTime: null };
+
+  const tripMinutes = tripMeters ? minutesForStraightMeters(tripMeters) : 0;
+  const minutes =
+    (toPickup?.minutes || 0) + (toPickup ? PICKUP_HANDOVER_MINUTES : 0) + (tripMinutes || 0);
+
+  const parts = [];
+  if (toPickup) parts.push(`${formatDistance(toPickup.meters)} to pickup`);
+  if (tripMeters) parts.push(`${formatDistance(tripMeters)} trip`);
+  return {
+    distance: parts.join(" · "),
+    estTime: minutes > 0 ? `~${formatArrivingIn(minutes)}` : null,
+  };
 }
 
 const DeliveryLayout = () => {
@@ -161,17 +198,23 @@ const DeliveryLayout = () => {
     const total = typeof p.total === "number" ? p.total : Number(p.total) || 0;
     const dropLabel = typeof p.drop === "string" ? p.drop : String(p.drop);
     const earnings = typeof p.earnings === "number" ? p.earnings : Math.round(total * 0.1);
+    const tripInfo = estimateRequestTrip({
+      tripKm: p.distanceKm,
+      pickup: toLatLng(p.pickupLocation),
+    });
     setActiveOrder({
       id: payload.orderId,
       mongoId: undefined,
       pickup: p.pickup,
       drop: dropLabel,
-      distance: "Nearby",
-      estTime: "10-15 min",
+      distance: tripInfo.distance,
+      estTime: tripInfo.estTime,
       value: total,
       earnings: earnings,
       expiresAt: payload.deliverySearchExpiresAt || null,
       isReturnPickup: payload.type === "RETURN_PICKUP" || payload.isReturnPickup === true,
+      isExpress: payload.isExpress === true,
+      expressService: payload.expressService || null,
       items: payload.items || [],
     });
     return true;
@@ -195,22 +238,35 @@ const DeliveryLayout = () => {
     markIncomingOrderHandled(newOrder.orderId);
     const total = newOrder.pricing?.total || 0;
     const isReturnPickup = newOrder.isReturnPickup || false;
+    const isExpress = newOrder.orderType === "custom_pickup";
     const earnings = newOrder.riderEarnings || Math.round(total * 0.1);
+    const tripInfo = isReturnPickup
+      ? { distance: null, estTime: null }
+      : estimateRequestTrip({
+          tripKm: newOrder.paymentBreakdown?.distanceKmActual,
+          pickup: isExpress
+            ? toLatLng(newOrder.pickupAddress?.location)
+            : toLatLng(newOrder.seller?.location?.coordinates),
+        });
     setActiveOrder({
       id: newOrder.orderId,
       mongoId: newOrder._id,
       pickup: isReturnPickup
         ? newOrder.address?.address || "Customer Address"
-        : newOrder.seller?.shopName || "Seller",
+        : isExpress
+          ? newOrder.pickupAddress?.address || newOrder.expressMeta?.shopName || newOrder.expressMeta?.cargoPointName || "Pickup point"
+          : newOrder.seller?.shopName || "Seller",
       drop: isReturnPickup
         ? newOrder.seller?.shopName || "Seller Store"
         : newOrder.address?.address || "Customer Address",
-      distance: "Nearby",
-      estTime: "10-15 min",
+      distance: tripInfo.distance,
+      estTime: tripInfo.estTime,
       value: total,
       earnings: earnings,
       expiresAt: newOrder.deliverySearchExpiresAt || null,
       isReturnPickup,
+      isExpress,
+      expressService: newOrder.expressService || null,
       items: newOrder.items || [],
     });
   }, []);
@@ -587,8 +643,8 @@ const DeliveryLayout = () => {
             mongoId: returnRequestId,
             pickup: returnRequest.order_id?.address?.address || "Customer Address",
             drop: returnRequest.seller_id?.shopName || "Seller Store",
-            distance: "Nearby",
-            estTime: "10-15 min",
+            distance: null,
+            estTime: null,
             value: totalAmount,
             earnings: earnings,
             expiresAt: new Date(Date.now() + 60 * 1000).toISOString(),
@@ -863,7 +919,11 @@ const DeliveryLayout = () => {
                       id="delivery-order-alert-title"
                       className="text-xl font-black text-slate-900 mb-1"
                     >
-                      {activeOrder.isReturnPickup ? "Return pickup request" : "New order request"}
+                      {activeOrder.isReturnPickup
+                        ? "Return pickup request"
+                        : activeOrder.isExpress
+                          ? "⚡ Athreya Express request"
+                          : "New order request"}
                     </h2>
                     <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-4">
                       {activeOrder.isReturnPickup ? "Collect return item" : "Accept or reject"}
@@ -929,6 +989,15 @@ const DeliveryLayout = () => {
                         </div>
                       </div>
                     </div>
+
+                    {(activeOrder.distance || activeOrder.estTime) && (
+                      <div className="w-full mb-4 rounded-2xl bg-slate-50 border border-slate-100 px-4 py-2.5 flex items-center justify-between gap-3">
+                        <span className="text-[11px] font-bold text-slate-600">{activeOrder.distance}</span>
+                        {activeOrder.estTime && (
+                          <span className="text-[11px] font-black text-primary whitespace-nowrap">{activeOrder.estTime}</span>
+                        )}
+                      </div>
+                    )}
 
                     <div className="w-full h-1.5 bg-slate-100 rounded-full mb-2 overflow-hidden">
                       <motion.div

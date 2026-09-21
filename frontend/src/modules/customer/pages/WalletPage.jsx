@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowUpRight,
@@ -143,9 +143,18 @@ const WalletPage = () => {
   }, []);
 
   const balance = coins?.balance ?? 0;
+  const lifetimeEarned = coins?.lifetimeEarned ?? (coinTransactions.filter(t => t.direction === "CREDIT").reduce((s, t) => s + (t.coins || 0), 0) || balance);
+  const lifetimeRedeemed = coins?.lifetimeRedeemed ?? (coinTransactions.filter(t => t.direction === "DEBIT").reduce((s, t) => s + (t.coins || 0), 0) || 0);
   const coinValue = coins?.settings?.rupeeValuePerCoin ?? 0.0001;
   const perRupee = coins?.settings?.coinsPerRupeeSaved ?? 100;
   const rupeeBalance = wallet?.balance ?? 0;
+  const [txFilter, setTxFilter] = useState("ALL"); // ALL, CREDIT, DEBIT
+
+  const filteredCoinTransactions = useMemo(() => {
+    if (txFilter === "CREDIT") return coinTransactions.filter(t => t.direction === "CREDIT");
+    if (txFilter === "DEBIT") return coinTransactions.filter(t => t.direction === "DEBIT");
+    return coinTransactions;
+  }, [coinTransactions, txFilter]);
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24 font-sans">
@@ -166,14 +175,14 @@ const WalletPage = () => {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 pt-4 relative z-20 space-y-4">
-        {/* Total Balance Card matching Screen 3 */}
+        {/* Total Balance Card */}
         <div className="rounded-3xl bg-gradient-to-r from-[#0d4d29] via-[#125c34] to-[#0a3f22] p-5 md:p-6 text-white shadow-md border border-emerald-600/30 flex items-center justify-between gap-4 relative overflow-hidden">
           {/* Subtle glow */}
           <div className="absolute top-0 right-0 w-36 h-36 bg-amber-400/10 rounded-full blur-2xl pointer-events-none" />
 
           <div className="space-y-1 z-10 min-w-0">
             <p className="text-xs font-bold text-white/80 uppercase tracking-widest">
-              Total Balance
+              Athreya Coins Balance
             </p>
             <div className="text-3xl md:text-4xl font-[1000] text-[#fcd34d] tracking-tight">
               {loading ? "—" : balance.toLocaleString("en-IN")} COINS
@@ -192,7 +201,46 @@ const WalletPage = () => {
           </div>
         </div>
 
-        {/* Wallet Summary Table matching Screen 3 */}
+        {/* Coins Earned & Coins Redeemed 2-Column Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Coins Earned Card */}
+          <div className="bg-white rounded-2xl p-3.5 border border-emerald-200/80 shadow-xs flex flex-col justify-between">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-7 h-7 rounded-lg bg-emerald-100 text-[#0d4d29] flex items-center justify-center font-bold">
+                <Plus size={15} strokeWidth={3} />
+              </div>
+              <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tight">Coins Earned</span>
+            </div>
+            <div>
+              <div className="text-base sm:text-lg font-[1000] text-[#0d4d29]">
+                {loading ? "—" : `+${lifetimeEarned.toLocaleString("en-IN")}`}
+              </div>
+              <div className="text-[10.5px] font-semibold text-slate-500">
+                = ₹{rupees(lifetimeEarned * coinValue)} total earned
+              </div>
+            </div>
+          </div>
+
+          {/* Coins Redeemed Card */}
+          <div className="bg-white rounded-2xl p-3.5 border border-amber-200/80 shadow-xs flex flex-col justify-between">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center font-bold">
+                <ArrowUpRight size={15} strokeWidth={3} />
+              </div>
+              <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tight">Coins Redeemed</span>
+            </div>
+            <div>
+              <div className="text-base sm:text-lg font-[1000] text-amber-900">
+                {loading ? "—" : `-${lifetimeRedeemed.toLocaleString("en-IN")}`}
+              </div>
+              <div className="text-[10.5px] font-semibold text-slate-500">
+                = ₹{rupees(lifetimeRedeemed * coinValue)} saved on orders
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Wallet Summary Table */}
         <div className="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-xs">
           <div className="px-5 py-3.5 border-b border-slate-100">
             <h3 className="text-sm md:text-base font-[1000] text-slate-800 uppercase tracking-wide">
@@ -201,19 +249,25 @@ const WalletPage = () => {
           </div>
           <div className="divide-y divide-slate-100 text-xs md:text-sm">
             <div className="px-5 py-3 flex items-center justify-between">
-              <span className="font-semibold text-slate-600">🪙 Total Coins</span>
+              <span className="font-semibold text-slate-600">🪙 Athreya Coins Balance</span>
               <span className="font-[1000] text-slate-900">
                 {balance.toLocaleString("en-IN")} Coins
               </span>
             </div>
             <div className="px-5 py-3 flex items-center justify-between">
-              <span className="font-semibold text-slate-600">💰 Wallet Value</span>
-              <span className="font-[1000] text-slate-900">
-                ₹{rupees(balance * coinValue)}
+              <span className="font-semibold text-slate-600">📈 Total Coins Earned</span>
+              <span className="font-[1000] text-[#0d4d29]">
+                +{lifetimeEarned.toLocaleString("en-IN")} Coins (₹{rupees(lifetimeEarned * coinValue)})
               </span>
             </div>
             <div className="px-5 py-3 flex items-center justify-between">
-              <span className="font-semibold text-slate-600">Usable Balance</span>
+              <span className="font-semibold text-slate-600">🎁 Total Coins Redeemed</span>
+              <span className="font-[1000] text-amber-800">
+                -{lifetimeRedeemed.toLocaleString("en-IN")} Coins (₹{rupees(lifetimeRedeemed * coinValue)})
+              </span>
+            </div>
+            <div className="px-5 py-3 flex items-center justify-between">
+              <span className="font-semibold text-slate-600">💰 Usable Checkout Value</span>
               <span className="font-[1000] text-[#0d4d29]">
                 ₹{rupees(balance * coinValue)}
               </span>
@@ -221,7 +275,7 @@ const WalletPage = () => {
           </div>
         </div>
 
-        {/* Next Order CTA matching Screen 3 */}
+        {/* Next Order CTA */}
         <div className="rounded-3xl border border-emerald-200 bg-[#edf8f0] p-4 md:p-5 shadow-xs space-y-3">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-2xl bg-white text-[#0d4d29] flex items-center justify-center shadow-2xs shrink-0 border border-emerald-100">
@@ -239,31 +293,59 @@ const WalletPage = () => {
           </button>
         </div>
 
-        {/* Recent Transactions matching Screen 3 */}
+        {/* Recent Transactions */}
         <div className="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-xs">
-          <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+          <div className="px-5 py-3.5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <h3 className="text-sm md:text-base font-[1000] text-slate-800 uppercase tracking-wide">
-              Recent Transactions
+              Wallet History
             </h3>
-            <span className="text-xs font-bold text-[#0d4d29] hover:underline cursor-pointer">
-              View All &gt;
-            </span>
+            
+            {/* Filter buttons */}
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-[10.5px] font-black">
+              <button
+                type="button"
+                onClick={() => setTxFilter("ALL")}
+                className={`px-2.5 py-1 rounded-lg transition-all ${
+                  txFilter === "ALL" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setTxFilter("CREDIT")}
+                className={`px-2.5 py-1 rounded-lg transition-all ${
+                  txFilter === "CREDIT" ? "bg-white text-[#0d4d29] shadow-2xs" : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                Earned
+              </button>
+              <button
+                type="button"
+                onClick={() => setTxFilter("DEBIT")}
+                className={`px-2.5 py-1 rounded-lg transition-all ${
+                  txFilter === "DEBIT" ? "bg-white text-amber-900 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                Redeemed
+              </button>
+            </div>
           </div>
 
           {loading ? (
             <div className="py-10 flex justify-center text-slate-400 text-xs font-bold">
               Loading transactions…
             </div>
-          ) : coinTransactions.length === 0 ? (
+          ) : filteredCoinTransactions.length === 0 ? (
             <div className="py-10 flex flex-col items-center justify-center text-center px-6 space-y-1">
-              <p className="text-sm font-bold text-slate-700">No coins yet</p>
+              <p className="text-sm font-bold text-slate-700">No transactions found</p>
               <p className="text-xs text-slate-400">
                 Save on your next order and your coins will show up here.
               </p>
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {coinTransactions.map((tx) => (
+              {filteredCoinTransactions.map((tx) => (
                 <CoinRow key={tx._id || tx.id} tx={tx} />
               ))}
             </div>

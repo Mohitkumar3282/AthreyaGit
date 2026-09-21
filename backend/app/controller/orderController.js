@@ -14,6 +14,7 @@ import { WORKFLOW_STATUS, DEFAULT_SELLER_TIMEOUT_MS } from "../constants/orderWo
 import { ORDER_PAYMENT_STATUS } from "../constants/finance.js";
 import {
   afterPlaceOrderV2,
+  afterPlaceExpressOrderV2,
   sellerAcceptAtomic,
   sellerRejectAtomic,
   deliveryAcceptAtomic,
@@ -34,6 +35,14 @@ import {
 } from "../services/finance/pricingService.js";
 import { getOrCreateFinanceSettings } from "../services/finance/financeSettingsService.js";
 import { generateUniquePublicOrderId } from "../services/orderIdService.js";
+import { estimateDeliveryEta } from "../services/deliveryEtaService.js";
+import {
+  calculateExpressFare,
+  getExpressFareSettings,
+  isExpressServiceEnabled,
+  resolveExpressDistanceKm,
+} from "../services/finance/expressFareService.js";
+import { addMoney, subtractMoney } from "../utils/money.js";
 import { distanceMeters } from "../utils/geoUtils.js";
 import {
   fetchAvailableOrdersForDelivery,
@@ -218,6 +227,84 @@ export const placeOrder = async (req, res) => {
 };
 
 /* ===============================
+   ATHREYA EXPRESS (custom pickup)
+================================ */
+const EXPRESS_SERVICES = [
+  "home_to_home",
+  "shop_to_home",
+  "cargo_to_home",
+  "rider_delivery",
+  "whatsapp",
+];
+
+const escapeRegExp = (value) =>
+  String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const EXPRESS_META_FIELDS = [
+  "shopName",
+  "shopLocality",
+  "cargoPointName",
+  "lrNumber",
+  "originCity",
+  "senderContact",
+  "taskType",
+  "instructions",
+  "timing",
+  "scheduledAt",
+  "parcelCategory",
+  "parcelWeight",
+  "senderName",
+  "senderPhone",
+  "receiverName",
+  "receiverPhone",
+  // Items + weight (home_to_home, shop_to_home, cargo_to_home) and
+  // estimated trip distance (rider_delivery) — shown to the rider and in
+  // the admin Express tab.
+  "weight",
+  "itemsCount",
+  "distanceKm",
+];
+
+function sanitizeExpressMeta(meta) {
+  if (!meta || typeof meta !== "object") return {};
+  const out = {};
+  for (const key of EXPRESS_META_FIELDS) {
+    const value = meta[key];
+    if (value === undefined || value === null || value === "") continue;
+    if (key === "scheduledAt") {
+      const d = new Date(value);
+      if (!Number.isNaN(d.getTime())) out[key] = d;
+      continue;
+    }
+    if (key === "timing") {
+      if (["instant", "scheduled"].includes(value)) out[key] = value;
+      continue;
+    }
+    out[key] = String(value).slice(0, 500);
+  }
+  return out;
+}
+
+/**
+ * The rider's first stop. Without this persisted the rider would be routed to
+ * the fallback operations store instead of where the parcel actually is.
+ */
+function normalizePickupAddress(pickupAddress) {
+  if (!pickupAddress || typeof pickupAddress !== "object") return undefined;
+  const lat = Number(pickupAddress.location?.lat);
+  const lng = Number(pickupAddress.location?.lng);
+  return {
+    name: pickupAddress.name ? String(pickupAddress.name).slice(0, 200) : "",
+    phone: pickupAddress.phone ? String(pickupAddress.phone).slice(0, 20) : "",
+    address: pickupAddress.address ? String(pickupAddress.address).slice(0, 500) : "",
+    city: pickupAddress.city ? String(pickupAddress.city).slice(0, 100) : "Aswapuram",
+    landmark: pickupAddress.landmark ? String(pickupAddress.landmark).slice(0, 200) : "",
+    location:
+      Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : undefined,
+  };
+}
+
+/* ===============================
    PLACE CUSTOM PICKUP ORDER
 ================================ */
 export const placeCustomPickupOrder = async (req, res) => {
@@ -227,27 +314,94 @@ export const placeCustomPickupOrder = async (req, res) => {
       return handleResponse(res, 401, "Unauthorized");
     }
 
-    const { sellerId, parcelDetails, parcelImage, pickupType, billAmount, address } = req.body || {};
+    const {
+      sellerId,
+      pickupAddress,
+      parcelDetails,
+      parcelImage,
+      pickupType,
+      billAmount,
+      address,
+      expressService,
+      expressMeta,
+    } = req.body || {};
 
-    if (!sellerId) return handleResponse(res, 400, "Seller (shop) is required");
     if (!parcelDetails && !parcelImage) return handleResponse(res, 400, "Parcel details or image is required");
-    if (!pickupType || !["pay_and_collect", "prepaid"].includes(pickupType)) {
-      return handleResponse(res, 400, "Invalid pickup type");
-    }
+    const normalizedPickupType = pickupType && ["pay_and_collect", "prepaid"].includes(pickupType) ? pickupType : "prepaid";
     if (!address || !address.location) return handleResponse(res, 400, "Delivery address is required");
 
-    const seller = await Seller.findById(sellerId).lean();
-    if (!seller) return handleResponse(res, 400, "Invalid Seller ID");
+    const normalizedExpressService = EXPRESS_SERVICES.includes(expressService)
+      ? expressService
+      : "home_to_home";
 
-    // Distance & delivery fee calculation
-    const distanceKm = await deriveDistanceKm({ sellerId, addressLocation: address.location });
-    const settings = await getOrCreateFinanceSettings();
-    const deliveryPricing = calculateCustomerDeliveryFee(distanceKm, settings);
-    const riderPricing = calculateRiderPayout(distanceKm, settings);
+    let seller = null;
+    if (sellerId) {
+      seller = await Seller.findById(sellerId).lean();
+    }
+    if (!seller) {
+      seller = await Seller.findOne({ isActive: true, isVerified: true }).lean() || await Seller.findOne({}).lean();
+    }
+    if (!seller) {
+      return handleResponse(res, 400, "No active operations store available");
+    }
 
-    const deliveryFee = deliveryPricing.deliveryFeeCharged;
-    const billAmt = pickupType === "pay_and_collect" ? Number(billAmount || 0) : 0;
-    const grandTotal = deliveryFee + billAmt;
+    // Same distance + fare the booking screen quoted (services/finance/
+    // expressFareService.js), so what the customer saw is what they are charged.
+    const distanceKm = await resolveExpressDistanceKm({
+      pickupAddress,
+      address,
+      sellerId: seller._id,
+    });
+
+    const fareSettings = await getExpressFareSettings();
+    if (!isExpressServiceEnabled(fareSettings, normalizedExpressService)) {
+      return handleResponse(
+        res,
+        403,
+        "This Athreya Express service is temporarily unavailable. Please try again later.",
+      );
+    }
+
+    // Admin can switch the express fare table off; bookings then fall back to
+    // the platform-wide delivery fee (Fees & Charges).
+    let deliveryFee;
+    let riderPricing;
+    let expressFare = null;
+    if (fareSettings.enabled) {
+      expressFare = calculateExpressFare({
+        distanceKm,
+        service: normalizedExpressService,
+        weight: expressMeta?.weight || expressMeta?.parcelWeight,
+        settings: fareSettings,
+      });
+      deliveryFee = expressFare.total;
+      riderPricing = {
+        riderPayoutBase: expressFare.rider.base,
+        riderPayoutDistance: expressFare.rider.distance,
+        riderPayoutBonus: expressFare.rider.surchargeShare,
+      };
+    } else {
+      const settings = await getOrCreateFinanceSettings();
+      deliveryFee = calculateCustomerDeliveryFee(distanceKm, settings).deliveryFeeCharged;
+      riderPricing = { ...calculateRiderPayout(distanceKm, settings), riderPayoutBonus: 0 };
+    }
+    const riderPayoutTotal = addMoney(
+      riderPricing.riderPayoutBase,
+      riderPricing.riderPayoutDistance,
+      riderPricing.riderPayoutBonus,
+    );
+
+    // Freeze the delivery-time promise at placement, same as regular orders, so
+    // the order page can show what the customer accepted instead of a made-up
+    // number. Skipped for scheduled rider bookings: "15-20 mins" would be a
+    // wrong promise for a job booked for later.
+    const isScheduledExpress = expressMeta?.timing === "scheduled";
+    const quotedEta = isScheduledExpress
+      ? null
+      : await estimateDeliveryEta({ distanceKm });
+
+    const billAmt = normalizedPickupType === "pay_and_collect" ? Number(billAmount || 0) : 0;
+    const grandTotal = addMoney(deliveryFee, billAmt);
 
     const orderId = await generateUniquePublicOrderId();
     const now = new Date();
@@ -256,15 +410,52 @@ export const placeCustomPickupOrder = async (req, res) => {
     const orderObj = new Order({
       orderId,
       customer: customerId,
-      seller: sellerId,
+      seller: seller._id,
       orderType: "custom_pickup",
       workflowVersion: 2,
+      expressService: normalizedExpressService,
+      expressMeta: {
+        ...sanitizeExpressMeta(expressMeta),
+        // Server-measured, not whatever the client sent.
+        distanceKm: String(distanceKm),
+      },
+      ...(expressFare
+        ? {
+            expressFare: {
+              baseFare: expressFare.baseFare,
+              distanceFare: expressFare.distanceFare,
+              extraKm: expressFare.extraKm,
+              weightBand: expressFare.weightBand,
+              weightSurcharge: expressFare.weightSurcharge,
+              serviceFee: expressFare.serviceFee,
+              nightCharge: expressFare.nightCharge,
+              surgeAmount: expressFare.surgeAmount,
+              minimumFareTopUp: expressFare.minimumFareTopUp,
+              total: expressFare.total,
+              distanceKm: expressFare.distanceKm,
+            },
+          }
+        : {}),
+      ...(quotedEta
+        ? {
+            deliveryEta: {
+              minMinutes: quotedEta.minMinutes,
+              maxMinutes: quotedEta.maxMinutes,
+              label: quotedEta.label,
+              distanceKm: quotedEta.distanceKm,
+              quotedAt: now,
+            },
+          }
+        : {}),
       parcelDetails,
       parcelImage,
-      pickupType,
+      pickupAddress: normalizePickupAddress(pickupAddress),
+      pickupType: normalizedPickupType,
       billAmount: billAmt,
       address,
       status: "pending",
+      // afterPlaceOrderV2 flips this straight to DELIVERY_SEARCH — express
+      // orders have no shop to approve them, they go to riders directly.
       workflowStatus: WORKFLOW_STATUS.SELLER_PENDING,
       sellerPendingExpiresAt: new Date(now.getTime() + sellerTimeoutMs),
       paymentMode: req.body.paymentMode || "COD",
@@ -290,9 +481,9 @@ export const placeCustomPickupOrder = async (req, res) => {
         riderPayoutDistance: riderPricing.riderPayoutDistance,
         riderPayoutBonus: riderPricing.riderPayoutBonus,
         riderTipAmount: 0,
-        riderPayoutTotal: riderPricing.riderPayoutBase + riderPricing.riderPayoutDistance + riderPricing.riderPayoutBonus,
-        platformLogisticsMargin: deliveryFee - (riderPricing.riderPayoutBase + riderPricing.riderPayoutDistance),
-        platformTotalEarning: deliveryFee - (riderPricing.riderPayoutBase + riderPricing.riderPayoutDistance),
+        riderPayoutTotal,
+        platformLogisticsMargin: subtractMoney(deliveryFee, riderPayoutTotal),
+        platformTotalEarning: subtractMoney(deliveryFee, riderPayoutTotal),
         codCollectedAmount: req.body.paymentMode === "COD" ? grandTotal : 0,
         codRemittedAmount: 0,
         codPendingAmount: req.body.paymentMode === "COD" ? grandTotal : 0,
@@ -1375,6 +1566,178 @@ export const getSellerOrders = async (req, res) => {
         totalPages: Math.ceil(total / limit) || 1,
         summary,
       },
+    );
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};
+
+/* ===============================
+   ADMIN — ATHREYA EXPRESS ORDERS
+================================ */
+const EXPRESS_STATUS_GROUPS = {
+  searching: [WORKFLOW_STATUS.SELLER_PENDING, WORKFLOW_STATUS.DELIVERY_SEARCH],
+  active: [
+    WORKFLOW_STATUS.DELIVERY_ASSIGNED,
+    WORKFLOW_STATUS.PICKUP_READY,
+    WORKFLOW_STATUS.OUT_FOR_DELIVERY,
+  ],
+  delivered: [WORKFLOW_STATUS.DELIVERED],
+  cancelled: [WORKFLOW_STATUS.CANCELLED],
+};
+
+export const getExpressOrders = async (req, res) => {
+  try {
+    if (req.user?.role !== "admin") {
+      return handleResponse(res, 403, "Access denied.");
+    }
+
+    const { page, limit, skip } = getPagination(req, {
+      defaultLimit: 25,
+      maxLimit: 100,
+    });
+
+    const { service, status, search, startDate, endDate } = req.query;
+
+    const filter = { orderType: "custom_pickup" };
+
+    if (service && EXPRESS_SERVICES.includes(service)) {
+      filter.expressService = service;
+    }
+
+    if (status && status !== "all" && EXPRESS_STATUS_GROUPS[status]) {
+      filter.workflowStatus = { $in: EXPRESS_STATUS_GROUPS[status] };
+    }
+
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) filter.createdAt.$lte = new Date(endDate);
+    }
+
+    const term = String(search || "").trim();
+    if (term) {
+      const rx = new RegExp(escapeRegExp(term), "i");
+      filter.$or = [
+        { orderId: rx },
+        { parcelDetails: rx },
+        { "address.phone": rx },
+        { "pickupAddress.phone": rx },
+        { "expressMeta.lrNumber": rx },
+        { "expressMeta.shopName": rx },
+      ];
+    }
+
+    const [orders, total, serviceCounts, statusCounts] = await Promise.all([
+      Order.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate("customer", "name phone email")
+        .populate("deliveryBoy", "name phone vehicleNumber isOnline")
+        .lean(),
+      Order.countDocuments(filter),
+      Order.aggregate([
+        { $match: { orderType: "custom_pickup" } },
+        { $group: { _id: "$expressService", count: { $sum: 1 } } },
+      ]),
+      Order.aggregate([
+        { $match: { orderType: "custom_pickup" } },
+        {
+          $group: {
+            _id: "$workflowStatus",
+            count: { $sum: 1 },
+            revenue: { $sum: "$paymentBreakdown.grandTotal" },
+          },
+        },
+      ]),
+    ]);
+
+    const byService = EXPRESS_SERVICES.reduce((acc, key) => {
+      acc[key] = serviceCounts.find((s) => s._id === key)?.count || 0;
+      return acc;
+    }, {});
+
+    const countFor = (group) =>
+      statusCounts
+        .filter((s) => EXPRESS_STATUS_GROUPS[group].includes(s._id))
+        .reduce((sum, s) => sum + s.count, 0);
+
+    const summary = {
+      total: statusCounts.reduce((sum, s) => sum + s.count, 0),
+      searching: countFor("searching"),
+      active: countFor("active"),
+      delivered: countFor("delivered"),
+      cancelled: countFor("cancelled"),
+      revenue: statusCounts
+        .filter((s) => s._id === WORKFLOW_STATUS.DELIVERED)
+        .reduce((sum, s) => sum + (s.revenue || 0), 0),
+      byService,
+    };
+
+    return handleResponse(res, 200, "Express orders fetched", {
+      items: orders,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit) || 1,
+      summary,
+    });
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};
+
+/**
+ * Put a stalled express order back in front of riders — used when the search
+ * ring timed out with nobody available, or every nearby rider skipped it.
+ */
+export const rebroadcastExpressOrder = async (req, res) => {
+  try {
+    if (req.user?.role !== "admin") {
+      return handleResponse(res, 403, "Access denied.");
+    }
+
+    const orderKey = orderMatchQueryFromRouteParam(req.params.orderId);
+    if (!orderKey) return handleResponse(res, 404, "Order not found");
+
+    const order = await Order.findOne({
+      ...orderKey,
+      orderType: "custom_pickup",
+    });
+    if (!order) return handleResponse(res, 404, "Express order not found");
+
+    if (order.deliveryBoy) {
+      return handleResponse(
+        res,
+        409,
+        "A rider is already assigned. Unassign before re-broadcasting.",
+      );
+    }
+    if (
+      [WORKFLOW_STATUS.DELIVERED, WORKFLOW_STATUS.CANCELLED].includes(
+        order.workflowStatus,
+      )
+    ) {
+      return handleResponse(res, 409, "Order is already closed");
+    }
+
+    // Reset so the search ring restarts from the inner radius and riders who
+    // skipped it earlier get another look.
+    order.workflowStatus = WORKFLOW_STATUS.SELLER_PENDING;
+    order.skippedBy = [];
+    await order.save();
+
+    const updated = await afterPlaceExpressOrderV2(order);
+    if (!updated) {
+      return handleResponse(res, 409, "Could not re-broadcast this order");
+    }
+
+    return handleResponse(
+      res,
+      200,
+      "Express order sent to riders again",
+      updated,
     );
   } catch (error) {
     return handleResponse(res, 500, error.message);

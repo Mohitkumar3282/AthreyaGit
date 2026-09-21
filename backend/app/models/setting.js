@@ -201,6 +201,65 @@ const settingSchema = new mongoose.Schema(
         },
 
         /**
+         * Athreya Express fare table (Home / Shop / Cargo / Rider requests).
+         * Consumed by `services/finance/expressFareService.js`, which is the
+         * single place the customer quote, the charged amount and the rider
+         * payout are all derived — so what the customer sees is what they pay.
+         * Values are normalised on read, so a partial / missing document is safe.
+         */
+        expressFare: {
+            // Off = express bookings fall back to the platform-wide delivery
+            // fee (Fees & Charges). Per-service availability below still applies.
+            enabled: { type: Boolean, default: true },
+            baseFare: { type: Number, default: 30, min: 0 },
+            baseDistanceKm: { type: Number, default: 1, min: 0 },
+            perKmRate: { type: Number, default: 10, min: 0 },
+            minimumFare: { type: Number, default: 30, min: 0 },
+            // Manual demand lever: 1 = off, 1.5 = +50% on the fare.
+            surgeMultiplier: { type: Number, default: 1, min: 1, max: 5 },
+            nightCharge: {
+                enabled: { type: Boolean, default: false },
+                startHour: { type: Number, default: 22, min: 0, max: 23 },
+                endHour: { type: Number, default: 6, min: 0, max: 23 },
+                amount: { type: Number, default: 20, min: 0 },
+            },
+            // Flat add-on per weight band the customer picks at booking.
+            weightSurcharge: {
+                upTo1Kg: { type: Number, default: 0, min: 0 },
+                kg1To3: { type: Number, default: 0, min: 0 },
+                kg3To5: { type: Number, default: 0, min: 0 },
+                kg5To10: { type: Number, default: 0, min: 0 },
+                kg10Plus: { type: Number, default: 0, min: 0 },
+            },
+            services: {
+                home_to_home: {
+                    enabled: { type: Boolean, default: true },
+                    serviceFee: { type: Number, default: 0, min: 0 },
+                },
+                shop_to_home: {
+                    enabled: { type: Boolean, default: true },
+                    serviceFee: { type: Number, default: 0, min: 0 },
+                },
+                cargo_to_home: {
+                    enabled: { type: Boolean, default: true },
+                    serviceFee: { type: Number, default: 0, min: 0 },
+                },
+                rider_delivery: {
+                    enabled: { type: Boolean, default: true },
+                    serviceFee: { type: Number, default: 0, min: 0 },
+                },
+            },
+            rider: {
+                basePayout: { type: Number, default: 30, min: 0 },
+                perKmPayout: { type: Number, default: 5, min: 0 },
+                // % of weight / service / night / surge add-ons passed to the rider.
+                surchargeSharePercent: { type: Number, default: 100, min: 0, max: 100 },
+            },
+            updatedAt: { type: Date },
+            updatedBy: { type: String },
+        },
+
+        /**
          * Wallet Cashback — the retention loop.
          * Consumed by `services/walletCashbackService.js`. A percentage of
          * each delivered order's customer savings is credited to the

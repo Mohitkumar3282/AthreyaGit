@@ -16,6 +16,7 @@ import { useLocation as useAppLocation } from '../context/LocationContext';
 import { useSettings } from '@core/context/SettingsContext';
 import { getTeluguCategoryName } from '@shared/utils/categoryTranslations';
 import LogoTransparent from '@/assets/LogoTransparent.png';
+import LogoWhiteBike from '@/assets/LogoWhiteBike.png';
 
 
 
@@ -269,7 +270,7 @@ const CategoryProductsPage = () => {
                         
                         {/* Logo */}
                         <div onClick={() => navigate("/")} className="cursor-pointer shrink-0 flex items-center gap-1.5">
-                            <img src={LogoTransparent} alt="Athreya Delivery" className="h-8.5 w-auto object-contain" />
+                            <img src={LogoWhiteBike} alt="Athreya Delivery" className="h-8.5 w-auto object-contain" />
                             <div className="flex flex-col items-start leading-none font-sans">
                                 <span className="text-[12.5px] font-black text-white tracking-wide uppercase">ATHREYA</span>
                                 <span className="text-[8.5px] font-bold text-white tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>

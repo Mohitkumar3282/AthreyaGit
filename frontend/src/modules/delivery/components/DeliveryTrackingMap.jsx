@@ -13,6 +13,8 @@ import {
 const libraries = ["geometry"];
 const ROUTE_REFRESH_THRESHOLD_M = 150;
 const ROUTE_REFRESH_INTERVAL_MS = 10 * 60 * 1000;
+const ROUTE_REQUOTE_DRIFT_M = 400;
+const ROUTE_REQUOTE_MIN_GAP_MS = 30 * 1000;
 const RECENTER_INTERVAL_MS = 15000;
 const RIDER_FOCUS_RADIUS_M = 500;
 const LOCATION_POST_INTERVAL_MS = 5000;
@@ -73,6 +75,16 @@ function destinationForPhase(order, phase) {
         return { lat: loc.lat, lng: loc.lng };
       }
       return null;
+    }
+    // Athreya Express: go to the sender's address, not the anchor shop.
+    if (order?.orderType === "custom_pickup") {
+      const p = order?.pickupAddress?.location;
+      return typeof p?.lat === "number" &&
+        typeof p?.lng === "number" &&
+        Number.isFinite(p.lat) &&
+        Number.isFinite(p.lng)
+        ? { lat: p.lat, lng: p.lng }
+        : null;
     }
     return coordsToLatLng(order?.seller?.location?.coordinates);
   }
@@ -259,6 +271,21 @@ const DeliveryTrackingMapComponent = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!rider, fetchRoute, phase, orderId]);
 
+  // The ETA itself is kept live from GPS (see shared/utils/eta.js), so we only
+  // pay for a fresh Directions quote when the rider has strayed far enough that
+  // the drawn route + road ratio no longer describe where they are.
+  useEffect(() => {
+    if (!rider || !routeOriginRef.current) return;
+    const drift = distanceMeters(routeOriginRef.current, rider);
+    if (
+      drift != null &&
+      drift >= ROUTE_REQUOTE_DRIFT_M &&
+      Date.now() - lastFetchRef.current.at > ROUTE_REQUOTE_MIN_GAP_MS
+    ) {
+      fetchRoute();
+    }
+  }, [rider, fetchRoute]);
+
   const isReturn = order?.returnStatus && order.returnStatus !== "none";
   // Use order address location, fall back to the destination resolved by the route API
   const dest = useMemo(() => {
@@ -278,6 +305,7 @@ const DeliveryTrackingMapComponent = ({
       phase,
       rider,
       destination: dest,
+      routeOrigin: routeData?.origin || routeOriginRef.current || null,
       routeDurationSeconds: Number(routeData?.duration) || null,
       routeDistanceMeters:
         Number(routeData?.distanceMeters ?? routeData?.distance) || null,
@@ -532,14 +560,16 @@ const DeliveryTrackingMapComponent = ({
               phase === "pickup"
                 ? isReturn
                   ? "Pickup (customer)"
-                  : "Pickup (store)"
+                  : order?.orderType === "custom_pickup"
+                    ? "Pickup (sender)"
+                    : "Pickup (store)"
                 : isReturn
                   ? "Drop (seller)"
                   : "Drop (customer)"
             }
             icon={
               phase === "pickup"
-                ? isReturn
+                ? isReturn || order?.orderType === "custom_pickup"
                   ? customerMarkerIcon
                   : storeMarkerIcon
                 : isReturn

@@ -22,7 +22,6 @@ const Footer = () => {
                                     alt={`${settings?.appName || 'App'} Logo`}
                                     loading="lazy"
                                     className="h-full w-full object-contain"
-                                    style={{ filter: "url(#logo-yellow-watch-green-rider)" }}
                                 />
                             </div>
                             <div className="flex flex-col items-start leading-none font-sans">

@@ -13,7 +13,10 @@ import {
 } from "../constants/payment.js";
 import { handleOnlineOrderFinance } from "./finance/orderFinanceService.js";
 import { DEFAULT_SELLER_TIMEOUT_MS, WORKFLOW_STATUS } from "../constants/orderWorkflow.js";
-import { afterPlaceOrderV2 } from "./orderWorkflowService.js";
+import {
+  afterPlaceOrderV2,
+  afterPlaceExpressOrderV2,
+} from "./orderWorkflowService.js";
 import { releaseReservedStockForOrder } from "./stockService.js";
 import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
 import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
@@ -270,6 +273,27 @@ async function transitionPaymentState(payment, {
 }
 
 async function moveOrderToSellerPendingAfterPayment(orderId) {
+  // Athreya Express orders sit at SELLER_PENDING until the gateway confirms —
+  // there is no seller step, so once paid they go straight out to riders.
+  const expressOrder = await Order.findOne({
+    _id: orderId,
+    orderType: "custom_pickup",
+    workflowVersion: { $gte: 2 },
+    workflowStatus: {
+      $in: [WORKFLOW_STATUS.CREATED, WORKFLOW_STATUS.SELLER_PENDING],
+    },
+  });
+  if (expressOrder) {
+    void afterPlaceExpressOrderV2(expressOrder).catch((error) => {
+      logger.warn("afterPlaceExpressOrderV2 failed", {
+        scope: "moveOrderToSellerPendingAfterPayment",
+        orderId: expressOrder.orderId,
+        error: error.message,
+      });
+    });
+    return;
+  }
+
   const now = new Date();
   const sellerPendingUntil = new Date(now.getTime() + DEFAULT_SELLER_TIMEOUT_MS());
   const updatedOrder = await Order.findOneAndUpdate(

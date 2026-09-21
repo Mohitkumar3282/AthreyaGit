@@ -38,6 +38,12 @@ export const deliveryApi = {
     axiosInstance.post(`/orders/workflow/${orderId}/otp/request`, body),
   verifyDeliveryOtp: (orderId, body) =>
     axiosInstance.post(`/orders/workflow/${orderId}/otp/verify`, body),
+  // Athreya Express — OTP collected from the sender at pickup, before the
+  // rider heads to the drop address.
+  requestPickupOtp: (orderId, body) =>
+    axiosInstance.post(`/orders/workflow/${orderId}/pickup-otp/request`, body),
+  verifyPickupOtp: (orderId, body) =>
+    axiosInstance.post(`/orders/workflow/${orderId}/pickup-otp/verify`, body),
   getOrderRoute: (orderId, params, config = {}) =>
     axiosInstance.get(`/orders/workflow/${orderId}/route`, { params, ...config }),
   getOrderDetails: (orderId) =>

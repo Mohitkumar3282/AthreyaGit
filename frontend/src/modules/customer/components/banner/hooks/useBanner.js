@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { bannerService } from "../bannerService";
 import { getLegacyStatusFromOrder, WORKFLOW_STATUS } from "@/shared/utils/orderStatus";
 import {
@@ -11,6 +11,7 @@ import {
 import { subscribeToOrderLocation, subscribeToOrderRoute } from "@/core/services/trackingClient";
 import { createSocketTokenReader } from "@core/utils/authStorage";
 import { STORAGE_KEYS } from "@core/utils/storage";
+import { computeCustomerEta, toLatLng } from "@/shared/utils/eta";
 
 const TIME_OF_DAY_POLL_INTERVAL_MS = 60 * 1000; // Poll time-of-day changes every minute
 const ACTIVE_ORDER_POLL_INTERVAL_MS = 15 * 1000; // Check active orders every 15s
@@ -25,8 +26,11 @@ export function useBanner() {
     const [currentStage, setCurrentStage] = useState(1); // 1 to 7
     const [riderLocation, setRiderLocation] = useState(null);
     const [routePolyline, setRoutePolyline] = useState(null);
-    const [dynamicEta, setDynamicEta] = useState(null);
-    const [dynamicDistance, setDynamicDistance] = useState(null);
+    // Server-computed snapshot (REST, refreshed with each 15s active-order poll).
+    // Only a fallback: the live figure is derived below from the rider's GPS.
+    const [serverEta, setServerEta] = useState(null);
+    const [serverDistance, setServerDistance] = useState(null);
+    const [clockTick, setClockTick] = useState(Date.now());
     const [showThankYou, setShowThankYou] = useState(false);
 
     const activeOrderRef = useRef(null);
@@ -109,12 +113,6 @@ export function useBanner() {
                 if (route.polyline) {
                     setRoutePolyline(route);
                 }
-                if (route.duration) {
-                    setDynamicEta(route.duration);
-                }
-                if (route.distance) {
-                    setDynamicDistance(route.distance);
-                }
             }
         });
 
@@ -139,6 +137,8 @@ export function useBanner() {
                 setActiveOrder(null);
                 activeOrderRef.current = null;
                 setRiderLocation(null);
+                setServerEta(null);
+                setServerDistance(null);
                 setRoutePolyline(null);
                 setShowThankYou(false);
             }, 4000);
@@ -201,12 +201,12 @@ export function useBanner() {
                 if (order.orderId) {
                     bannerService.getRiderLocation(order.orderId).then((riderLocData) => {
                         if (riderLocData) {
-                            if (riderLocData.eta) {
-                                setDynamicEta(riderLocData.eta);
-                            }
-                            if (riderLocData.remainingDistanceKm) {
-                                setDynamicDistance(`${riderLocData.remainingDistanceKm} km`);
-                            }
+                            setServerEta(riderLocData.eta || null);
+                            setServerDistance(
+                                riderLocData.remainingDistanceKm
+                                    ? `${riderLocData.remainingDistanceKm} km`
+                                    : null,
+                            );
                             if (riderLocData.riderLocation) {
                                 setRiderLocation(riderLocData.riderLocation);
                             }
@@ -227,6 +227,8 @@ export function useBanner() {
                     setActiveOrder(null);
                     activeOrderRef.current = null;
                     setRiderLocation(null);
+                setServerEta(null);
+                setServerDistance(null);
                     setRoutePolyline(null);
                 }
             }
@@ -269,6 +271,51 @@ export function useBanner() {
             }
         };
     }, [mode, currentStage, showThankYou]);
+
+    // Keep the countdown moving between GPS / poll updates.
+    useEffect(() => {
+        const iv = setInterval(() => setClockTick(Date.now()), 30000);
+        return () => clearInterval(iv);
+    }, []);
+
+    // Live ETA + distance. Derived (not stored) so it always reflects where the
+    // rider is now: previously the route's raw seconds/metres were rendered as
+    // the ETA, and the fallback was a hard-coded "15-20 mins".
+    const { dynamicEta, dynamicDistance } = useMemo(() => {
+        if (!activeOrder) return { dynamicEta: null, dynamicDistance: null };
+
+        const phase =
+            activeOrder.workflowStatus === "OUT_FOR_DELIVERY" || activeOrder.pickupConfirmedAt
+                ? "delivery"
+                : "pickup";
+        const pickup =
+            activeOrder.orderType === "custom_pickup"
+                ? toLatLng(activeOrder.pickupAddress?.location)
+                : toLatLng(activeOrder.seller?.location?.coordinates);
+        const route =
+            routePolyline && (!routePolyline.phase || routePolyline.phase === phase)
+                ? routePolyline
+                : null;
+
+        const est = computeCustomerEta({
+            phase,
+            rider: riderLocation,
+            pickup,
+            drop: toLatLng(activeOrder.address?.location),
+            route,
+            quote: activeOrder.deliveryEta,
+            now: Date.now(),
+        });
+
+        const hasLive = est.source !== "none" && est.arrivingInText !== "--";
+        return {
+            dynamicEta: hasLive ? est.arrivingInText : serverEta,
+            dynamicDistance:
+                est.totalDistanceText && est.totalDistanceText !== "—"
+                    ? est.totalDistanceText
+                    : serverDistance,
+        };
+    }, [activeOrder, riderLocation, routePolyline, serverEta, serverDistance, clockTick]);
 
     return {
         mode,

@@ -5,6 +5,7 @@ import InvoiceModal from "../components/order/InvoiceModal";
 import HelpModal from "../components/order/HelpModal";
 import LiveTrackingMap from "../components/order/LiveTrackingMap";
 import DeliveryOtpDisplay from "../components/DeliveryOtpDisplay";
+import { computeCustomerEta, toLatLng } from "@/shared/utils/eta";
 import OrderProgressTracker from "../components/order/OrderProgressTracker";
 import ReturnProgressTracker from "../components/order/ReturnProgressTracker";
 import CancellationProgressTracker from "../components/order/CancellationProgressTracker";
@@ -72,7 +73,6 @@ const hasValidLatLng = (location) =>
   Number.isFinite(location.lat) &&
   Number.isFinite(location.lng);
 
-const DEFAULT_CITY_SPEED_KMPH = 24;
 const ROUTE_REFRESH_THRESHOLD_M = 150;
 const ROUTE_REFRESH_INTERVAL_MS = 10 * 60 * 1000;
 
@@ -89,31 +89,6 @@ const distanceMeters = (from, to) => {
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
   return 2 * r * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
-
-const formatArrivalTime = (arrivalMs) =>
-  new Date(arrivalMs).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-
-const formatArrivingIn = (minutes) => {
-  if (!Number.isFinite(minutes) || minutes < 0) return "Soon";
-  const rounded = Math.max(1, Math.round(minutes));
-  return `${rounded} min${rounded === 1 ? "" : "s"}`;
-};
-
-const formatDistance = (meters) => {
-  if (!Number.isFinite(meters) || meters <= 0) return "—";
-  if (meters < 1000) {
-    return `${Math.max(50, Math.round(meters / 10) * 10)} m`;
-  }
-  return `${(meters / 1000).toFixed(meters >= 10000 ? 1 : 2)} km`;
-};
-
-const estimateMinutesFromDistance = (meters) => {
-  if (!Number.isFinite(meters) || meters <= 0) return null;
-  return (meters * 60) / (DEFAULT_CITY_SPEED_KMPH * 1000);
 };
 
 const getTrackingRoutePhase = (order) => {
@@ -518,58 +493,36 @@ const OrderDetailPage = () => {
         : !!routePolyline?.polyline
       : routePolyline?.phase === routePhase;
   const activeRoutePolyline = routeMatchesPhase ? routePolyline : null;
+  // Athreya Express jobs are collected from the sender's own address, not a
+  // shop — measuring the pickup leg to the anchor store gave a wrong ETA.
+  const pickupLocation =
+    order?.orderType === "custom_pickup"
+      ? toLatLng(order?.pickupAddress?.location)
+      : sellerLocation;
   const estimatedArrival = useMemo(() => {
     if (!order) {
-      return {
-        arrivalTimeText: "--",
-        arrivingInText: "--",
-      };
+      return { arrivalTimeText: "--", arrivingInText: "--", totalDistanceText: "—" };
     }
 
     if (status === "delivered") {
-      return {
-        arrivalTimeText: "Arrived",
-        arrivingInText: "Delivered",
-      };
+      return { arrivalTimeText: "Arrived", arrivingInText: "Delivered", totalDistanceText: "—" };
     }
 
-    const targetLocation =
-      routePhase === "delivery" ? order?.address?.location : sellerLocation;
-
-    let minutes = null;
-    const routeDurationSeconds = Number(activeRoutePolyline?.duration);
-    if (Number.isFinite(routeDurationSeconds) && routeDurationSeconds > 0) {
-      minutes = routeDurationSeconds / 60;
-    } else {
-      const routeDistanceMeters = Number(activeRoutePolyline?.distanceMeters);
-      minutes =
-        estimateMinutesFromDistance(routeDistanceMeters) ??
-        estimateMinutesFromDistance(distanceMeters(liveLocation, targetLocation));
-    }
-
-    if (!Number.isFinite(minutes) || minutes <= 0) {
-      minutes = status === "confirmed" ? 12 : 8;
-    }
-
-    const arrivalMs = clockTick + minutes * 60 * 1000;
-    const routeDistanceMeters = Number(
-      activeRoutePolyline?.distanceMeters ?? activeRoutePolyline?.distance,
-    );
-    return {
-      arrivalTimeText: formatArrivalTime(arrivalMs),
-      arrivingInText: formatArrivingIn(minutes),
-      totalDistanceText: formatDistance(
-        routeDistanceMeters ||
-        distanceMeters(liveLocation, targetLocation),
-      ),
-    };
+    return computeCustomerEta({
+      phase: routePhase,
+      rider: liveLocation,
+      pickup: pickupLocation,
+      drop: toLatLng(order?.address?.location),
+      route: activeRoutePolyline,
+      quote: order?.deliveryEta,
+      now: Date.now(),
+    });
   }, [
-    activeRoutePolyline?.distanceMeters,
-    activeRoutePolyline?.duration,
+    activeRoutePolyline,
     liveLocation,
     order,
     routePhase,
-    sellerLocation,
+    pickupLocation,
     status,
     clockTick,
   ]);
@@ -971,7 +924,7 @@ const OrderDetailPage = () => {
               eta={estimatedArrival.arrivingInText}
               riderName={order.deliveryBoy?.name || "Delivery Partner"}
               riderLocation={liveLocation}
-              sellerLocation={sellerLocation}
+              sellerLocation={pickupLocation}
               destinationLocation={
                 order.address?.location?.lat
                   ? order.address.location
@@ -991,6 +944,7 @@ const OrderDetailPage = () => {
             estimatedArrivalText={estimatedArrival.arrivalTimeText}
             arrivingInText={estimatedArrival.arrivingInText}
             totalDistanceText={estimatedArrival.totalDistanceText}
+            pickupInText={routePhase === "pickup" ? estimatedArrival.pickupInText : null}
           />
         )}
 
@@ -1026,6 +980,18 @@ const OrderDetailPage = () => {
             </div>
           </motion.div>
         )}
+
+        {/* Athreya Express — pickup OTP shared with the rider collecting the parcel */}
+        {order?.orderType === "custom_pickup" &&
+          ["DELIVERY_ASSIGNED", "PICKUP_READY"].includes(
+            String(order?.workflowStatus || "").toUpperCase(),
+          ) && (
+            <DeliveryOtpDisplay
+              stage="pickup"
+              orderId={order?.orderId || orderId}
+              checkoutGroupId={order?.checkoutGroupId || orderId}
+            />
+          )}
 
         {/* Proximity-based Delivery OTP Display */}
         <DeliveryOtpDisplay

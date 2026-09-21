@@ -16,6 +16,16 @@ export const adminOrdersApi = {
     assignRiderToOrder: (orderId, data) =>
         axiosInstance.put(`/orders/${orderId}/assign-rider`, data),
 
+    // Athreya Express — admin management tab
+    getExpressOrders: (params) =>
+        axiosInstance.get('/orders/express', { params }),
+    // Athreya Express fare management
+    getExpressFare: () => axiosInstance.get('/orders/express/fare'),
+    updateExpressFare: (data) => axiosInstance.put('/orders/express/fare', data),
+    quoteExpressFare: (data) => axiosInstance.post('/orders/express/quote', data),
+    rebroadcastExpressOrder: (orderId) =>
+        axiosInstance.put(`/orders/express/${encodeURIComponent(orderId)}/rebroadcast`),
+
     getReturns: (params) =>
         axiosInstance.get('/orders/seller-returns', { params }),
     getReturnDetails: (orderId) =>

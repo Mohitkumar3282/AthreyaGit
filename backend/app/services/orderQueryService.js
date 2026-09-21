@@ -241,11 +241,22 @@ async function resolveNearbySellerIds(deliveryPartner, userId) {
 function filterV2OrdersByRadius(v2Orders, deliveryCoords) {
   const [dlng, dlat] = deliveryCoords;
   return v2Orders.filter((order) => {
+    const searchR = order.deliverySearchMeta?.radiusMeters || 5000;
+
+    // Athreya Express: the job is anchored at the customer's pickup point
+    // (a home, a shop, a cargo office), not at a seller store, so match the
+    // rider against that instead. No seller service radius applies.
+    if (order.orderType === "custom_pickup" || order.expressService) {
+      const plat = Number(order.pickupAddress?.location?.lat);
+      const plng = Number(order.pickupAddress?.location?.lng);
+      if (!Number.isFinite(plat) || !Number.isFinite(plng)) return true;
+      return distanceMeters(dlat, dlng, plat, plng) <= searchR;
+    }
+
     const coords = order.seller?.location?.coordinates;
     if (!Array.isArray(coords) || coords.length < 2) return true;
 
     const [slng, slat] = coords;
-    const searchR = order.deliverySearchMeta?.radiusMeters || 5000;
     const serviceKm = Number(order.seller?.serviceRadius ?? 5);
     const serviceM = Math.max(serviceKm, 0) * 1000;
     const maxR = Math.min(searchR, serviceM);
@@ -328,6 +339,13 @@ export async function fetchAvailableOrdersForDelivery({
           deliveryBoy: null,
           workflowStatus: WORKFLOW_STATUS.DELIVERY_SEARCH,
           seller: { $in: sellerIds },
+        },
+        // Express jobs aren't tied to a nearby seller — filterV2OrdersByRadius
+        // narrows these down by distance to the pickup point.
+        {
+          deliveryBoy: null,
+          workflowStatus: WORKFLOW_STATUS.DELIVERY_SEARCH,
+          orderType: "custom_pickup",
         },
       ],
       skippedBy: { $nin: [userId] },
@@ -440,7 +458,7 @@ export async function getCustomerOrders(customerId, pagination) {
       const [orders, total] = await Promise.all([
         Order.find({ customer: customerId })
           .select(
-            "orderId checkoutGroupId customer seller items address payment pricing status workflowStatus workflowVersion returnStatus timeSlot createdAt",
+            "orderId checkoutGroupId customer seller items address payment pricing status workflowStatus workflowVersion returnStatus timeSlot createdAt coins",
           )
           .sort({ createdAt: -1, _id: -1 })
           .skip(skip)

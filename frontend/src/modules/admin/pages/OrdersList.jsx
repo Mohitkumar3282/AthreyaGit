@@ -501,7 +501,7 @@ const OrdersList = () => {
                                                 <div className="flex items-center gap-2 mt-1">
                                                     {order.orderType === 'custom_pickup' ? (
                                                         <Badge className="bg-fuchsia-100 text-fuchsia-750 hover:bg-fuchsia-200 border-none text-[9px] font-bold py-0.5">
-                                                            Parcel Pickup
+                                                            ⚡ Athreya Express
                                                         </Badge>
                                                     ) : order.orderType === 'whatsapp_order' ? (
                                                         <Badge className="bg-emerald-100 text-emerald-800 border-none text-[9px] font-bold py-0.5">

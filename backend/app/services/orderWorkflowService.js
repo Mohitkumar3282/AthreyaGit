@@ -37,6 +37,7 @@ import {
   emitToCustomer,
   emitToOrder,
   emitToDelivery,
+  emitDeliveryBroadcastNearLocation,
   retractDeliveryBroadcastForOrder,
 } from "./orderSocketEmitter.js";
 import { distanceMeters } from "../utils/geoUtils.js";
@@ -54,13 +55,61 @@ const DELIVERY_RADIUS_MULTIPLIER = () =>
 const INITIAL_DELIVERY_RADIUS_M = () =>
   parseInt(process.env.INITIAL_DELIVERY_RADIUS_METERS || "5000", 10);
 
+/** Athreya Express orders are customer-to-customer: no seller step, rider-first. */
+export function isExpressOrder(order) {
+  return Boolean(order?.orderType === "custom_pickup" || order?.expressService);
+}
+
+const EXPRESS_SERVICE_LABELS = {
+  home_to_home: "Home to Home Pickup",
+  shop_to_home: "Shop to Home Pickup",
+  cargo_to_home: "Cargo to Home Pickup",
+  rider_delivery: "Rider Pickup Request",
+  whatsapp: "WhatsApp Direct Order",
+};
+
+export function expressServiceLabel(service) {
+  return EXPRESS_SERVICE_LABELS[service] || "Athreya Express";
+}
+
+/** Where the rider actually goes first on an express job. */
+function expressPickupLabel(order) {
+  const meta = order.expressMeta || {};
+  if (order.expressService === "shop_to_home" && meta.shopName) {
+    return meta.shopName;
+  }
+  if (order.expressService === "cargo_to_home" && meta.cargoPointName) {
+    return meta.cargoPointName;
+  }
+  const addr = order.pickupAddress?.address;
+  return typeof addr === "string" && addr.trim() ? addr.trim() : "Pickup point";
+}
+
+/** Lat/lng of the rider's first stop, or null when it can't be resolved. */
+function previewPickupPoint(order, seller) {
+  if (isExpressOrder(order)) {
+    const p = order.pickupAddress?.location;
+    return Number.isFinite(Number(p?.lat)) && Number.isFinite(Number(p?.lng))
+      ? { lat: Number(p.lat), lng: Number(p.lng) }
+      : null;
+  }
+  const coords = seller?.location?.coordinates;
+  return Array.isArray(coords) &&
+    Number.isFinite(Number(coords[0])) &&
+    Number.isFinite(Number(coords[1]))
+    ? { lat: Number(coords[1]), lng: Number(coords[0]) }
+    : null;
+}
+
 /** Payload for `delivery:broadcast` + Notification.data — lets the app show a modal without relying on GET /available alone. */
 function deliveryBroadcastPayloadFromOrder(order, extra = {}) {
   const seller =
     order.seller && typeof order.seller === "object" && order.seller !== null
       ? order.seller
       : null;
-  const pickup = seller?.shopName || "Seller";
+  const pickup = isExpressOrder(order)
+    ? expressPickupLabel(order)
+    : seller?.shopName || "Seller";
   const drop =
     typeof order.address?.address === "string" && order.address.address.trim()
       ? order.address.address.trim()
@@ -76,11 +125,44 @@ function deliveryBroadcastPayloadFromOrder(order, extra = {}) {
       pickup,
       drop,
       total: order.pricing?.total ?? 0,
+      // Trip length (pickup -> drop) and where the pickup is, so the rider's
+      // request card can show a real distance and travel time instead of a
+      // placeholder. The rider's own position is added client-side.
+      distanceKm: Number.isFinite(Number(order.paymentBreakdown?.distanceKmActual))
+        ? Number(order.paymentBreakdown.distanceKmActual)
+        : null,
+      pickupLocation: previewPickupPoint(order, seller),
     },
     deliverySearchExpiresAt: order.deliverySearchExpiresAt,
+    ...(isExpressOrder(order)
+      ? {
+          isExpress: true,
+          expressService: order.expressService || null,
+          expressServiceLabel: expressServiceLabel(order.expressService),
+        }
+      : {}),
     ...extra,
   };
 }
+
+/**
+ * Send an express order out to riders. Anchors on the pickup address rather
+ * than a store, and falls back to the seller ring if the customer's pickup
+ * point has no usable coordinates.
+ */
+async function broadcastExpressOrder(order, extra = {}) {
+  const payload = deliveryBroadcastPayloadFromOrder(order, extra);
+  const loc = order.pickupAddress?.location;
+  if (Number.isFinite(Number(loc?.lat)) && Number.isFinite(Number(loc?.lng))) {
+    await emitDeliveryBroadcastNearLocation(
+      { lat: Number(loc.lat), lng: Number(loc.lng) },
+      payload,
+    );
+    return;
+  }
+  await emitDeliveryBroadcastForSeller(order.seller, payload);
+}
+
 const PICKUP_RADIUS_M = () =>
   parseInt(process.env.PICKUP_RADIUS_METERS || "1000", 10);
 const OTP_RADIUS_M = () =>
@@ -97,8 +179,14 @@ export function resolveWorkflowStatus(order) {
 
 /**
  * After creating a new order document (v2), schedule seller timeout and emit.
+ * Athreya Express orders have no shop to approve them, so they bypass the
+ * seller step entirely and go straight out to riders.
  */
 export async function afterPlaceOrderV2(orderDoc) {
+  if (isExpressOrder(orderDoc)) {
+    return afterPlaceExpressOrderV2(orderDoc);
+  }
+
   const orderId = orderDoc.orderId;
   await scheduleSellerTimeoutJob(orderId);
   emitToSeller(orderDoc.seller?.toString(), {
@@ -109,6 +197,90 @@ export async function afterPlaceOrderV2(orderDoc) {
       sellerPendingExpiresAt: orderDoc.sellerPendingExpiresAt,
     },
   });
+}
+
+/**
+ * Athreya Express placement: SELLER_PENDING -> DELIVERY_SEARCH immediately.
+ * The customer books, and the nearest online riders get the request to accept.
+ *
+ * Online orders wait here until payment lands — paymentService re-runs this
+ * once the gateway confirms, so we don't broadcast an unpaid job.
+ */
+export async function afterPlaceExpressOrderV2(orderDoc) {
+  const orderId = orderDoc.orderId;
+
+  if (orderDoc.paymentMode === "ONLINE" && orderDoc.paymentStatus !== "PAID") {
+    emitOrderStatusUpdate(
+      orderId,
+      { workflowStatus: orderDoc.workflowStatus },
+      orderDoc.customer,
+    );
+    return orderDoc;
+  }
+
+  const now = new Date();
+  const deliveryMs = DEFAULT_DELIVERY_TIMEOUT_MS();
+
+  const updated = await Order.findOneAndUpdate(
+    {
+      orderId,
+      workflowVersion: { $gte: 2 },
+      workflowStatus: {
+        $in: [WORKFLOW_STATUS.SELLER_PENDING, WORKFLOW_STATUS.DELIVERY_SEARCH],
+      },
+      deliveryBoy: null,
+    },
+    {
+      $set: {
+        workflowStatus: WORKFLOW_STATUS.DELIVERY_SEARCH,
+        status: legacyStatusFromWorkflow(WORKFLOW_STATUS.DELIVERY_SEARCH),
+        sellerAcceptedAt: now,
+        deliverySearchExpiresAt: new Date(now.getTime() + deliveryMs),
+        deliverySearchMeta: {
+          radiusMeters: INITIAL_DELIVERY_RADIUS_M(),
+          attempt: 1,
+          lastBroadcastAt: now,
+        },
+      },
+      // Same reason as sellerAcceptAtomic: the TTL index would eat the order.
+      $unset: { expiresAt: 1, sellerPendingExpiresAt: 1 },
+    },
+    { new: true },
+  ).populate("customer", "name phone");
+
+  if (!updated) return null;
+
+  await removeSellerTimeoutJob(orderId);
+  await scheduleDeliveryTimeoutJob(orderId, 1);
+
+  await DeliveryAssignment.create({
+    orderMongoId: updated._id,
+    orderId: updated.orderId,
+    status: "broadcasting",
+    radiusMeters: INITIAL_DELIVERY_RADIUS_M(),
+    attempt: 1,
+    expiresAt: updated.deliverySearchExpiresAt,
+  });
+
+  emitOrderStatusUpdate(
+    updated.orderId,
+    {
+      workflowStatus: WORKFLOW_STATUS.DELIVERY_SEARCH,
+      deliverySearchExpiresAt: updated.deliverySearchExpiresAt,
+    },
+    updated.customer?._id || updated.customer,
+  );
+
+  await broadcastExpressOrder(updated);
+
+  emitNotificationEvent(NOTIFICATION_EVENTS.ORDER_CONFIRMED, {
+    orderId: updated.orderId,
+    customerId: updated.customer?._id || updated.customer,
+    userId: updated.customer?._id || updated.customer,
+    sellerId: updated.seller,
+  });
+
+  return updated;
 }
 
 // Workflow timeout scheduling delegates to the jobSchedulerPort (P2.6).
@@ -520,12 +692,18 @@ export async function processDeliveryTimeoutJob({ orderId, attempt }) {
       .populate("seller", "shopName address name location serviceRadius")
       .lean();
     if (orderRich) {
-      await emitDeliveryBroadcastForSeller(
-        orderRich.seller,
-        deliveryBroadcastPayloadFromOrder(orderRich, {
+      if (isExpressOrder(orderRich)) {
+        await broadcastExpressOrder(orderRich, {
           retryAttempt: currentAttempt + 1,
-        }),
-      );
+        });
+      } else {
+        await emitDeliveryBroadcastForSeller(
+          orderRich.seller,
+          deliveryBroadcastPayloadFromOrder(orderRich, {
+            retryAttempt: currentAttempt + 1,
+          }),
+        );
+      }
     }
     return;
   }
@@ -823,22 +1001,26 @@ export async function markArrivedAtStoreAtomic(deliveryId, orderId, lat, lng) {
     throw err;
   }
 
-  const seller = await Seller.findById(order.seller).select("location").lean();
-  const coords = seller?.location?.coordinates;
-  if (!Array.isArray(coords) || coords.length < 2) {
-    const err = new Error("Seller location not configured");
-    err.statusCode = 400;
-    throw err;
+  // Express jobs are picked up at the address the customer typed, not a shop,
+  // so there is no seller location to validate against.
+  if (!isExpressOrder(order)) {
+    const seller = await Seller.findById(order.seller).select("location").lean();
+    const coords = seller?.location?.coordinates;
+    if (!Array.isArray(coords) || coords.length < 2) {
+      const err = new Error("Seller location not configured");
+      err.statusCode = 400;
+      throw err;
+    }
+    const [slng, slat] = coords;
+    const d = distanceMeters(lat, lng, slat, slng);
+    /*
+    if (d > PICKUP_RADIUS_M()) {
+      const err = new Error(`Too far from store (>${PICKUP_RADIUS_M()}m)`);
+      err.statusCode = 400;
+      throw err;
+    }
+    */
   }
-  const [slng, slat] = coords;
-  const d = distanceMeters(lat, lng, slat, slng);
-  /*
-  if (d > PICKUP_RADIUS_M()) {
-    const err = new Error(`Too far from store (>${PICKUP_RADIUS_M()}m)`);
-    err.statusCode = 400;
-    throw err;
-  }
-  */
 
   const now = new Date();
   const updated = await Order.findOneAndUpdate(
@@ -913,6 +1095,20 @@ export async function confirmPickupAtomic(deliveryId, orderId, lat, lng) {
     throw err;
   }
 
+  // Athreya Express has no shop to vouch for the parcel — the rider must
+  // collect an OTP from the sender at the pickup address instead of a plain
+  // GPS confirm. Route them to requestPickupOtpAtomic/verifyPickupOtpAndConfirm.
+  if (isExpressOrder(order)) {
+    const err = new Error(
+      "Athreya Express pickup requires OTP verification from the sender. Use the pickup OTP flow.",
+    );
+    err.statusCode = 409;
+    err.code = "PICKUP_OTP_REQUIRED";
+    throw err;
+  }
+
+  // Regular orders only from here on (express bailed out above) — validate
+  // against the seller's shop location.
   const seller = await Seller.findById(order.seller).select("location").lean();
   const coords = seller?.location?.coordinates;
   if (!Array.isArray(coords) || coords.length < 2) {
@@ -1547,5 +1743,315 @@ export async function verifyHandoffOtpAndDeliver(deliveryId, orderId, code) {
     orderId: updated.orderId,
     deliveredAt: now.toISOString(),
     warning: settlementWarning,
+  };
+}
+
+/* ===============================
+   ATHREYA EXPRESS — PICKUP OTP
+   The sender (order.customer) hands the parcel to the rider only after
+   reading out a 4-digit code from their app — mirrors the drop-off OTP
+   the receiver already gives, so both ends of a Home-to-Home / Shop-to-Home
+   / Cargo-to-Home job are verified, not just the drop.
+================================ */
+
+/**
+ * Rider requests a pickup OTP once they're near the sender's address.
+ * Only meaningful for Athreya Express jobs — regular orders pick up from a
+ * seller's shop, which doesn't need sender verification.
+ */
+export async function requestPickupOtpAtomic(deliveryId, orderId, lat, lng) {
+  orderId = await requireCanonicalOrderId(orderId);
+  const order = await Order.findOne({
+    orderId,
+    deliveryBoy: deliveryId,
+    workflowVersion: { $gte: 2 },
+  });
+
+  if (!order) {
+    const err = new Error("Order not found or not assigned to you");
+    err.statusCode = 404;
+    err.code = "UNAUTHORIZED_DELIVERY";
+    throw err;
+  }
+
+  if (!isExpressOrder(order)) {
+    const err = new Error("Pickup OTP is only required for Athreya Express orders");
+    err.statusCode = 400;
+    err.code = "NOT_EXPRESS_ORDER";
+    throw err;
+  }
+
+  const prePickup = new Set([
+    WORKFLOW_STATUS.DELIVERY_ASSIGNED,
+    WORKFLOW_STATUS.PICKUP_READY,
+  ]);
+  if (!prePickup.has(order.workflowStatus)) {
+    const err = new Error("Order not ready for pickup OTP");
+    err.statusCode = 409;
+    err.code = "ORDER_NOT_READY";
+    throw err;
+  }
+
+  const rider = await resolveRiderLocation(deliveryId, lat, lng);
+
+  const pickup = order.pickupAddress?.location;
+  if (
+    pickup &&
+    typeof pickup.lat === "number" &&
+    typeof pickup.lng === "number" &&
+    Number.isFinite(pickup.lat) &&
+    Number.isFinite(pickup.lng)
+  ) {
+    const d = distanceMeters(rider.lat, rider.lng, pickup.lat, pickup.lng);
+    if (d > OTP_RADIUS_M()) {
+      const err = new Error(
+        `You must be within ${OTP_RADIUS_M()} meters of the pickup location. Current distance: ${Math.round(d)}m`,
+      );
+      err.statusCode = 403;
+      err.code = "PROXIMITY_OUT_OF_RANGE";
+      throw err;
+    }
+  }
+
+  const redis = getRedisClient();
+  if (redis) {
+    try {
+      const key = `otp_req:pickup:${orderId}`;
+      const n = await redis.incr(key);
+      if (n === 1) await redis.expire(key, 300);
+      if (n > 3) {
+        const err = new Error("OTP request rate limit exceeded");
+        err.statusCode = 429;
+        err.code = "OTP_RATE_LIMIT";
+        throw err;
+      }
+    } catch (e) {
+      if (e.statusCode === 429) throw e;
+    }
+  }
+
+  const code = String(Math.floor(1000 + Math.random() * 9000)).padStart(4, "0");
+  const codeHash = OrderOtp.hashCode(code);
+
+  await OrderOtp.updateMany(
+    { orderId, type: "pickup", consumedAt: null },
+    { $set: { consumedAt: new Date() } },
+  );
+
+  const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS());
+  await OrderOtp.create({
+    orderId,
+    orderMongoId: order._id,
+    type: "pickup",
+    codeHash,
+    code,
+    expiresAt,
+    attempts: 0,
+    maxAttempts: 3,
+    lastGeneratedAt: new Date(),
+  });
+
+  const customerId =
+    order.customer && typeof order.customer.toString === "function"
+      ? order.customer.toString()
+      : order.customer;
+
+  const otpPayload = {
+    orderId,
+    otp: code,
+    code,
+    expiresAt,
+    stage: "pickup",
+    deliveryPersonNearby: true,
+  };
+
+  emitToCustomer(customerId, { event: "order:pickup-otp", payload: otpPayload });
+  emitToCustomer(customerId, {
+    event: "delivery:pickup-otp:generated",
+    payload: otpPayload,
+  });
+  emitToOrder(orderId, { event: "order:pickup-otp", payload: otpPayload });
+  emitToOrder(orderId, {
+    event: "delivery:pickup-otp:generated",
+    payload: otpPayload,
+  });
+  emitOrderStatusUpdate(orderId, { pickupOtpSent: true }, order.customer);
+
+  return { expiresAt, attemptsRemaining: 3, message: "OTP sent to sender" };
+}
+
+/**
+ * Rider enters the sender's OTP to confirm pickup: PICKUP_READY/DELIVERY_ASSIGNED
+ * -> OUT_FOR_DELIVERY, same transition confirmPickupAtomic makes for regular
+ * orders, just gated by proof-of-handoff instead of a GPS-only confirm.
+ */
+export async function verifyPickupOtpAndConfirm(deliveryId, orderId, code) {
+  if (!code || typeof code !== "string") {
+    const err = new Error("OTP is required");
+    err.statusCode = 400;
+    err.code = "OTP_INVALID_FORMAT";
+    throw err;
+  }
+  if (!/^\d{4}$/.test(code)) {
+    const err = new Error("OTP must be exactly 4 digits");
+    err.statusCode = 400;
+    err.code = "OTP_INVALID_FORMAT";
+    throw err;
+  }
+
+  orderId = await requireCanonicalOrderId(orderId);
+  const order = await Order.findOne({
+    orderId,
+    deliveryBoy: deliveryId,
+  }).populate("customer", "name phone");
+
+  if (!order) {
+    const err = new Error("Order not found or not assigned to you");
+    err.statusCode = 404;
+    err.code = "UNAUTHORIZED_DELIVERY";
+    throw err;
+  }
+
+  if (!isExpressOrder(order)) {
+    const err = new Error("Pickup OTP is only required for Athreya Express orders");
+    err.statusCode = 400;
+    err.code = "NOT_EXPRESS_ORDER";
+    throw err;
+  }
+
+  const prePickup = new Set([
+    WORKFLOW_STATUS.DELIVERY_ASSIGNED,
+    WORKFLOW_STATUS.PICKUP_READY,
+  ]);
+  if (!prePickup.has(order.workflowStatus)) {
+    const err = new Error("Invalid state for pickup confirmation");
+    err.statusCode = 409;
+    err.code = "ORDER_NOT_READY";
+    throw err;
+  }
+
+  const otp = await OrderOtp.findOne({ orderId, type: "pickup" }).sort({
+    lastGeneratedAt: -1,
+    createdAt: -1,
+  });
+
+  if (!otp) {
+    const err = new Error("No pickup OTP has been generated for this order yet");
+    err.statusCode = statusCodeForOtpError("OTP_NOT_FOUND");
+    err.code = "OTP_NOT_FOUND";
+    throw err;
+  }
+
+  if (otp.consumedAt) {
+    const err = new Error("OTP has already been used. Please generate a new OTP.");
+    err.statusCode = statusCodeForOtpError("OTP_CONSUMED");
+    err.code = "OTP_CONSUMED";
+    err.attemptsRemaining = 0;
+    throw err;
+  }
+
+  if (otp.attempts >= otp.maxAttempts) {
+    const err = new Error(
+      "Maximum validation attempts exceeded. Supervisor intervention required.",
+    );
+    err.statusCode = statusCodeForOtpError("MAX_ATTEMPTS_EXCEEDED");
+    err.code = "MAX_ATTEMPTS_EXCEEDED";
+    err.attemptsRemaining = 0;
+    throw err;
+  }
+
+  if (otp.expiresAt && otp.expiresAt < new Date()) {
+    const err = new Error("OTP has expired. Please generate a new OTP.");
+    err.statusCode = statusCodeForOtpError("OTP_EXPIRED");
+    err.code = "OTP_EXPIRED";
+    err.attemptsRemaining = otp.maxAttempts - otp.attempts;
+    throw err;
+  }
+
+  const match = OrderOtp.hashCode(String(code)) === otp.codeHash;
+  if (!match) {
+    otp.attempts += 1;
+    await otp.save();
+    const err = new Error("Invalid OTP. Please try again.");
+    err.statusCode = statusCodeForOtpError("OTP_MISMATCH");
+    err.code = "OTP_MISMATCH";
+    err.attemptsRemaining = otp.maxAttempts - otp.attempts;
+    throw err;
+  }
+
+  await OrderOtp.updateOne(
+    { _id: otp._id },
+    { $set: { consumedAt: new Date() } },
+  );
+
+  const now = new Date();
+
+  let validationLocation = null;
+  try {
+    const delivery = await Delivery.findById(deliveryId).select("location");
+    const coords = delivery?.location?.coordinates;
+    if (Array.isArray(coords) && coords.length >= 2) {
+      validationLocation = { lng: coords[0], lat: coords[1] };
+    }
+  } catch (e) {
+    logger.warn("verifyPickupOtpAndConfirm: rider location read failed", {
+      scope: "verifyPickupOtpAndConfirm",
+      orderId,
+      error: e.message,
+    });
+  }
+
+  const updateSet = {
+    workflowStatus: WORKFLOW_STATUS.OUT_FOR_DELIVERY,
+    status: legacyStatusFromWorkflow(WORKFLOW_STATUS.OUT_FOR_DELIVERY),
+    pickupConfirmedAt: now,
+    outForDeliveryAt: now,
+    pickupOtpVerifiedAt: now,
+    deliveryRiderStep: 3,
+  };
+  if (validationLocation) {
+    updateSet.pickupOtpValidationLocation = validationLocation;
+  }
+
+  const updated = await Order.findOneAndUpdate(
+    {
+      orderId,
+      workflowStatus: { $in: [...prePickup] },
+      deliveryBoy: deliveryId,
+    },
+    { $set: updateSet },
+    { new: true },
+  );
+
+  if (!updated) {
+    const err = new Error("Could not confirm pickup");
+    err.statusCode = 409;
+    err.code = "ORDER_NOT_READY";
+    throw err;
+  }
+
+  emitOrderStatusUpdate(
+    orderId,
+    { workflowStatus: WORKFLOW_STATUS.OUT_FOR_DELIVERY },
+    updated.customer?._id || updated.customer,
+  );
+
+  const validatedPayload = {
+    orderId,
+    workflowStatus: WORKFLOW_STATUS.OUT_FOR_DELIVERY,
+  };
+  emitToCustomer(updated.customer?._id || updated.customer, {
+    event: "delivery:pickup-otp:validated",
+    payload: validatedPayload,
+  });
+  emitToOrder(orderId, {
+    event: "delivery:pickup-otp:validated",
+    payload: validatedPayload,
+  });
+
+  return {
+    order: updated,
+    orderId: updated.orderId,
+    pickupConfirmedAt: now.toISOString(),
   };
 }

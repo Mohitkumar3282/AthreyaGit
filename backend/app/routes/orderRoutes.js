@@ -24,7 +24,14 @@ import {
   uploadBillImage,
   createManualOrder,
   assignRiderToOrder,
+  getExpressOrders,
+  rebroadcastExpressOrder,
 } from "../controller/orderController.js";
+import {
+  getExpressFare,
+  updateExpressFare,
+  quoteExpressFare,
+} from "../controller/expressFareController.js";
 import {
   createOrderWithFinancialSnapshot,
   markCodCollectedAfterDelivery,
@@ -39,6 +46,8 @@ import {
   advanceDeliveryRiderUi,
   requestDeliveryOtp,
   verifyDeliveryOtp,
+  requestPickupOtp,
+  verifyPickupOtp,
   requestReturnPickupOtp,
   verifyReturnPickupOtp,
   requestReturnDropOtp,
@@ -128,6 +137,30 @@ router.put(
   allowRoles("admin", "seller"),
   assignRiderToOrder,
 );
+
+// Athreya Express — admin management tab
+router.get(
+  "/express",
+  verifyToken,
+  allowRoles("admin"),
+  getExpressOrders,
+);
+// Athreya Express — admin-managed fare table + the quote the booking screen shows
+router.get("/express/fare", verifyToken, allowRoles("admin"), getExpressFare);
+router.put("/express/fare", verifyToken, allowRoles("admin"), updateExpressFare);
+router.post(
+  "/express/quote",
+  verifyToken,
+  allowRoles("customer", "user", "admin"),
+  quoteExpressFare,
+);
+router.put(
+  "/express/:orderId/rebroadcast",
+  verifyToken,
+  allowRoles("admin"),
+  rebroadcastExpressOrder,
+);
+
 router.get(
   "/seller-orders",
   verifyToken,
@@ -251,6 +284,21 @@ router.post(
   verifyToken,
   allowRoles("delivery", "admin"),
   verifyDeliveryOtp,
+);
+
+// Athreya Express — pickup OTP (collected from the sender before leaving
+// the pickup address; required for custom_pickup orders only)
+router.post(
+  "/workflow/:orderId/pickup-otp/request",
+  verifyToken,
+  allowRoles("delivery", "admin"),
+  requestPickupOtp,
+);
+router.post(
+  "/workflow/:orderId/pickup-otp/verify",
+  verifyToken,
+  allowRoles("delivery", "admin"),
+  verifyPickupOtp,
 );
 
 // Workflow routes — return pickup OTP (customer)
