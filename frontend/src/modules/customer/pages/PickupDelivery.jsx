@@ -72,11 +72,10 @@ const CARGO_POINTS = [
   { id: "other_cargo", name: "Other Cargo / Bus Transport Point", loc: "Custom Location" },
 ];
 
-const PARCEL_CATEGORIES = [
+const DEFAULT_PARCEL_CATEGORIES = [
   { id: "docs", label: "Documents / Papers", telugu: "పత్రాలు", icon: "📄" },
   { id: "clothes", label: "Clothes / Laundry", telugu: "బట్టలు", icon: "👕" },
   { id: "food", label: "Home Food / Tiffin", telugu: "ఇంటి భోజనం / టిఫిన్", icon: "🍱" },
-  { id: "medicine", label: "Medicines / Health", telugu: "మందులు", icon: "💊" },
   { id: "electronics", label: "Electronics / Cables", telugu: "ఎలక్ట్రానిక్స్", icon: "📱" },
   { id: "box", label: "Carton / Gift Box", telugu: "బాక్స్ / గిఫ్ట్", icon: "📦" },
   { id: "other", label: "Other Permitted Item", telugu: "ఇతర వస్తువులు", icon: "✨" },
@@ -84,10 +83,9 @@ const PARCEL_CATEGORIES = [
 
 const WEIGHT_OPTIONS = ["Up to 1 kg", "1-3 kg", "3-5 kg", "5-10 kg", "10 kg+"];
 
-const RIDER_TASK_TYPES = [
+const DEFAULT_RIDER_TASK_TYPES = [
   { id: "keys", label: "Deliver Keys", telugu: "తాళాలు డెలివరీ", icon: "🔑" },
   { id: "docs", label: "Documents / Xerox", telugu: "డాక్యుమెంట్లు / జిరాక్స్", icon: "📄" },
-  { id: "medicine", label: "Urgent Medicine", telugu: "అత్యవసర మందులు", icon: "💊" },
   { id: "tiffin", label: "Lunch Box / Tiffin", telugu: "లంచ్ బాక్స్ / టిఫిన్", icon: "🍱" },
   { id: "errand", label: "Pickup & Drop Errand", telugu: "పికప్ & డ్రాప్ పని", icon: "🛵" },
   { id: "other", label: "Custom Local Task", telugu: "ఇతర స్థానిక పని", icon: "📝" },
@@ -117,6 +115,21 @@ const PickupDelivery = () => {
   const [loadingShops, setLoadingShops] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // Dynamic Parcel Categories and Rider Task Types from Admin Settings
+  const parcelCategories = useMemo(() => {
+    if (Array.isArray(settings?.parcelCategories) && settings.parcelCategories.length > 0) {
+      return settings.parcelCategories.filter(c => c.enabled !== false);
+    }
+    return DEFAULT_PARCEL_CATEGORIES;
+  }, [settings?.parcelCategories]);
+
+  const riderTaskTypes = useMemo(() => {
+    if (Array.isArray(settings?.riderTaskTypes) && settings.riderTaskTypes.length > 0) {
+      return settings.riderTaskTypes.filter(t => t.enabled !== false);
+    }
+    return DEFAULT_RIDER_TASK_TYPES;
+  }, [settings?.riderTaskTypes]);
 
   // Common Form States
   const [uploadedImage, setUploadedImage] = useState("");
@@ -895,9 +908,9 @@ const PickupDelivery = () => {
           </h2>
           <p className="text-[10px] text-slate-300 font-medium mt-1 leading-snug">
             {activeTab === "home_to_home" && "Send packages, clothes, documents or food anywhere in Aswapuram."}
-            {activeTab === "shop_to_home" && "Get items or medicines from local stores delivered right to your doorstep."}
+            {activeTab === "shop_to_home" && "Get groceries, stationery or items from local stores delivered right to your doorstep."}
             {activeTab === "cargo_to_home" && "Rider collects your parcels from RTC bus stand or cargo transport offices."}
-            {activeTab === "rider_delivery" && "Send keys, urgent documents, medicines or errands with a dedicated bike rider."}
+            {activeTab === "rider_delivery" && "Send keys, urgent documents, lunch boxes or errands with a dedicated bike rider."}
           </p>
         </div>
 
@@ -1038,7 +1051,7 @@ const PickupDelivery = () => {
             <div>
               <Label className="text-[11px] font-bold text-slate-700 mb-1.5 block">What are you sending?</Label>
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
-                {PARCEL_CATEGORIES.map((cat) => (
+                {parcelCategories.map((cat) => (
                   <button
                     key={cat.id}
                     type="button"
@@ -1474,7 +1487,7 @@ const PickupDelivery = () => {
             </h3>
 
             <div className="grid grid-cols-3 gap-1.5">
-              {RIDER_TASK_TYPES.map((t) => (
+              {riderTaskTypes.map((t) => (
                 <button
                   key={t.id}
                   type="button"

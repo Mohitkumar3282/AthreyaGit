@@ -14,6 +14,7 @@ import { CartAnimationProvider } from '../../modules/customer/context/CartAnimat
 import { ProductDetailProvider } from '../../modules/customer/context/ProductDetailContext';
 import { LocationProvider } from '../../modules/customer/context/LocationContext';
 import ScrollToTop from '../../modules/customer/components/shared/ScrollToTop';
+import ServiceAreaGate from '../../modules/customer/components/ServiceAreaGate';
 
 // Public auth pages (lazy-loaded).
 //
@@ -74,9 +75,11 @@ const CustomerLayoutWrapper = () => {
                         <ProductDetailProvider>
                             <ScrollToTop />
                             <CustomerLayout>
-                                <Suspense fallback={<div className="flex h-screen items-center justify-center font-outfit">Loading...</div>}>
-                                    <Outlet />
-                                </Suspense>
+                                <ServiceAreaGate>
+                                    <Suspense fallback={<div className="flex h-screen items-center justify-center font-outfit">Loading...</div>}>
+                                        <Outlet />
+                                    </Suspense>
+                                </ServiceAreaGate>
                             </CustomerLayout>
                         </ProductDetailProvider>
                     </CartAnimationProvider>

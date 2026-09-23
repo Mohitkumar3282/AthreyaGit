@@ -153,6 +153,7 @@ const CheckoutPage = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [orderId, setOrderId] = useState(null);
   const [pricingPreview, setPricingPreview] = useState(null);
+  const [previewError, setPreviewError] = useState(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   // Athreya Coins. `coinsToRedeem` is what the customer asked for; `coinsResult`
   // is what the server actually accepted after clamping (balance, minimum
@@ -746,6 +747,7 @@ const CheckoutPage = () => {
     const fetchPreview = async () => {
       try {
         setIsPreviewLoading(true);
+        setPreviewError(null);
         const res = await customerApi.checkoutPreview(buildPreviewPayload());
         if (res.data?.success) {
           setPricingPreview(res.data.result?.breakdown ?? null);
@@ -757,7 +759,9 @@ const CheckoutPage = () => {
         }
       } catch (error) {
         console.error("Checkout preview failed", error);
-        const msg = error?.response?.data?.message;
+        setPricingPreview(null);
+        const msg = error?.response?.data?.message || "Delivery is unavailable for this location.";
+        setPreviewError(msg);
         if (msg && !msg.toLowerCase().includes("unauthorized")) {
           showToast(msg, "warning");
         }
@@ -865,6 +869,10 @@ const CheckoutPage = () => {
   }, [cartProductIdKey, currentLocation?.latitude, currentLocation?.longitude]);
 
   const handlePlaceOrder = async () => {
+    if (previewError) {
+      showToast(previewError, "error");
+      return;
+    }
     setIsPlacingOrder(true);
     try {
       const taxAmount = pricingPreview?.taxTotal || 0;
@@ -1279,11 +1287,20 @@ const CheckoutPage = () => {
 
             {/* Desktop Slide to Pay */}
             <div className="hidden lg:block pt-1">
+              {previewError && (
+                <div className="p-3.5 mb-3 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-2.5 animate-in fade-in">
+                  <MapPin className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+                  <div className="text-left">
+                    <p className="text-xs font-black text-red-800 uppercase tracking-wide">Delivery Range Limit</p>
+                    <p className="text-xs font-semibold text-red-600 mt-0.5 leading-snug">{previewError}</p>
+                  </div>
+                </div>
+              )}
               <SlideToPay
                 amount={finalAmountToPay}
                 onSuccess={handlePlaceOrder}
                 isLoading={isPlacingOrder || isPreviewLoading}
-                disabled={cart.length === 0 || isPlacingOrder}
+                disabled={cart.length === 0 || isPlacingOrder || Boolean(previewError)}
                 text={finalAmountToPay === 0 ? "Place Free Order" : "Order Now"}
               />
               <p className="text-center text-[10px] text-slate-400 font-bold mt-2 uppercase tracking-[0.1em]">
@@ -1300,11 +1317,20 @@ const CheckoutPage = () => {
       {/* Sticky Footer — Mobile Only */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200/80 p-2.5 sm:p-3 z-50 shadow-2xl">
         <div className="max-w-md mx-auto">
+          {previewError && (
+            <div className="p-3 mb-2 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2 text-left animate-in fade-in">
+              <MapPin className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-[11px] font-black text-red-800 uppercase">Out of Delivery Range</p>
+                <p className="text-[11px] font-semibold text-red-600 leading-tight mt-0.5">{previewError}</p>
+              </div>
+            </div>
+          )}
           <SlideToPay
             amount={finalAmountToPay}
             onSuccess={handlePlaceOrder}
             isLoading={isPlacingOrder || isPreviewLoading}
-            disabled={cart.length === 0 || isPlacingOrder}
+            disabled={cart.length === 0 || isPlacingOrder || Boolean(previewError)}
             text={finalAmountToPay === 0 ? "Place Free Order" : "Slide to Order"}
           />
         </div>

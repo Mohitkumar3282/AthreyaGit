@@ -444,11 +444,6 @@ const CategoryProductsPage = () => {
                                                 </div>
                                             </div>
                                         </div>
-
-                                        {/* Free Delivery Tag */}
-                                        <span className="text-[9px] font-black text-green-700 bg-green-50 px-2.5 py-1 rounded-full border border-green-200 uppercase tracking-wider shrink-0 mt-0.5">
-                                            Free Delivery
-                                        </span>
                                     </div>
 
                                     {/* Horizontal scroll of products + navigation right arrow button */}

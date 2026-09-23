@@ -57,6 +57,9 @@ const ALLOWED_KEYS = [
   "deliveryEta",
   "walletCashback",
   "athreyaCoins",
+  "parcelCategories",
+  "riderTaskTypes",
+  "serviceAreas",
 ];
 
 function flattenForMongoSet(prefix, value, target) {
@@ -174,6 +177,36 @@ const updateSettingsSchema = Joi.object({
     maxEarnPerOrder: Joi.number().integer().min(0),
     creditOn: Joi.string().valid("DELIVERY", "PLACEMENT"),
   }).unknown(false),
+  parcelCategories: Joi.array().items(
+    Joi.object({
+      id: Joi.string().required(),
+      label: Joi.string().required(),
+      telugu: Joi.string().allow("").optional(),
+      icon: Joi.string().allow("").optional(),
+      enabled: Joi.boolean().default(true),
+    })
+  ).optional(),
+  riderTaskTypes: Joi.array().items(
+    Joi.object({
+      id: Joi.string().required(),
+      label: Joi.string().required(),
+      telugu: Joi.string().allow("").optional(),
+      icon: Joi.string().allow("").optional(),
+      enabled: Joi.boolean().default(true),
+    })
+  ).optional(),
+  serviceAreas: Joi.array().items(
+    Joi.object({
+      id:        Joi.string().required(),
+      name:      Joi.string().required(),
+      pincode:   Joi.string().allow("").optional(),
+      radiusKm:  Joi.number().min(0).allow(null, "").optional(),
+      latitude:  Joi.number().allow(null).optional(),
+      longitude: Joi.number().allow(null).optional(),
+      enabled:   Joi.boolean().default(true),
+      note:      Joi.string().allow("").optional(),
+    })
+  ).optional(),
 }).unknown(false);
 
 /**
@@ -194,7 +227,7 @@ export const getPublicSettings = async (req, res) => {
       async () => {
         const existing = await Setting.findOne(filter)
           .select(
-            "appName supportEmail supportPhone whatsappNumber currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor returnDeliveryCommission deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge multiShopPickupFee deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy codEnabled onlineEnabled lowStockAlertsEnabled productApproval dailyNeeds dailyNeedsCategoryIds deliveryEta walletCashback athreyaCoins createdAt",
+            "appName supportEmail supportPhone whatsappNumber currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor returnDeliveryCommission deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge multiShopPickupFee deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy codEnabled onlineEnabled lowStockAlertsEnabled productApproval dailyNeeds dailyNeedsCategoryIds deliveryEta walletCashback athreyaCoins parcelCategories riderTaskTypes serviceAreas createdAt",
           )
           .lean();
         return existing || null;

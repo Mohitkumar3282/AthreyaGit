@@ -329,6 +329,64 @@ const settingSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Category"
         }],
+        parcelCategories: {
+            type: [
+                {
+                    id: { type: String },
+                    label: { type: String },
+                    telugu: { type: String, default: "" },
+                    icon: { type: String, default: "📦" },
+                    enabled: { type: Boolean, default: true },
+                }
+            ],
+            default: [
+                { id: "docs", label: "Documents / Papers", telugu: "పత్రాలు", icon: "📄", enabled: true },
+                { id: "clothes", label: "Clothes / Laundry", telugu: "బట్టలు", icon: "👕", enabled: true },
+                { id: "food", label: "Home Food / Tiffin", telugu: "ఇంటి భోజనం / టిఫిన్", icon: "🍱", enabled: true },
+                { id: "electronics", label: "Electronics / Cables", telugu: "ఎలక్ట్రానిక్స్", icon: "📱", enabled: true },
+                { id: "box", label: "Carton / Gift Box", telugu: "బాక్స్ / గిఫ్ట్", icon: "📦", enabled: true },
+                { id: "other", label: "Other Permitted Item", telugu: "ఇతర వస్తువులు", icon: "✨", enabled: true },
+            ],
+        },
+        riderTaskTypes: {
+            type: [
+                {
+                    id: { type: String },
+                    label: { type: String },
+                    telugu: { type: String, default: "" },
+                    icon: { type: String, default: "🛵" },
+                    enabled: { type: Boolean, default: true },
+                }
+            ],
+            default: [
+                { id: "keys", label: "Deliver Keys", telugu: "తాళాలు డెలివరీ", icon: "🔑", enabled: true },
+                { id: "docs", label: "Documents / Xerox", telugu: "డాక్యుమెంట్లు / జిరాక్స్", icon: "📄", enabled: true },
+                { id: "tiffin", label: "Lunch Box / Tiffin", telugu: "లంచ్ బాక్స్ / టిఫిన్", icon: "🍱", enabled: true },
+                { id: "errand", label: "Pickup & Drop Errand", telugu: "పికప్ & డ్రాప్ పని", icon: "🛵", enabled: true },
+                { id: "other", label: "Custom Local Task", telugu: "ఇతర స్థానిక పని", icon: "📝", enabled: true },
+            ],
+        },
+
+        /**
+         * Service Area Control — admin-managed list of villages / pincodes
+         * where Athreya Delivery is active. If the array is empty (or every
+         * entry is disabled), the platform is open to all locations.
+         */
+        serviceAreas: {
+            type: [
+                {
+                    id:        { type: String },
+                    name:      { type: String },          // e.g. "Aswapuram"
+                    pincode:   { type: String, default: "" }, // e.g. "507301"
+                    radiusKm:  { type: Number, default: 0 },  // Max delivery radius in km (0 = unlimited within area)
+                    latitude:  { type: Number, default: null },
+                    longitude: { type: Number, default: null },
+                    enabled:   { type: Boolean, default: true },
+                    note:      { type: String, default: "" }, // admin memo / details
+                }
+            ],
+            default: [],
+        },
     },
     {
         timestamps: true,
