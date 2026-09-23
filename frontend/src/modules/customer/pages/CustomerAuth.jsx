@@ -55,14 +55,14 @@ const CATEGORIES = [
         img: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=600"
     },
     {
-        title: "Health",
-        icon: <ShieldCheck size={28} />,
+        title: "Bakery",
+        icon: <ShoppingBag size={28} />,
         color: "#ffffff",
         ring: "#1a6e2e",
         text: "#1a6e2e",
         theme: "#1a6e2e",
         shadow: "transparent",
-        img: "https://images.unsplash.com/photo-1512678080530-7760d81faba6?q=80&w=1200&auto=format&fit=crop"
+        img: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=600"
     },
 ];
 

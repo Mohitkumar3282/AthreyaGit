@@ -20,6 +20,8 @@ import {
 import LogoTransparent from "../../../../assets/LogoTransparent.png";
 import LogoWhiteBike from "../../../../assets/LogoWhiteBike.png";
 
+import { customerApi } from "../../services/customerApi";
+
 // MUI Icons
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -224,8 +226,25 @@ const MainLocationHeader = ({
     }
   };
 
+  // Nearby stores for dynamic search placeholder
+  const [nearbyStores, setNearbyStores] = useState([]);
+
+  useEffect(() => {
+    if (currentLocation?.latitude && currentLocation?.longitude) {
+      customerApi.getNearbySellers({ lat: currentLocation.latitude, lng: currentLocation.longitude })
+        .then(res => {
+          if (res.data?.success) {
+            const list = res.data.results || res.data.result || [];
+            const names = list.map(s => (s.shopName || s.name)?.trim()).filter(Boolean);
+            setNearbyStores(names);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [currentLocation?.latitude, currentLocation?.longitude]);
+
   // Search placeholder animation
-  const [searchPlaceholder, setSearchPlaceholder] = useState("Search ");
+  const [searchPlaceholder, setSearchPlaceholder] = useState("Search nearby stores...");
   const [typingState, setTypingState] = useState({
     textIndex: 0,
     charIndex: 0,
@@ -233,18 +252,26 @@ const MainLocationHeader = ({
     isPaused: false,
   });
 
-  const staticText = "Search ";
-  const typingPhrases = [
-    '"bread"',
-    '"milk"',
-    '"chocolate"',
-    '"eggs"',
-    '"chips"',
-  ];
+  const typingPhrases = React.useMemo(() => {
+    if (nearbyStores.length > 0) {
+      return nearbyStores.map(name => `"${name}"`);
+    }
+    const area = getAreaName(currentLocation);
+    if (area && area !== "Select Location") {
+      return [`"${area} stores"`, '"groceries"', '"supermarket"', '"bakery"'];
+    }
+    return ['"nearby stores"', '"groceries"', '"supermarket"', '"bakery"'];
+  }, [nearbyStores, currentLocation]);
 
   useEffect(() => {
+    setTypingState({ textIndex: 0, charIndex: 0, isDeleting: false, isPaused: false });
+  }, [typingPhrases]);
+
+  useEffect(() => {
+    if (!typingPhrases || typingPhrases.length === 0) return;
     const { textIndex, charIndex, isDeleting, isPaused } = typingState;
-    const currentPhrase = typingPhrases[textIndex];
+    const safeIndex = textIndex % typingPhrases.length;
+    const currentPhrase = typingPhrases[safeIndex] || '';
 
     if (isPaused) {
       const timeout = setTimeout(() => {
@@ -263,7 +290,7 @@ const MainLocationHeader = ({
           // Typing
           if (charIndex < currentPhrase.length) {
             setSearchPlaceholder(
-              staticText + currentPhrase.substring(0, charIndex + 1),
+              `Search ${currentPhrase.substring(0, charIndex + 1)}...`
             );
             setTypingState((prev) => ({
               ...prev,
@@ -277,7 +304,7 @@ const MainLocationHeader = ({
           // Deleting
           if (charIndex > 0) {
             setSearchPlaceholder(
-              staticText + currentPhrase.substring(0, charIndex - 1),
+              `Search ${currentPhrase.substring(0, charIndex - 1)}...`
             );
             setTypingState((prev) => ({
               ...prev,
@@ -293,11 +320,11 @@ const MainLocationHeader = ({
           }
         }
       },
-      isDeleting ? 50 : 100,
-    ); // 50ms deleting speed, 100ms typing speed
+      isDeleting ? 40 : 80,
+    ); // 40ms deleting speed, 80ms typing speed
 
     return () => clearTimeout(timeout);
-  }, [typingState]);
+  }, [typingState, typingPhrases]);
 
   // Smooth scroll interpolations
   const headerTopPadding = useTransform(scrollY, [0, 160], [16, 12]);
@@ -550,7 +577,7 @@ const MainLocationHeader = ({
               <SearchIcon sx={{ color: "#9ca3af", fontSize: 18 }} />
               <input
                 type="text"
-                placeholder={searchPlaceholder || `Search ${currentLocation?.city || 'Aswapuram'} stores...`}
+                placeholder={searchPlaceholder || `Search ${getAreaName(currentLocation)} stores...`}
                 readOnly
                 className="flex-1 bg-transparent border-none outline-none pl-2 text-white font-bold placeholder-slate-400 text-[12.5px] cursor-pointer"
               />

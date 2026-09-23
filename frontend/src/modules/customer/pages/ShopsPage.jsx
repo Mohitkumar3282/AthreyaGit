@@ -79,6 +79,74 @@ const ShopsPage = () => {
         fetchShopsAndProducts();
     }, []);
 
+    const typingPhrases = React.useMemo(() => {
+        const names = shops.map(s => (s.shopName || s.name)?.trim()).filter(Boolean);
+        if (names.length > 0) {
+            return names.map(n => `"${n}"`);
+        }
+        return ['"Supermarket"', '"Bakery"', '"Grocery"', '"Sweet Shop"'];
+    }, [shops]);
+
+    const [searchPlaceholder, setSearchPlaceholder] = useState("Search in Shops...");
+    const [typingState, setTypingState] = useState({
+        textIndex: 0, charIndex: 0, isDeleting: false, isPaused: false
+    });
+
+    useEffect(() => {
+        setTypingState({ textIndex: 0, charIndex: 0, isDeleting: false, isPaused: false });
+    }, [typingPhrases]);
+
+    useEffect(() => {
+        if (!typingPhrases || typingPhrases.length === 0) return;
+        const { textIndex, charIndex, isDeleting, isPaused } = typingState;
+        const safeIndex = textIndex % typingPhrases.length;
+        const currentPhrase = typingPhrases[safeIndex] || '';
+
+        if (isPaused) {
+            const timeout = setTimeout(() => {
+                setTypingState((prev) => ({
+                    ...prev,
+                    isPaused: false,
+                    isDeleting: true,
+                }));
+            }, 2000);
+            return () => clearTimeout(timeout);
+        }
+
+        const timeout = setTimeout(
+            () => {
+                if (!isDeleting) {
+                    if (charIndex < currentPhrase.length) {
+                        setSearchPlaceholder(`Search ${currentPhrase.substring(0, charIndex + 1)}...`);
+                        setTypingState((prev) => ({
+                            ...prev,
+                            charIndex: prev.charIndex + 1,
+                        }));
+                    } else {
+                        setTypingState((prev) => ({ ...prev, isPaused: true }));
+                    }
+                } else {
+                    if (charIndex > 0) {
+                        setSearchPlaceholder(`Search ${currentPhrase.substring(0, charIndex - 1)}...`);
+                        setTypingState((prev) => ({
+                            ...prev,
+                            charIndex: prev.charIndex - 1,
+                        }));
+                    } else {
+                        setTypingState((prev) => ({
+                            ...prev,
+                            isDeleting: false,
+                            textIndex: (prev.textIndex + 1) % typingPhrases.length,
+                        }));
+                    }
+                }
+            },
+            isDeleting ? 40 : 80
+        );
+
+        return () => clearTimeout(timeout);
+    }, [typingState, typingPhrases]);
+
     const filteredShops = shops.filter(shop => 
         shop.shopName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (shop.category && shop.category.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -138,7 +206,7 @@ const ShopsPage = () => {
                     <Search className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
                     <input 
                         type="text" 
-                        placeholder="Search in Shops... (షాపులలో వెతకండి...)" 
+                        placeholder={searchPlaceholder} 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="bg-transparent border-none outline-none text-white text-[12.5px] font-bold w-full placeholder-slate-400"
@@ -202,11 +270,6 @@ const ShopsPage = () => {
                                         </div>
                                     </div>
                                 </div>
-                                
-                                {/* Free Delivery tag */}
-                                <span className="text-[9px] font-black text-green-700 bg-green-50 px-2.5 py-1 rounded-full border border-green-200 uppercase tracking-wider shrink-0 mt-0.5">
-                                    Free Delivery
-                                </span>
                             </div>
 
                             {/* Horizontal scroll of products + green arrow button */}

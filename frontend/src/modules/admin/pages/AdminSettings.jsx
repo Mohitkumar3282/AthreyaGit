@@ -21,7 +21,15 @@ import {
     Loader2,
     Coins,
     ExternalLink,
-    X
+    X,
+    Package,
+    Plus,
+    Trash2,
+    Edit3,
+    CheckCircle2,
+    Sparkles,
+    Layers,
+    Bike
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@shared/components/ui/Toast';
@@ -92,7 +100,223 @@ const AdminSettings = () => {
             maxEarnPerOrder: 0,
             creditOn: 'DELIVERY',
         },
+        parcelCategories: [
+            { id: "docs", label: "Documents / Papers", telugu: "పత్రాలు", icon: "📄", enabled: true },
+            { id: "clothes", label: "Clothes / Laundry", telugu: "బట్టలు", icon: "👕", enabled: true },
+            { id: "food", label: "Home Food / Tiffin", telugu: "ఇంటి భోజనం / టిఫిన్", icon: "🍱", enabled: true },
+            { id: "electronics", label: "Electronics / Cables", telugu: "ఎలక్ట్రానిక్స్", icon: "📱", enabled: true },
+            { id: "box", label: "Carton / Gift Box", telugu: "బాక్స్ / గిఫ్ట్", icon: "📦", enabled: true },
+            { id: "other", label: "Other Permitted Item", telugu: "ఇతర వస్తువులు", icon: "✨", enabled: true },
+        ],
+        riderTaskTypes: [
+            { id: "keys", label: "Deliver Keys", telugu: "తాళాలు డెలివరీ", icon: "🔑", enabled: true },
+            { id: "docs", label: "Documents / Xerox", telugu: "డాక్యుమెంట్లు / జిరాక్స్", icon: "📄", enabled: true },
+            { id: "tiffin", label: "Lunch Box / Tiffin", telugu: "లంచ్ బాక్స్ / టిఫిన్", icon: "🍱", enabled: true },
+            { id: "errand", label: "Pickup & Drop Errand", telugu: "పికప్ & డ్రాప్ పని", icon: "🛵", enabled: true },
+            { id: "other", label: "Custom Local Task", telugu: "ఇతర స్థానిక పని", icon: "📝", enabled: true },
+        ],
+        serviceAreas: [
+            { id: "area_1", name: "Madanapalle", pincode: "517325", enabled: true, note: "Madanapalle Town & surroundings" },
+        ],
     });
+
+    const [categoryModal, setCategoryModal] = useState({
+        isOpen: false,
+        type: 'parcel', // 'parcel' | 'rider'
+        editIndex: null,
+        form: {
+            id: '',
+            label: '',
+            telugu: '',
+            icon: '📦',
+            enabled: true,
+        }
+    });
+
+    const openAddCategory = (type) => {
+        setCategoryModal({
+            isOpen: true,
+            type,
+            editIndex: null,
+            form: {
+                id: '',
+                label: '',
+                telugu: '',
+                icon: type === 'parcel' ? '📦' : '🛵',
+                enabled: true,
+            }
+        });
+    };
+
+    const openEditCategory = (type, index) => {
+        const list = type === 'parcel' ? (settings.parcelCategories || []) : (settings.riderTaskTypes || []);
+        const item = list[index];
+        if (!item) return;
+        setCategoryModal({
+            isOpen: true,
+            type,
+            editIndex: index,
+            form: { ...item }
+        });
+    };
+
+    const handleSaveCategoryItem = () => {
+        const { type, editIndex, form } = categoryModal;
+        if (!form.label.trim()) {
+            showToast('Please enter an English label', 'error');
+            return;
+        }
+
+        const autoId = form.id.trim() || form.label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+        const finalItem = {
+            ...form,
+            id: autoId || 'category_' + Date.now(),
+            label: form.label.trim(),
+            telugu: form.telugu?.trim() || '',
+            icon: form.icon?.trim() || (type === 'parcel' ? '📦' : '🛵'),
+            enabled: form.enabled !== false,
+        };
+
+        if (type === 'parcel') {
+            const list = [...(settings.parcelCategories || [])];
+            if (editIndex !== null && editIndex >= 0) {
+                list[editIndex] = finalItem;
+            } else {
+                list.push(finalItem);
+            }
+            setSettings(prev => ({ ...prev, parcelCategories: list }));
+        } else {
+            const list = [...(settings.riderTaskTypes || [])];
+            if (editIndex !== null && editIndex >= 0) {
+                list[editIndex] = finalItem;
+            } else {
+                list.push(finalItem);
+            }
+            setSettings(prev => ({ ...prev, riderTaskTypes: list }));
+        }
+
+        setCategoryModal(prev => ({ ...prev, isOpen: false }));
+        showToast(`Category ${editIndex !== null ? 'updated' : 'added'}! Click "Save All Changes" to persist.`, 'success');
+    };
+
+    const handleDeleteCategoryItem = (type, index) => {
+        if (type === 'parcel') {
+            const list = (settings.parcelCategories || []).filter((_, i) => i !== index);
+            setSettings(prev => ({ ...prev, parcelCategories: list }));
+        } else {
+            const list = (settings.riderTaskTypes || []).filter((_, i) => i !== index);
+            setSettings(prev => ({ ...prev, riderTaskTypes: list }));
+        }
+        showToast('Category removed! Click "Save All Changes" to persist.', 'info');
+    };
+
+    const handleToggleCategoryItem = (type, index) => {
+        if (type === 'parcel') {
+            const list = [...(settings.parcelCategories || [])];
+            if (list[index]) {
+                list[index] = { ...list[index], enabled: !list[index].enabled };
+                setSettings(prev => ({ ...prev, parcelCategories: list }));
+            }
+        } else {
+            const list = [...(settings.riderTaskTypes || [])];
+            if (list[index]) {
+                list[index] = { ...list[index], enabled: !list[index].enabled };
+                setSettings(prev => ({ ...prev, riderTaskTypes: list }));
+            }
+        }
+    };
+
+    // Service Areas Management
+    const [areaModal, setAreaModal] = useState({
+        isOpen: false,
+        editIndex: null,
+        form: {
+            id: '',
+            name: '',
+            pincode: '',
+            radiusKm: '',
+            enabled: true,
+            note: '',
+        },
+    });
+
+    const openAddArea = () => {
+        setAreaModal({
+            isOpen: true,
+            editIndex: null,
+            form: {
+                id: '',
+                name: '',
+                pincode: '',
+                radiusKm: '11',
+                enabled: true,
+                note: '',
+            },
+        });
+    };
+
+    const openEditArea = (index) => {
+        const item = settings.serviceAreas?.[index];
+        if (!item) return;
+        const noteRadius = item.note ? item.note.match(/(\d+(?:\.\d+)?)\s*(?:km|kms)?/i)?.[1] : '';
+        const resolvedRadius = item.radiusKm > 0 ? String(item.radiusKm) : (noteRadius || '');
+        setAreaModal({
+            isOpen: true,
+            editIndex: index,
+            form: {
+                id: item.id || '',
+                name: item.name || '',
+                pincode: item.pincode || '',
+                radiusKm: resolvedRadius,
+                enabled: item.enabled !== false,
+                note: item.note || '',
+            },
+        });
+    };
+
+    const handleSaveArea = () => {
+        const { form, editIndex } = areaModal;
+        if (!form.name.trim() && !form.pincode.trim()) {
+            showToast('Please enter an area name or pincode', 'error');
+            return;
+        }
+
+        const autoId = form.id.trim() || form.name.toLowerCase().replace(/[^a-z0-9]+/g, '_') || 'area_' + Date.now();
+        const parsedRadius = Number(form.radiusKm) || (form.note?.match(/(\d+(?:\.\d+)?)\s*(?:km|kms)?/i)?.[1] ? Number(form.note.match(/(\d+(?:\.\d+)?)\s*(?:km|kms)?/i)[1]) : 0);
+
+        const finalArea = {
+            id: autoId,
+            name: form.name.trim(),
+            pincode: form.pincode.trim(),
+            radiusKm: parsedRadius,
+            enabled: form.enabled !== false,
+            note: form.note.trim(),
+        };
+
+        const list = [...(settings.serviceAreas || [])];
+        if (editIndex !== null && editIndex >= 0) {
+            list[editIndex] = finalArea;
+        } else {
+            list.push(finalArea);
+        }
+        setSettings(prev => ({ ...prev, serviceAreas: list }));
+        setAreaModal(prev => ({ ...prev, isOpen: false }));
+        showToast(`Service Area ${editIndex !== null ? 'updated' : 'added'}! Click "Save All Changes" to persist.`, 'success');
+    };
+
+    const handleDeleteArea = (index) => {
+        const list = (settings.serviceAreas || []).filter((_, i) => i !== index);
+        setSettings(prev => ({ ...prev, serviceAreas: list }));
+        showToast('Service Area removed! Click "Save All Changes" to persist.', 'info');
+    };
+
+    const handleToggleArea = (index) => {
+        const list = [...(settings.serviceAreas || [])];
+        if (list[index]) {
+            list[index] = { ...list[index], enabled: !list[index].enabled };
+            setSettings(prev => ({ ...prev, serviceAreas: list }));
+        }
+    };
 
     const coins = settings.athreyaCoins || {};
     const coinsPerRupee = Math.max(1, Math.round(1 / (Number(coins.rupeeValuePerCoin) || 0.01)));
@@ -181,7 +405,7 @@ const AdminSettings = () => {
             ...prev,
             productApproval: {
                 ...(prev.productApproval || {}),
-                [field]: !Boolean(prev.productApproval?.[field]),
+                [field]: !prev.productApproval?.[field],
             },
         }));
     };
@@ -240,6 +464,8 @@ const AdminSettings = () => {
 
     const tabs = [
         { id: 'general', label: 'General', icon: Settings },
+        { id: 'serviceAreas', label: 'Service Areas', icon: MapPin },
+        { id: 'express', label: 'Parcel Categories', icon: Package },
         { id: 'branding', label: 'Branding', icon: Globe },
         { id: 'legal', label: 'Legal & Contact', icon: Building2 },
         { id: 'social', label: 'Social & Apps', icon: Share2 },
@@ -919,8 +1145,652 @@ const AdminSettings = () => {
                             </div>
                         </Card>
                     )}
+
+                    {/* EXPRESS & PARCEL CATEGORIES TAB */}
+                    {activeTab === 'express' && (
+                        <div className="space-y-6">
+                            {/* Parcel Item Categories */}
+                            <Card className="border-none shadow-xl ring-1 ring-slate-100 bg-white rounded-2xl overflow-hidden p-6 space-y-6">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                                    <div>
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl">
+                                                <Package className="h-5 w-5" />
+                                            </div>
+                                            <h2 className="text-base font-black text-slate-900 tracking-tight">
+                                                Parcel Details Categories (పార్సెల్ వివరాలు)
+                                            </h2>
+                                        </div>
+                                        <p className="text-xs font-semibold text-slate-500 mt-1">
+                                            Items customers can pick from under "What are you sending?" (Documents, Clothes, Food, etc.)
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => openAddCategory('parcel')}
+                                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#042A0F] text-[#A3E635] hover:bg-[#063A16] rounded-xl text-xs font-black uppercase tracking-wider active:scale-95 transition-all shadow-md shrink-0"
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                        <span>Add Category</span>
+                                    </button>
+                                </div>
+
+                                {/* List Grid */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {(settings.parcelCategories || []).map((cat, idx) => (
+                                        <div
+                                            key={cat.id || idx}
+                                            className={cn(
+                                                "p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 relative group",
+                                                cat.enabled !== false
+                                                    ? "bg-slate-50 border-slate-200 hover:border-emerald-300 hover:shadow-sm"
+                                                    : "bg-slate-100/60 border-dashed border-slate-300 opacity-60"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-xl shadow-xs shrink-0">
+                                                    {cat.icon || '📦'}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <h4 className="text-xs font-black text-slate-900 truncate">
+                                                            {cat.label}
+                                                        </h4>
+                                                        {cat.enabled === false && (
+                                                            <span className="text-[9px] font-bold text-slate-400 bg-slate-200 px-1.5 py-0.5 rounded-full">
+                                                                Disabled
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-[10px] font-bold text-slate-500 truncate mt-0.5">
+                                                        {cat.telugu || `ID: ${cat.id}`}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-1 shrink-0">
+                                                <button
+                                                    type="button"
+                                                    title={cat.enabled !== false ? "Disable" : "Enable"}
+                                                    onClick={() => handleToggleCategoryItem('parcel', idx)}
+                                                    className={cn(
+                                                        "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition-all border",
+                                                        cat.enabled !== false
+                                                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                                                            : "bg-slate-200 text-slate-500 border-slate-300 hover:bg-slate-300"
+                                                    )}
+                                                >
+                                                    {cat.enabled !== false ? "✓" : "✕"}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    title="Edit Category"
+                                                    onClick={() => openEditCategory('parcel', idx)}
+                                                    className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center transition-all"
+                                                >
+                                                    <Edit3 className="h-3.5 w-3.5" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    title="Delete Category"
+                                                    onClick={() => handleDeleteCategoryItem('parcel', idx)}
+                                                    className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-red-500 hover:bg-red-50 hover:border-red-200 flex items-center justify-center transition-all"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </Card>
+
+                            {/* Rider Task Categories */}
+                            <Card className="border-none shadow-xl ring-1 ring-slate-100 bg-white rounded-2xl overflow-hidden p-6 space-y-6">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                                    <div>
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="p-2 bg-blue-50 text-blue-700 rounded-xl">
+                                                <Bike className="h-5 w-5" />
+                                            </div>
+                                            <h2 className="text-base font-black text-slate-900 tracking-tight">
+                                                Rider Delivery Task Types (రైడర్ ఏ పని చేయాలి?)
+                                            </h2>
+                                        </div>
+                                        <p className="text-xs font-semibold text-slate-500 mt-1">
+                                            Task options for Rider Delivery service (Keys, Documents, Tiffin, Errands, etc.)
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => openAddCategory('rider')}
+                                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl text-xs font-black uppercase tracking-wider active:scale-95 transition-all shadow-md shrink-0"
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                        <span>Add Task Type</span>
+                                    </button>
+                                </div>
+
+                                {/* List Grid */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {(settings.riderTaskTypes || []).map((t, idx) => (
+                                        <div
+                                            key={t.id || idx}
+                                            className={cn(
+                                                "p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 relative group",
+                                                t.enabled !== false
+                                                    ? "bg-slate-50 border-slate-200 hover:border-blue-300 hover:shadow-sm"
+                                                    : "bg-slate-100/60 border-dashed border-slate-300 opacity-60"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-xl shadow-xs shrink-0">
+                                                    {t.icon || '🛵'}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <h4 className="text-xs font-black text-slate-900 truncate">
+                                                            {t.label}
+                                                        </h4>
+                                                        {t.enabled === false && (
+                                                            <span className="text-[9px] font-bold text-slate-400 bg-slate-200 px-1.5 py-0.5 rounded-full">
+                                                                Disabled
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-[10px] font-bold text-slate-500 truncate mt-0.5">
+                                                        {t.telugu || `ID: ${t.id}`}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-1 shrink-0">
+                                                <button
+                                                    type="button"
+                                                    title={t.enabled !== false ? "Disable" : "Enable"}
+                                                    onClick={() => handleToggleCategoryItem('rider', idx)}
+                                                    className={cn(
+                                                        "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition-all border",
+                                                        t.enabled !== false
+                                                            ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                                                            : "bg-slate-200 text-slate-500 border-slate-300 hover:bg-slate-300"
+                                                    )}
+                                                >
+                                                    {t.enabled !== false ? "✓" : "✕"}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    title="Edit Task"
+                                                    onClick={() => openEditCategory('rider', idx)}
+                                                    className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center transition-all"
+                                                >
+                                                    <Edit3 className="h-3.5 w-3.5" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    title="Delete Task"
+                                                    onClick={() => handleDeleteCategoryItem('rider', idx)}
+                                                    className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-red-500 hover:bg-red-50 hover:border-red-200 flex items-center justify-center transition-all"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </Card>
+                        </div>
+                    )}
+
+                    {/* SERVICE AREAS TAB */}
+                    {activeTab === 'serviceAreas' && (
+                        <div className="space-y-6">
+                            <Card className="border-none shadow-xl ring-1 ring-slate-100 bg-white rounded-2xl overflow-hidden p-6 space-y-6">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                                    <div>
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl">
+                                                <MapPin className="h-5 w-5" />
+                                            </div>
+                                            <div>
+                                                <h2 className="text-base font-black text-slate-900 tracking-tight">
+                                                    Service Area & Delivery Location Control
+                                                </h2>
+                                                <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                                                    (సర్వీస్ ప్రాంతాలు మరియు పిన్‌కోడ్‌లు)
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs font-medium text-slate-600 mt-2 max-w-2xl leading-relaxed">
+                                            Control where Athreya Delivery is operational. Customers outside active areas/pincodes will see a friendly <strong>&quot;Coming Soon to your area&quot;</strong> notice and won&apos;t be able to place orders.
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={openAddArea}
+                                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#042A0F] text-[#A3E635] hover:bg-[#063A16] rounded-xl text-xs font-black uppercase tracking-wider active:scale-95 transition-all shadow-md shrink-0"
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                        <span>Add Area / Pincode</span>
+                                    </button>
+                                </div>
+
+                                {/* Status banner */}
+                                <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 flex items-start gap-3">
+                                    <Sparkles className="h-4 w-4 text-emerald-700 shrink-0 mt-0.5" />
+                                    <div className="text-xs text-emerald-900 leading-relaxed font-medium">
+                                        <strong>Active Service Coverage:</strong> {(settings.serviceAreas || []).filter(a => a.enabled !== false).length} active area(s) enabled out of {(settings.serviceAreas || []).length} total.
+                                        {(settings.serviceAreas || []).length === 0 && (
+                                            <span className="block mt-0.5 text-amber-800 font-semibold">
+                                                ℹ️ No specific areas configured: Delivery is currently OPEN everywhere. Add at least one area to activate location restriction.
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* List Grid */}
+                                {(!settings.serviceAreas || settings.serviceAreas.length === 0) ? (
+                                    <div className="p-10 border border-dashed border-slate-200 rounded-2xl text-center space-y-3">
+                                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                                            <MapPin className="h-6 w-6" />
+                                        </div>
+                                        <h3 className="text-sm font-bold text-slate-700">No Service Areas Added Yet</h3>
+                                        <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                                            Click &quot;Add Area / Pincode&quot; above to specify villages, towns, or pincodes where delivery should be allowed.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={openAddArea}
+                                            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all"
+                                        >
+                                            <Plus className="h-3.5 w-3.5" />
+                                            Add First Service Area
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {(settings.serviceAreas || []).map((area, idx) => (
+                                            <div
+                                                key={area.id || idx}
+                                                className={cn(
+                                                    "p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 relative group",
+                                                    area.enabled !== false
+                                                        ? "bg-slate-50/70 border-slate-200 hover:border-emerald-300 hover:shadow-sm"
+                                                        : "bg-slate-100/60 border-dashed border-slate-300 opacity-60"
+                                                )}
+                                            >
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="flex items-start gap-3 min-w-0">
+                                                        <div className={cn(
+                                                            "w-10 h-10 rounded-xl flex items-center justify-center text-base shadow-xs shrink-0 font-bold",
+                                                            area.enabled !== false ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-500"
+                                                        )}>
+                                                            <MapPin className="h-5 w-5" />
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                                <h4 className="text-xs font-black text-slate-900 truncate">
+                                                                    {area.name || 'Unnamed Area'}
+                                                                </h4>
+                                                                {area.enabled === false ? (
+                                                                    <span className="text-[9px] font-bold text-slate-400 bg-slate-200 px-1.5 py-0.5 rounded-full">
+                                                                        Disabled
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full">
+                                                                        Active
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {area.pincode && (
+                                                                <p className="text-[11px] font-mono font-bold text-emerald-700 mt-0.5">
+                                                                    PIN: {area.pincode}
+                                                                </p>
+                                                            )}
+                                                            {(area.radiusKm > 0 || (area.note && area.note.match(/(\d+(?:\.\d+)?)\s*(?:km|kms)?/i))) && (
+                                                                <div className="mt-1 flex items-center gap-1">
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-bold">
+                                                                        🎯 Max Range: {area.radiusKm || area.note.match(/(\d+(?:\.\d+)?)\s*(?:km|kms)?/i)[1]} km
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                            {area.note && (
+                                                                <p className="text-[10px] text-slate-500 line-clamp-2 mt-1 font-medium">
+                                                                    {area.note}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-slate-200/60 shrink-0">
+                                                    <button
+                                                        type="button"
+                                                        title={area.enabled !== false ? "Disable Area" : "Enable Area"}
+                                                        onClick={() => handleToggleArea(idx)}
+                                                        className={cn(
+                                                            "px-2.5 py-1 rounded-lg flex items-center gap-1 text-[11px] font-bold transition-all border",
+                                                            area.enabled !== false
+                                                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                                                                : "bg-slate-200 text-slate-600 border-slate-300 hover:bg-slate-300"
+                                                        )}
+                                                    >
+                                                        {area.enabled !== false ? "Active" : "Off"}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        title="Edit Area"
+                                                        onClick={() => openEditArea(idx)}
+                                                        className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center transition-all"
+                                                    >
+                                                        <Edit3 className="h-3.5 w-3.5" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        title="Delete Area"
+                                                        onClick={() => handleDeleteArea(idx)}
+                                                        className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-red-500 hover:bg-red-50 hover:border-red-200 flex items-center justify-center transition-all"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </Card>
+                        </div>
+                    )}
                 </div>
             </div>
+
+            {/* ADD / EDIT CATEGORY MODAL */}
+            {categoryModal.isOpen && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-200 border border-slate-100">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                            <div className="flex items-center gap-2">
+                                <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl">
+                                    <Sparkles className="h-4 w-4" />
+                                </div>
+                                <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide">
+                                    {categoryModal.editIndex !== null ? 'Edit' : 'Add New'} {categoryModal.type === 'parcel' ? 'Parcel Category' : 'Rider Task'}
+                                </h3>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setCategoryModal(prev => ({ ...prev, isOpen: false }))}
+                                className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            {/* Icon / Emoji */}
+                            <div>
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block mb-1">
+                                    Icon / Emoji (e.g. 📄, 👕, 🍱, 📱, 📦, 🎁, 🛵)
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="text"
+                                        value={categoryModal.form.icon}
+                                        onChange={(e) => setCategoryModal(prev => ({
+                                            ...prev,
+                                            form: { ...prev.form, icon: e.target.value }
+                                        }))}
+                                        placeholder="📦"
+                                        className="w-16 text-center text-xl p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold outline-none focus:border-emerald-500"
+                                    />
+                                    <div className="flex items-center gap-1.5 overflow-x-auto py-1">
+                                        {['📄', '👕', '🍱', '📱', '📦', '✨', '🔑', '🛵', '🎁', '🛍️', '📚', '🔧'].map((emoji) => (
+                                            <button
+                                                key={emoji}
+                                                type="button"
+                                                onClick={() => setCategoryModal(prev => ({
+                                                    ...prev,
+                                                    form: { ...prev.form, icon: emoji }
+                                                }))}
+                                                className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm flex items-center justify-center transition-all"
+                                            >
+                                                {emoji}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* English Label */}
+                            <div>
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block mb-1">
+                                    English Label <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={categoryModal.form.label}
+                                    onChange={(e) => setCategoryModal(prev => ({
+                                        ...prev,
+                                        form: { ...prev.form, label: e.target.value }
+                                    }))}
+                                    placeholder="e.g. Clothes / Laundry"
+                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
+                                />
+                            </div>
+
+                            {/* Telugu Label */}
+                            <div>
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block mb-1">
+                                    Telugu Label (తెలుగు పేరు)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={categoryModal.form.telugu}
+                                    onChange={(e) => setCategoryModal(prev => ({
+                                        ...prev,
+                                        form: { ...prev.form, telugu: e.target.value }
+                                    }))}
+                                    placeholder="e.g. బట్టలు"
+                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
+                                />
+                            </div>
+
+                            {/* Unique ID / Key */}
+                            <div>
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block mb-1">
+                                    Category ID (Unique key)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={categoryModal.form.id}
+                                    onChange={(e) => setCategoryModal(prev => ({
+                                        ...prev,
+                                        form: { ...prev.form, id: e.target.value }
+                                    }))}
+                                    placeholder="e.g. clothes"
+                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-500 font-mono"
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1">Leave blank to auto-generate from English label.</p>
+                            </div>
+
+                            {/* Status */}
+                            <div className="flex items-center gap-2 pt-1">
+                                <input
+                                    type="checkbox"
+                                    id="cat_enabled"
+                                    checked={categoryModal.form.enabled !== false}
+                                    onChange={(e) => setCategoryModal(prev => ({
+                                        ...prev,
+                                        form: { ...prev.form, enabled: e.target.checked }
+                                    }))}
+                                    className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
+                                />
+                                <label htmlFor="cat_enabled" className="text-xs font-bold text-slate-700 cursor-pointer">
+                                    Enabled (Active for customers)
+                                </label>
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                            <button
+                                type="button"
+                                onClick={() => setCategoryModal(prev => ({ ...prev, isOpen: false }))}
+                                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSaveCategoryItem}
+                                className="px-5 py-2 bg-[#042A0F] hover:bg-[#063A16] text-[#A3E635] rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95"
+                            >
+                                {categoryModal.editIndex !== null ? 'Apply Changes' : 'Add Item'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* ADD / EDIT SERVICE AREA MODAL */}
+            {areaModal.isOpen && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-200 border border-slate-100">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                            <div className="flex items-center gap-2">
+                                <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl">
+                                    <MapPin className="h-4 w-4" />
+                                </div>
+                                <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide">
+                                    {areaModal.editIndex !== null ? 'Edit Service Area' : 'Add New Service Area'}
+                                </h3>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setAreaModal(prev => ({ ...prev, isOpen: false }))}
+                                className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            {/* Area / Town / Village Name */}
+                            <div>
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block mb-1">
+                                    Area / Village / City Name <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={areaModal.form.name}
+                                    onChange={(e) => setAreaModal(prev => ({
+                                        ...prev,
+                                        form: { ...prev.form, name: e.target.value }
+                                    }))}
+                                    placeholder="e.g. Madanapalle, Angallu, Punganur"
+                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1">Matched case-insensitively against customer delivery address or city.</p>
+                            </div>
+
+                            {/* Pincode */}
+                            <div>
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block mb-1">
+                                    Postal Pincode (Optional / Recommended)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={areaModal.form.pincode}
+                                    onChange={(e) => setAreaModal(prev => ({
+                                        ...prev,
+                                        form: { ...prev.form, pincode: e.target.value }
+                                    }))}
+                                    placeholder="e.g. 517325 or 453112"
+                                    maxLength={6}
+                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-500 font-mono"
+                                />
+                            </div>
+
+                            {/* Max Delivery Radius (in km) */}
+                            <div>
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block mb-1">
+                                    Maximum Delivery Range / Radius (in km)
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="100"
+                                        step="0.5"
+                                        value={areaModal.form.radiusKm}
+                                        onChange={(e) => setAreaModal(prev => ({
+                                            ...prev,
+                                            form: { ...prev.form, radiusKm: e.target.value }
+                                        }))}
+                                        placeholder="e.g. 11"
+                                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-500"
+                                    />
+                                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">km</span>
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-1">Orders placed further than this distance from the store/area center will be blocked.</p>
+                            </div>
+
+                            {/* Note / Details */}
+                            <div>
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block mb-1">
+                                    Description / Coverage Note (Optional)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={areaModal.form.note}
+                                    onChange={(e) => setAreaModal(prev => ({
+                                        ...prev,
+                                        form: { ...prev.form, note: e.target.value }
+                                    }))}
+                                    placeholder="e.g. Town limits & nearby 5km villages"
+                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:border-emerald-500"
+                                />
+                            </div>
+
+                            {/* Status */}
+                            <div className="flex items-center gap-2 pt-1">
+                                <input
+                                    type="checkbox"
+                                    id="area_enabled"
+                                    checked={areaModal.form.enabled !== false}
+                                    onChange={(e) => setAreaModal(prev => ({
+                                        ...prev,
+                                        form: { ...prev.form, enabled: e.target.checked }
+                                    }))}
+                                    className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
+                                />
+                                <label htmlFor="area_enabled" className="text-xs font-bold text-slate-700 cursor-pointer">
+                                    Active (Allow orders in this area)
+                                </label>
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                            <button
+                                type="button"
+                                onClick={() => setAreaModal(prev => ({ ...prev, isOpen: false }))}
+                                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSaveArea}
+                                className="px-5 py-2 bg-[#042A0F] hover:bg-[#063A16] text-[#A3E635] rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95"
+                            >
+                                {areaModal.editIndex !== null ? 'Apply Changes' : 'Add Area'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

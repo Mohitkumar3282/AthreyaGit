@@ -9,6 +9,8 @@ import { useSettings } from '@core/context/SettingsContext';
 import LocationDrawer from '../shared/LocationDrawer';
 import LogoTransparent from "../../../../assets/LogoTransparent.png";
 
+import { customerApi } from '../../services/customerApi';
+
 const Header = () => {
     const { settings } = useSettings();
     const logoUrl = settings?.logoUrl || LogoTransparent;
@@ -19,57 +21,85 @@ const Header = () => {
     const [isLocationOpen, setIsLocationOpen] = useState(false);
     const { currentLocation, refreshLocation } = useAppLocation();
 
-    // Search placeholder animation
-    const [searchPlaceholder, setSearchPlaceholder] = useState('Search ');
-    const [typingState, setTypingState] = useState({
-        textIndex: 0,
-        charIndex: 0,
-        isDeleting: false,
-        isPaused: false
-    });
-
-    const staticText = "Search ";
-    const typingPhrases = ['"bread"', '"milk"', '"chocolate"', '"eggs"', '"chips"'];
+    // Nearby stores for dynamic search placeholder
+    const [nearbyStores, setNearbyStores] = useState([]);
 
     React.useEffect(() => {
+        if (currentLocation?.latitude && currentLocation?.longitude) {
+            customerApi.getNearbySellers({ lat: currentLocation.latitude, lng: currentLocation.longitude })
+                .then(res => {
+                    if (res.data?.success) {
+                        const list = res.data.results || res.data.result || [];
+                        const names = list.map(s => (s.shopName || s.name)?.trim()).filter(Boolean);
+                        setNearbyStores(names);
+                    }
+                })
+                .catch(() => {});
+        }
+    }, [currentLocation?.latitude, currentLocation?.longitude]);
+
+    const locationName = currentLocation?.name?.split(',')[0]?.trim()
+        || currentLocation?.city
+        || 'your area';
+
+    const typingPhrases = React.useMemo(() => {
+        if (nearbyStores.length > 0) {
+            return nearbyStores.map(name => `"${name}"`);
+        }
+        return [`"${locationName} stores"`, '"groceries"', '"supermarket"', '"bakery"'];
+    }, [nearbyStores, locationName]);
+
+    const [animSuffix, setAnimSuffix] = useState('');
+    const [typingState, setTypingState] = useState({
+        textIndex: 0, charIndex: 0, isDeleting: false, isPaused: false
+    });
+
+    // Reset the suffix animation whenever phrases change
+    React.useEffect(() => {
+        setAnimSuffix('');
+        setTypingState({ textIndex: 0, charIndex: 0, isDeleting: false, isPaused: false });
+    }, [typingPhrases]);
+
+    // Typing animation
+    React.useEffect(() => {
+        if (!typingPhrases || typingPhrases.length === 0) return;
         const { textIndex, charIndex, isDeleting, isPaused } = typingState;
-        const currentPhrase = typingPhrases[textIndex];
+        const safeIndex = textIndex % typingPhrases.length;
+        const phrase = typingPhrases[safeIndex] || '';
 
         if (isPaused) {
-            const timeout = setTimeout(() => {
-                setTypingState(prev => ({ ...prev, isPaused: false, isDeleting: true }));
-            }, 2000); // Pause after full phrase
-            return () => clearTimeout(timeout);
+            const t = setTimeout(() =>
+                setTypingState(p => ({ ...p, isPaused: false, isDeleting: true })), 2000);
+            return () => clearTimeout(t);
         }
 
-        const timeout = setTimeout(() => {
+        const t = setTimeout(() => {
             if (!isDeleting) {
-                // Typing
-                if (charIndex < currentPhrase.length) {
-                    setSearchPlaceholder(staticText + currentPhrase.substring(0, charIndex + 1));
-                    setTypingState(prev => ({ ...prev, charIndex: prev.charIndex + 1 }));
+                if (charIndex < phrase.length) {
+                    setAnimSuffix(phrase.substring(0, charIndex + 1));
+                    setTypingState(p => ({ ...p, charIndex: p.charIndex + 1 }));
                 } else {
-                    // Finished typing
-                    setTypingState(prev => ({ ...prev, isPaused: true }));
+                    setTypingState(p => ({ ...p, isPaused: true }));
                 }
             } else {
-                // Deleting
                 if (charIndex > 0) {
-                    setSearchPlaceholder(staticText + currentPhrase.substring(0, charIndex - 1));
-                    setTypingState(prev => ({ ...prev, charIndex: prev.charIndex - 1 }));
+                    setAnimSuffix(phrase.substring(0, charIndex - 1));
+                    setTypingState(p => ({ ...p, charIndex: p.charIndex - 1 }));
                 } else {
-                    // Finished deleting
-                    setTypingState(prev => ({
-                        ...prev,
-                        isDeleting: false,
-                        textIndex: (prev.textIndex + 1) % typingPhrases.length
+                    setAnimSuffix('');
+                    setTypingState(p => ({
+                        ...p, isDeleting: false,
+                        textIndex: (p.textIndex + 1) % typingPhrases.length
                     }));
                 }
             }
         }, isDeleting ? 50 : 100);
 
-        return () => clearTimeout(timeout);
-    }, [typingState]);
+        return () => clearTimeout(t);
+    }, [typingState, typingPhrases]);
+
+    // Final placeholder
+    const searchPlaceholder = `Search ${animSuffix}...`.trimEnd();
 
     return (
         <header className="absolute top-2 md:top-8 left-0 right-0 z-[200] px-2 md:px-4">

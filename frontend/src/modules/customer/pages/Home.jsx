@@ -64,6 +64,88 @@ const Home = () => {
   const [allProducts, setAllProducts] = useState([]);
   const [isSearchLoading, setIsSearchLoading] = useState(false);
 
+  // Derive nearby store names dynamically for the search placeholder
+  const nearbyStoreNames = useMemo(() => {
+    return shops
+      .map(s => (s.shopName || s.name)?.trim())
+      .filter(Boolean);
+  }, [shops]);
+
+  const searchPhrases = useMemo(() => {
+    if (nearbyStoreNames.length > 0) {
+      return nearbyStoreNames.map(name => `"${name}"`);
+    }
+    const area = getAreaName(currentLocation) || currentLocation?.city;
+    if (area && area !== "Select Location") {
+      return [`"${area} stores"`, '"groceries"', '"supermarket"', '"fresh items"'];
+    }
+    return ['"nearby stores"', '"groceries"', '"supermarket"', '"fresh items"'];
+  }, [nearbyStoreNames, currentLocation]);
+
+  const [searchPlaceholder, setSearchPlaceholder] = useState("Search nearby stores...");
+  const [typingState, setTypingState] = useState({
+    textIndex: 0,
+    charIndex: 0,
+    isDeleting: false,
+    isPaused: false,
+  });
+
+  useEffect(() => {
+    setTypingState({ textIndex: 0, charIndex: 0, isDeleting: false, isPaused: false });
+  }, [searchPhrases]);
+
+  useEffect(() => {
+    if (!searchPhrases || searchPhrases.length === 0) return;
+    const { textIndex, charIndex, isDeleting, isPaused } = typingState;
+    const safeTextIndex = textIndex % searchPhrases.length;
+    const currentPhrase = searchPhrases[safeTextIndex] || '';
+
+    if (isPaused) {
+      const timeout = setTimeout(() => {
+        setTypingState((prev) => ({
+          ...prev,
+          isPaused: false,
+          isDeleting: true,
+        }));
+      }, 2000);
+      return () => clearTimeout(timeout);
+    }
+
+    const timeout = setTimeout(
+      () => {
+        if (!isDeleting) {
+          if (charIndex < currentPhrase.length) {
+            setSearchPlaceholder(`Search ${currentPhrase.substring(0, charIndex + 1)}...`);
+            setTypingState((prev) => ({
+              ...prev,
+              charIndex: prev.charIndex + 1,
+            }));
+          } else {
+            setTypingState((prev) => ({ ...prev, isPaused: true }));
+          }
+        } else {
+          if (charIndex > 0) {
+            setSearchPlaceholder(`Search ${currentPhrase.substring(0, charIndex - 1)}...`);
+            setTypingState((prev) => ({
+              ...prev,
+              charIndex: prev.charIndex - 1,
+            }));
+          } else {
+            setTypingState((prev) => ({
+              ...prev,
+              isDeleting: false,
+              textIndex: (prev.textIndex + 1) % searchPhrases.length,
+            }));
+          }
+        }
+      },
+      isDeleting ? 40 : 80
+    );
+
+    return () => clearTimeout(timeout);
+  }, [typingState, searchPhrases]);
+
+
   // Voice Search Logic (Direct on Home Page)
   const handleVoiceSearch = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -351,24 +433,6 @@ const Home = () => {
     path: `/shops/${shop._id || shop.id}`
   }));
 
-  // 4. Bottom Quick Links
-  const bottomQuickLinks = [
-    { label: "Parcel Pickup", teluguLabel: "పార్సెల్ పికప్", icon: <Package size={18} />, bgColor: "bg-[#16a34a]", path: "/pickup-delivery" },
-    { label: "RTC / Cargo", teluguLabel: "ఆర్టీసీ / కార్గో", icon: <Bus size={18} />, bgColor: "bg-[#2563eb]", path: "/pickup-delivery" },
-    { 
-      label: "WhatsApp Order", 
-      teluguLabel: "వాట్సాప్ ఆర్డర్", 
-      icon: (
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-          <path d="M12.012 2c-5.506 0-9.989 4.478-9.99 9.984 0 1.762.459 3.48 1.332 5.001L2 22l5.12-1.335c1.472.802 3.134 1.226 4.887 1.227h.005c5.505 0 9.988-4.478 9.989-9.985 0-2.668-1.038-5.176-2.925-7.062A9.927 9.927 0 0012.012 2zm5.827 14.17c-.244.688-1.42 1.314-1.96 1.396-.54.083-1.222.115-3.525-.806-2.772-1.11-4.545-3.92-4.683-4.103-.138-.184-1.127-1.498-1.127-2.859 0-1.36.711-2.03.963-2.305.253-.276.552-.345.736-.345.184 0 .368.002.529.01.172.008.402-.065.629.478.23.542.782 1.908.851 2.046.069.138.115.3.023.483-.092.184-.138.299-.276.46-.138.161-.29.36-.414.483-.138.138-.282.288-.121.564.161.276.715 1.18 1.534 1.91 1.05.936 1.936 1.226 2.212 1.364.276.138.437.115.598-.069.161-.184.69-.805.874-1.081.184-.276.368-.23.62-.138.253.092 1.609.759 1.885.897.276.138.46.207.529.322.069.115.069.667-.175 1.355z"/>
-        </svg>
-      ), 
-      bgColor: "bg-[#25D366]", 
-      isWhatsApp: true 
-    },
-    { label: "My Orders", teluguLabel: "నా ఆర్డర్లు", icon: <FileText size={18} />, bgColor: "bg-[#d97706]", path: "/orders" },
-    { label: "Offers", teluguLabel: "ఆఫర్లు", icon: <Tag size={18} />, bgColor: "bg-[#ec4899]", path: "/offers" }
-  ];
 
   const handleWhatsAppOrder = () => {
     const numberCandidate = settings?.whatsappNumber || settings?.supportPhone || "";
@@ -530,7 +594,7 @@ const Home = () => {
         )}
         <input 
           type="text" 
-          placeholder="Search Aswapuram stores... (అశ్వాపురం స్టోర్లలో వెతకండి...)" 
+          placeholder={searchPlaceholder} 
           className="bg-transparent border-none outline-none text-white text-[12.5px] font-bold w-full placeholder-slate-400"
           value={isSearchView ? searchQuery : ""}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -711,47 +775,6 @@ const Home = () => {
             </div>
           )}
 
-          {/* 6. Combo & Deals & Orders Promo Row */}
-          <div className="grid grid-cols-3 gap-2 px-4 py-2" id="quick-access-cards">
-            {/* Combo Offers Card */}
-            <div 
-              onClick={() => navigate('/offers')} 
-              className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md min-w-0"
-            >
-              <div className="text-xl">🎁</div>
-              <div className="flex flex-col leading-tight min-w-0 text-center sm:text-left">
-                <span className="text-[7.5px] sm:text-[8px] font-black text-orange-600 uppercase tracking-tight line-clamp-1">COMBO OFFERS</span>
-                <span className="text-[8.5px] sm:text-[9.5px] font-black text-slate-800 tracking-tight line-clamp-2">Best Deals & Savings</span>
-                <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-500 tracking-tight line-clamp-1">ఉత్తమ ఆఫర్లు & ఆదా</span>
-              </div>
-            </div>
-
-            {/* Today's Deals Card */}
-            <div 
-              onClick={() => navigate('/offers')} 
-              className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md min-w-0"
-            >
-              <div className="text-xl">🏷️</div>
-              <div className="flex flex-col leading-tight min-w-0 text-center sm:text-left">
-                <span className="text-[7.5px] sm:text-[8px] font-black text-blue-600 uppercase tracking-tight line-clamp-1">TODAY'S DEALS</span>
-                <span className="text-[8.5px] sm:text-[9.5px] font-black text-slate-800 tracking-tight line-clamp-2">Limited Time Offers</span>
-                <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-500 tracking-tight line-clamp-1">పరిమిత సమయ ఆఫర్లు</span>
-              </div>
-            </div>
-
-            {/* My Orders Card */}
-            <div 
-              onClick={() => navigate('/orders')} 
-              className="bg-white rounded-2xl p-2 flex flex-col sm:flex-row items-center sm:items-start gap-1 sm:gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-md min-w-0"
-            >
-              <div className="text-xl">📋</div>
-              <div className="flex flex-col leading-tight min-w-0 text-center sm:text-left">
-                <span className="text-[7.5px] sm:text-[8px] font-black text-green-600 uppercase tracking-tight line-clamp-1">MY ORDERS</span>
-                <span className="text-[8.5px] sm:text-[9.5px] font-black text-slate-800 tracking-tight line-clamp-2">Track your orders</span>
-                <span className="text-[7.5px] sm:text-[8px] font-bold text-slate-500 tracking-tight line-clamp-1">మీ ఆర్డర్లు ట్రాక్ చేయండి</span>
-              </div>
-            </div>
-          </div>
 
           {/* 8. ⚡ ATHREYA EXPRESS BRANDED SECTION */}
           <div className="mx-4 my-3 space-y-2.5" id="athreya-express-section">
@@ -968,24 +991,7 @@ const Home = () => {
 
           </div>
 
-          {/* 9. Extra links row on dark green background */}
-          <div className="flex gap-2.5 overflow-x-auto no-scrollbar px-4 py-3 bg-[#031d0b] border-y border-[#0c4c1a] my-2">
-            {bottomQuickLinks.map((link, idx) => (
-              <div 
-                key={idx} 
-                onClick={() => link.isWhatsApp ? handleWhatsAppOrder() : navigate(link.path)} 
-                className="flex items-center gap-2.5 bg-[#042A0F] border border-[#0d4f1c] px-3.5 py-2 rounded-2xl cursor-pointer shrink-0 active:scale-95 transition-transform"
-              >
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white shrink-0 ${link.bgColor} shadow-sm border border-white/10`}>
-                  {link.icon}
-                </div>
-                <div className="flex flex-col leading-none">
-                  <span className="text-[10px] font-black text-white">{link.label}</span>
-                  <span className="text-[8px] font-bold text-slate-355 mt-0.5">{link.teluguLabel}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+
         </>
       )}
 

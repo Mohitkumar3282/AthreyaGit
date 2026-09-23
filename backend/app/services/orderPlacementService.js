@@ -62,14 +62,14 @@ function normalizePaymentMode(raw) {
 
 function normalizeAddress(address = {}) {
   const normalized = { ...(address || {}) };
-  if (address?.location) {
-    const lat = Number(address.location.lat);
-    const lng = Number(address.location.lng);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      delete normalized.location;
-    } else {
-      normalized.location = { lat, lng };
-    }
+  const rawLat = address?.location?.lat ?? address?.location?.latitude ?? address?.lat ?? address?.latitude ?? (Array.isArray(address?.coordinates) ? address.coordinates[1] : null);
+  const rawLng = address?.location?.lng ?? address?.location?.longitude ?? address?.lng ?? address?.longitude ?? (Array.isArray(address?.coordinates) ? address.coordinates[0] : null);
+  const lat = Number(rawLat);
+  const lng = Number(rawLng);
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    normalized.location = { lat, lng };
+  } else {
+    delete normalized.location;
   }
   return normalized;
 }

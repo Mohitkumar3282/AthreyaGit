@@ -33,8 +33,6 @@ const TELUGU_TRANSLATIONS = {
   "tea & coffee": "టీ & కాఫీ",
   "tea": "టీ & కాఫీ",
   "coffee": "టీ & కాఫీ",
-  "pharmacy": "మెడిసిన్",
-  "medicine": "మెడిసిన్",
   "flowers": "పూలు",
   "electronics": "ఎలక్ట్రానిక్స్",
   "stationery": "స్టేషనరీ",

@@ -50,7 +50,7 @@ const getMockPromoOffers = () => {
     return [
         { id: "festive", type: "Festival Offers", title: "Festival Feast Specials", value: "Flat 20% OFF", subtitle: "Celebrate with top delicacies from nearby shops" },
         { id: "bestsellers", type: "Today's Best Sellers", title: "Today's Hot Picks", value: "Buy 1 Get 1 Free", subtitle: "Most ordered dishes right now in Aswapuram" },
-        { id: "trending", type: "Trending Shops", title: "Trending Stores Near You", value: "Free Delivery", subtitle: "Highly rated local favorites" },
+        { id: "trending", type: "Trending Shops", title: "Trending Stores Near You", value: "Top Rated", subtitle: "Highly rated local favorites" },
         { id: "combos", type: "Combo Offers", title: "Mega Combo Savings", value: "Save up to ₹150", subtitle: "Perfect family meal boxes" },
         { id: "flash", type: "Flash Deals", title: "Lightning Flash Deals", value: "Up to 50% OFF", subtitle: "Ends in 20 minutes! Grab it fast" },
         { id: "weekend", type: "Weekend Specials", title: "Weekend Chill Treats", value: "Extra Cashback", subtitle: "Make your weekends special" },

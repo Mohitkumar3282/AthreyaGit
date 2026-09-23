@@ -15,8 +15,7 @@ import SkeletonLoader from "../components/shared/SkeletonLoader";
 const SHOP_CATEGORIES = [
   "All", "Groceries", "Fruits & Vegetables", "Dairy & Milk", "Bakery",
   "Snacks", "Beverages", "Frozen Foods", "Personal Care", "Household",
-  "Medicines", "Health Devices", "Pet Supplies", "Electronics",
-  "Stationery", "Baby Care"
+  "Pet Supplies", "Electronics", "Stationery", "Baby Care"
 ];
 
 const CATEGORY_ICONS = {
@@ -30,8 +29,6 @@ const CATEGORY_ICONS = {
   "Frozen Foods": "https://cdn-icons-png.flaticon.com/128/4126/4126244.png",
   "Personal Care": "https://cdn-icons-png.flaticon.com/128/822/822143.png",
   "Household": "https://cdn-icons-png.flaticon.com/128/4764/4764835.png",
-  "Medicines": "https://cdn-icons-png.flaticon.com/128/883/883407.png",
-  "Health Devices": "https://cdn-icons-png.flaticon.com/128/3004/3004458.png",
   "Pet Supplies": "https://cdn-icons-png.flaticon.com/128/620/620851.png",
   "Electronics": "https://cdn-icons-png.flaticon.com/128/3659/3659899.png",
   "Stationery": "https://cdn-icons-png.flaticon.com/128/2232/2232688.png",
@@ -163,8 +160,6 @@ const ShopDetails = () => {
           "pet supplies": ["pet supplies", "pet", "dog", "cat", "animal"],
           "baby care": ["baby care", "baby", "kids", "diapers", "nursing"],
           "electronics": ["electronics", "headphones", "gadgets", "watch", "mobile", "phone", "tv"],
-          "medicines": ["medicines", "medicine", "pharmacy", "cold", "tablet", "cough"],
-          "health devices": ["health devices", "pharmacy", "thermometer", "bp monitor"],
           "household": ["household", "cleaning", "cookware", "pan", "tiffin", "bottle"],
         };
 
@@ -229,7 +224,6 @@ const ShopDetails = () => {
     grocery: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200&h=400",
     vegetables: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&q=80&w=1200&h=400",
     dairy: "https://images.unsplash.com/photo-1528498033373-386cc8224357?auto=format&fit=crop&q=80&w=1200&h=400",
-    pharmacy: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=1200&h=400",
     default: "https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&q=80&w=1200&h=400"
   };
 
@@ -242,7 +236,6 @@ const ShopDetails = () => {
     if (cat.includes("grocery") || cat.includes("kirana")) return categoryBannerMap.grocery;
     if (cat.includes("veg") || cat.includes("fruit")) return categoryBannerMap.vegetables;
     if (cat.includes("dairy") || cat.includes("milk")) return categoryBannerMap.dairy;
-    if (cat.includes("pharmacy") || cat.includes("chemist") || cat.includes("medicine")) return categoryBannerMap.pharmacy;
     return categoryBannerMap.default;
   };
 

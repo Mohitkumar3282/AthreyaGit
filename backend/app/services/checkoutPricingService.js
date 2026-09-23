@@ -1,5 +1,6 @@
 import Seller from "../models/seller.js";
 import Category from "../models/category.js";
+import Setting from "../models/setting.js";
 import { distanceMeters } from "../utils/geoUtils.js";
 import {
   HANDLING_FEE_STRATEGY,
@@ -27,8 +28,9 @@ import {
 } from "./walletCashbackService.js";
 
 function normalizeLocation(location = null) {
-  const lat = Number(location?.lat);
-  const lng = Number(location?.lng);
+  if (!location) return null;
+  const lat = Number(location?.lat ?? location?.latitude ?? (Array.isArray(location?.coordinates) ? location.coordinates[1] : null));
+  const lng = Number(location?.lng ?? location?.longitude ?? (Array.isArray(location?.coordinates) ? location.coordinates[0] : null));
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
     return null;
   }
@@ -52,11 +54,10 @@ export function groupHydratedItemsBySeller(hydratedItems = []) {
   return grouped;
 }
 
-async function computeDistanceKmForSeller({ sellerId, addressLocation, session = null }) {
-  const normalizedLocation = normalizeLocation(addressLocation);
-  if (!normalizedLocation) return 0;
+async function computeDistanceKmForSeller({ sellerId, addressLocation, address = {}, session = null }) {
+  const normalizedLocation = normalizeLocation(addressLocation || address?.location || address);
 
-  const query = Seller.findById(sellerId).select("location serviceRadius shopName").lean();
+  const query = Seller.findById(sellerId).select("location serviceRadius shopName city pincode address").lean();
   if (session) query.session(session);
   const seller = await query;
   if (!seller) {
@@ -64,6 +65,79 @@ async function computeDistanceKmForSeller({ sellerId, addressLocation, session =
     err.statusCode = 404;
     throw err;
   }
+
+  // Load platform settings for active serviceAreas
+  const settingQuery = Setting.findOne({}).select("serviceAreas").lean();
+  if (session) settingQuery.session(session);
+  const settingDoc = await settingQuery;
+  const activeAreas = (settingDoc?.serviceAreas || []).filter((a) => a.enabled !== false);
+
+  // 1. If Admin configured active service areas, check if customer delivery address matches any
+  if (activeAreas.length > 0) {
+    const addrPincode = String(address?.pincode || "").trim() || (address?.address?.match(/\b\d{6}\b/)?.[0] || "");
+    const addrText = [address?.city, address?.area, address?.locality, address?.address, address?.completeAddress]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    let matchedArea = null;
+    if (addrPincode || addrText) {
+      matchedArea = activeAreas.find((a) => {
+        if (addrPincode && a.pincode && a.pincode.trim() === addrPincode) return true;
+        if (a.name && addrText.includes(a.name.toLowerCase().trim())) return true;
+        return false;
+      });
+    }
+
+    if (!matchedArea && (addrPincode || addrText)) {
+      const locationLabel = addrPincode ? `Pincode ${addrPincode}` : (address?.city || "this location");
+      const err = new Error(`📍 Athreya Delivery is not available at ${locationLabel} yet. Delivery is only available in enabled service areas.`);
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // Determine max allowed delivery radius from matched area or seller
+    let allowedRadius = 0;
+    if (matchedArea) {
+      if (Number(matchedArea.radiusKm) > 0) {
+        allowedRadius = Number(matchedArea.radiusKm);
+      } else if (matchedArea.note) {
+        const noteMatch = matchedArea.note.match(/(\d+(?:\.\d+)?)\s*(?:km|kms)?/i);
+        if (noteMatch) allowedRadius = Number(noteMatch[1]);
+      }
+    }
+    if (!allowedRadius && Number(seller.serviceRadius) > 0) {
+      allowedRadius = Number(seller.serviceRadius);
+    }
+    if (!allowedRadius) {
+      allowedRadius = 15; // default fallback
+    }
+
+    // If coordinates are available, calculate exact distance and enforce radius
+    if (normalizedLocation) {
+      const coords = seller?.location?.coordinates;
+      if (Array.isArray(coords) && coords.length >= 2) {
+        const [sellerLng, sellerLat] = coords;
+        const distanceInMeters = distanceMeters(
+          normalizedLocation.lat,
+          normalizedLocation.lng,
+          Number(sellerLat),
+          Number(sellerLng),
+        );
+        const distanceKm = Number((distanceInMeters / 1000).toFixed(2));
+        if (distanceKm > allowedRadius) {
+          const areaName = matchedArea?.name || seller.shopName || "this service area";
+          const err = new Error(`📍 Delivery not available: Your location is ${distanceKm} km away, which exceeds the ${allowedRadius} km maximum delivery range for ${areaName}.`);
+          err.statusCode = 400;
+          throw err;
+        }
+        return distanceKm;
+      }
+    }
+  }
+
+  // 2. Default fallback distance and seller serviceRadius check
+  if (!normalizedLocation) return 0;
   const coords = seller?.location?.coordinates;
   if (!Array.isArray(coords) || coords.length < 2) return 0;
 
@@ -74,8 +148,8 @@ async function computeDistanceKmForSeller({ sellerId, addressLocation, session =
     Number(sellerLat),
     Number(sellerLng),
   );
-  const distanceKm = Number((distanceInMeters / 1000).toFixed(3));
-  
+  const distanceKm = Number((distanceInMeters / 1000).toFixed(2));
+
   const radius = Number(seller.serviceRadius || 5);
   if (distanceKm > radius) {
     const err = new Error(`${seller.shopName || "Store"} does not deliver to your current location (Distance: ${distanceKm}km, Service Radius: ${radius}km)`);
@@ -665,6 +739,7 @@ export async function buildCheckoutPricingSnapshot({
     const distanceKm = await computeDistanceKmForSeller({
       sellerId,
       addressLocation: address?.location,
+      address,
       session,
     });
     // Distribute discount proportionally by seller subtotal
