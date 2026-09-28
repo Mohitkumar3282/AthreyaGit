@@ -230,7 +230,6 @@ const AdminSettings = () => {
     const [areaModal, setAreaModal] = useState({
         isOpen: false,
         editIndex: null,
-        saving: false,
         form: {
             id: '',
             name: '',
@@ -245,7 +244,6 @@ const AdminSettings = () => {
         setAreaModal({
             isOpen: true,
             editIndex: null,
-            saving: false,
             form: {
                 id: '',
                 name: '',
@@ -253,8 +251,6 @@ const AdminSettings = () => {
                 radiusKm: '11',
                 enabled: true,
                 note: '',
-                latitude: null,
-                longitude: null,
             },
         });
     };
@@ -267,7 +263,6 @@ const AdminSettings = () => {
         setAreaModal({
             isOpen: true,
             editIndex: index,
-            saving: false,
             form: {
                 id: item.id || '',
                 name: item.name || '',
@@ -275,13 +270,11 @@ const AdminSettings = () => {
                 radiusKm: resolvedRadius,
                 enabled: item.enabled !== false,
                 note: item.note || '',
-                latitude: item.latitude ?? null,
-                longitude: item.longitude ?? null,
             },
         });
     };
 
-    const handleSaveArea = async () => {
+    const handleSaveArea = () => {
         const { form, editIndex } = areaModal;
         if (!form.name.trim() && !form.pincode.trim()) {
             showToast('Please enter an area name or pincode', 'error');
@@ -291,36 +284,11 @@ const AdminSettings = () => {
         const autoId = form.id.trim() || form.name.toLowerCase().replace(/[^a-z0-9]+/g, '_') || 'area_' + Date.now();
         const parsedRadius = Number(form.radiusKm) || (form.note?.match(/(\d+(?:\.\d+)?)\s*(?:km|kms)?/i)?.[1] ? Number(form.note.match(/(\d+(?:\.\d+)?)\s*(?:km|kms)?/i)[1]) : 0);
 
-        // Resolve the area's center point so the "max range" radius above
-        // has something to measure distance from. Without lat/lng, coverage
-        // can only ever be an exact pincode/name-text match — falls back to
-        // whatever center was previously saved (or none) if this fails.
-        let latitude = form.latitude ?? null;
-        let longitude = form.longitude ?? null;
-        setAreaModal(prev => ({ ...prev, saving: true }));
-        try {
-            const geocodeQuery = [form.pincode.trim(), form.name.trim(), form.pincode.trim() ? 'India' : '']
-                .filter(Boolean)
-                .join(', ');
-            if (geocodeQuery) {
-                const res = await adminApi.geocodeAddress(geocodeQuery);
-                const loc = res?.data?.result?.location;
-                if (loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lng)) {
-                    latitude = loc.lat;
-                    longitude = loc.lng;
-                }
-            }
-        } catch (err) {
-            console.warn('Service area geocoding failed, keeping previous center point:', err?.message || err);
-        }
-
         const finalArea = {
             id: autoId,
             name: form.name.trim(),
             pincode: form.pincode.trim(),
             radiusKm: parsedRadius,
-            latitude,
-            longitude,
             enabled: form.enabled !== false,
             note: form.note.trim(),
         };
@@ -332,7 +300,7 @@ const AdminSettings = () => {
             list.push(finalArea);
         }
         setSettings(prev => ({ ...prev, serviceAreas: list }));
-        setAreaModal(prev => ({ ...prev, isOpen: false, saving: false }));
+        setAreaModal(prev => ({ ...prev, isOpen: false }));
         showToast(`Service Area ${editIndex !== null ? 'updated' : 'added'}! Click "Save All Changes" to persist.`, 'success');
     };
 
@@ -1808,20 +1776,16 @@ const AdminSettings = () => {
                             <button
                                 type="button"
                                 onClick={() => setAreaModal(prev => ({ ...prev, isOpen: false }))}
-                                disabled={areaModal.saving}
-                                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black uppercase tracking-wider transition-all disabled:opacity-60"
+                                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="button"
                                 onClick={handleSaveArea}
-                                disabled={areaModal.saving}
-                                className="px-5 py-2 bg-[#042A0F] hover:bg-[#063A16] text-[#A3E635] rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-60"
+                                className="px-5 py-2 bg-[#042A0F] hover:bg-[#063A16] text-[#A3E635] rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95"
                             >
-                                {areaModal.saving
-                                    ? 'Locating…'
-                                    : (areaModal.editIndex !== null ? 'Apply Changes' : 'Add Area')}
+                                {areaModal.editIndex !== null ? 'Apply Changes' : 'Add Area'}
                             </button>
                         </div>
                     </div>
