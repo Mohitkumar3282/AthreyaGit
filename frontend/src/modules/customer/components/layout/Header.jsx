@@ -42,11 +42,11 @@ const Header = () => {
         || currentLocation?.city
         || 'your area';
 
+    // Lead with the customer's chosen area — see Home.jsx for why this can't be a
+    // real nearby store's own name, which may itself be named after another town.
     const typingPhrases = React.useMemo(() => {
-        if (nearbyStores.length > 0) {
-            return nearbyStores.map(name => `"${name}"`);
-        }
-        return [`"${locationName} stores"`, '"groceries"', '"supermarket"', '"bakery"'];
+        const storePhrases = nearbyStores.slice(0, 4).map(name => `"${name}"`);
+        return [`"${locationName} stores"`, ...storePhrases, '"groceries"', '"supermarket"', '"bakery"'];
     }, [nearbyStores, locationName]);
 
     const [animSuffix, setAnimSuffix] = useState('');

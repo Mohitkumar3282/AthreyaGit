@@ -111,12 +111,12 @@ export function emitToOrder(orderId, { event, payload }) {
  * Notify only delivery partners whose live location is within the seller's
  * service radius (see Delivery model location + Seller.serviceRadius).
  */
-export async function emitDeliveryBroadcastForSeller(sellerId, payload) {
+export async function emitDeliveryBroadcastForSeller(sellerId, payload, { excludeIds } = {}) {
   const s = getIo();
   const sid = normalizeSellerId(sellerId);
   if (!sid) return;
 
-  const ids = await getDeliveryPartnerIdsWithinSellerRadius(sid);
+  const ids = await getDeliveryPartnerIdsWithinSellerRadius(sid, { excludeIds });
   if (!ids.length) {
     if (process.env.NODE_ENV !== "production" && s) {
       s.to("delivery:online").emit("delivery:broadcast", {
@@ -177,7 +177,7 @@ export async function emitDeliveryBroadcastForSeller(sellerId, payload) {
  * the pickup point is an address the customer typed (home, shop, cargo office),
  * so riders are picked by proximity to that point instead of a store.
  */
-export async function emitDeliveryBroadcastNearLocation(location, payload) {
+export async function emitDeliveryBroadcastNearLocation(location, payload, { excludeIds } = {}) {
   const s = getIo();
   const lat = Number(location?.lat);
   const lng = Number(location?.lng);
@@ -187,7 +187,7 @@ export async function emitDeliveryBroadcastNearLocation(location, payload) {
     1,
     Math.round((payload?.radiusMeters || 5000) / 1000),
   );
-  const ids = await getDeliveryPartnerIdsWithinRadius(lat, lng, radiusKm);
+  const ids = await getDeliveryPartnerIdsWithinRadius(lat, lng, radiusKm, { excludeIds });
 
   if (!ids.length) {
     if (process.env.NODE_ENV !== "production" && s) {

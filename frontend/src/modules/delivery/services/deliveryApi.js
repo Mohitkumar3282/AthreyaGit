@@ -8,7 +8,8 @@ export const deliveryApi = {
   getProfile: () => axiosInstance.get("/delivery/profile"),
   updateProfile: (data) => axiosInstance.put("/delivery/profile", data),
   getStats: () => axiosInstance.get("/delivery/stats"),
-  getEarnings: () => axiosInstance.get("/delivery/earnings"),
+  getEarnings: (period) =>
+    axiosInstance.get("/delivery/earnings", { params: period ? { period } : {} }),
   getCodCashSummary: () => axiosInstance.get("/delivery/cod/summary"),
   payCodCashToAdmin: (data) => axiosInstance.post("/delivery/cod/pay", data),
   getWalletSummary: () => axiosInstance.get("/delivery/wallet/summary"),
@@ -32,6 +33,8 @@ export const deliveryApi = {
     axiosInstance.post(`/orders/workflow/${orderId}/pickup/confirm`, body),
   markArrivedAtStore: (orderId, body) =>
     axiosInstance.post(`/orders/workflow/${orderId}/pickup/ready`, body),
+  riderCancelOrder: (orderId, body) =>
+    axiosInstance.post(`/orders/workflow/${orderId}/rider-cancel`, body),
   advanceDeliveryRiderUi: (orderId) =>
     axiosInstance.post(`/orders/workflow/${orderId}/rider/advance-ui`, {}),
   requestDeliveryOtp: (orderId, body) =>

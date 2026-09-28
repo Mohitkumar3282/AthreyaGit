@@ -12,6 +12,8 @@ import {
     getDeliveryPartners,
     approveDeliveryPartner,
     rejectDeliveryPartner,
+    reviewRiderCancellations,
+    awardRiderIncentive,
     getActiveFleet,
     getAdminWalletData,
     getDeliveryTransactions,
@@ -174,6 +176,20 @@ router.patch(
     verifyToken,
     allowRoles("admin"),
     approveDeliveryPartner
+);
+
+router.post(
+    "/delivery-partners/:id/review-cancellations",
+    verifyToken,
+    allowRoles("admin"),
+    reviewRiderCancellations
+);
+
+router.post(
+    "/delivery-partners/:id/incentive",
+    verifyToken,
+    allowRoles("admin"),
+    awardRiderIncentive
 );
 
 router.delete(

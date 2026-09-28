@@ -7,6 +7,7 @@ import {
   verifyHandoffOtpAndDeliver,
   requestPickupOtpAtomic,
   verifyPickupOtpAndConfirm,
+  riderCancelAssignmentAtomic,
 } from "../services/orderWorkflowService.js";
 import { getCachedRoute } from "../services/mapsRouteService.js";
 import { geocodeAddress } from "../services/mapsGeocodeService.js";
@@ -56,6 +57,17 @@ export const markArrivedAtStore = async (req, res) => {
       lng,
     );
     return handleResponse(res, 200, "Arrived at store", result);
+  } catch (e) {
+    return handleResponse(res, e.statusCode || 500, e.message);
+  }
+};
+
+export const riderCancelOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { reason } = req.body || {};
+    const result = await riderCancelAssignmentAtomic(req.user.id, orderId, reason);
+    return handleResponse(res, 200, "Order cancelled — searching for another rider", result);
   } catch (e) {
     return handleResponse(res, e.statusCode || 500, e.message);
   }

@@ -71,15 +71,15 @@ const Home = () => {
       .filter(Boolean);
   }, [shops]);
 
+  // Always lead with the customer's actual chosen area, so the placeholder never
+  // implies they're still browsing a different town. Real nearby store names
+  // (which can be named after a place other than where the customer is) only
+  // follow it, never replace it.
   const searchPhrases = useMemo(() => {
-    if (nearbyStoreNames.length > 0) {
-      return nearbyStoreNames.map(name => `"${name}"`);
-    }
     const area = getAreaName(currentLocation) || currentLocation?.city;
-    if (area && area !== "Select Location") {
-      return [`"${area} stores"`, '"groceries"', '"supermarket"', '"fresh items"'];
-    }
-    return ['"nearby stores"', '"groceries"', '"supermarket"', '"fresh items"'];
+    const areaPhrase = area && area !== "Select Location" ? `"${area} stores"` : '"nearby stores"';
+    const storePhrases = nearbyStoreNames.slice(0, 4).map(name => `"${name}"`);
+    return [areaPhrase, ...storePhrases, '"groceries"', '"supermarket"', '"fresh items"'];
   }, [nearbyStoreNames, currentLocation]);
 
   const [searchPlaceholder, setSearchPlaceholder] = useState("Search nearby stores...");

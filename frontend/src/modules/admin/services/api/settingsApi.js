@@ -25,6 +25,12 @@ export const adminSettingsApi = {
     updateSettings: (data) => axiosInstance.put('/settings', data),
     uploadSettingsImage: (formData, type = 'logo') =>
         axiosInstance.post(`/settings/upload?type=${type}`, formData),
+
+    // Forward geocode (address/pincode -> lat/lng) — used to resolve a
+    // service area's center point so its "max range" radius has something
+    // to measure distance from.
+    geocodeAddress: (address) =>
+        axiosInstance.get('/maps/geocode', { params: { address } }),
 };
 
 export default adminSettingsApi;

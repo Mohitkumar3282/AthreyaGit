@@ -10,6 +10,7 @@ import OrderProgressTracker from "../components/order/OrderProgressTracker";
 import ReturnProgressTracker from "../components/order/ReturnProgressTracker";
 import CancellationProgressTracker from "../components/order/CancellationProgressTracker";
 import CoinsEarnedModal from "../components/CoinsEarnedModal";
+import RateRiderCard from "../components/order/RateRiderCard";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
 import deliveryBagImg from "@/assets/coins/delivery_bag.jpg";
 import piggyBankImg from "@/assets/coins/piggy_bank.jpg";
@@ -882,6 +883,17 @@ const OrderDetailPage = () => {
             />
           </div>
         </motion.div>
+
+        {/* Rate the rider — shown once per delivered order until rated */}
+        {status === "delivered" && order.deliveryBoy && !order.riderRating?.stars && (
+          <RateRiderCard
+            order={order}
+            onRated={(riderRating) =>
+              setOrder((prev) => (prev ? { ...prev, riderRating } : prev))
+            }
+          />
+        )}
+
         {/* Payment Required Card - Only for Online Pending Orders */}
         {isAwaitingOnlinePayment && (
           <motion.div

@@ -3,6 +3,9 @@
  * and reduce Google Maps API costs
  */
 
+export const GOOGLE_MAPS_LIBRARIES = ["places", "geometry"];
+export const GOOGLE_MAPS_SCRIPT_ID = "google-map-script";
+
 let mapsLoadPromise = null;
 let isLoaded = false;
 

@@ -18,6 +18,7 @@ import {
   RETURN_PICKUP_SEARCH_MAX_ATTEMPTS,
   INITIAL_RETURN_PICKUP_RADIUS_M,
   RETURN_PICKUP_RADIUS_MULTIPLIER,
+  RIDER_CANCELLATION_REVIEW_THRESHOLD,
 } from "../constants/orderWorkflow.js";
 import { compensateOrderCancellation } from "./orderCompensation.js";
 import { getRedisClient } from "../config/redis.js";
@@ -152,15 +153,17 @@ function deliveryBroadcastPayloadFromOrder(order, extra = {}) {
  */
 async function broadcastExpressOrder(order, extra = {}) {
   const payload = deliveryBroadcastPayloadFromOrder(order, extra);
+  const excludeIds = order.skippedBy;
   const loc = order.pickupAddress?.location;
   if (Number.isFinite(Number(loc?.lat)) && Number.isFinite(Number(loc?.lng))) {
     await emitDeliveryBroadcastNearLocation(
       { lat: Number(loc.lat), lng: Number(loc.lng) },
       payload,
+      { excludeIds },
     );
     return;
   }
-  await emitDeliveryBroadcastForSeller(order.seller, payload);
+  await emitDeliveryBroadcastForSeller(order.seller, payload, { excludeIds });
 }
 
 const PICKUP_RADIUS_M = () =>
@@ -408,6 +411,7 @@ export async function sellerAcceptAtomic(sellerId, orderId) {
     await emitDeliveryBroadcastForSeller(
       updated.seller,
       deliveryBroadcastPayloadFromOrder(updated),
+      { excludeIds: updated.skippedBy },
     );
   }
 
@@ -702,6 +706,7 @@ export async function processDeliveryTimeoutJob({ orderId, attempt }) {
           deliveryBroadcastPayloadFromOrder(orderRich, {
             retryAttempt: currentAttempt + 1,
           }),
+          { excludeIds: orderRich.skippedBy },
         );
       }
     }
@@ -970,6 +975,119 @@ export async function customerCancelV2(customerId, orderId, reason) {
     customerMessage: "Your order has been cancelled successfully.",
     sellerMessage: `Order #${updated.orderId} was cancelled by customer.`,
   });
+  return updated;
+}
+
+/**
+ * Rider backs out of an order AFTER already accepting it (DELIVERY_ASSIGNED
+ * or PICKUP_READY only — once OUT_FOR_DELIVERY the parcel is physically with
+ * them, so self-cancel is disabled past that point; support/admin handles it
+ * from there). The order itself is NOT cancelled: it drops back into
+ * DELIVERY_SEARCH and re-broadcasts, excluding this rider. Every
+ * cancellation is logged against the rider and only ever flags them for
+ * admin review past a threshold — no fine is ever auto-applied.
+ */
+export async function riderCancelAssignmentAtomic(deliveryId, orderId, reason) {
+  const trimmedReason = String(reason || "").trim();
+  if (!trimmedReason) {
+    const err = new Error("A cancellation reason is required");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  orderId = await requireCanonicalOrderId(orderId);
+  const now = new Date();
+  const deliveryMs = DEFAULT_DELIVERY_TIMEOUT_MS();
+
+  const updated = await Order.findOneAndUpdate(
+    {
+      orderId,
+      deliveryBoy: deliveryId,
+      workflowStatus: {
+        $in: [WORKFLOW_STATUS.DELIVERY_ASSIGNED, WORKFLOW_STATUS.PICKUP_READY],
+      },
+    },
+    {
+      $set: {
+        workflowStatus: WORKFLOW_STATUS.DELIVERY_SEARCH,
+        status: legacyStatusFromWorkflow(WORKFLOW_STATUS.DELIVERY_SEARCH),
+        deliveryBoy: null,
+        deliverySearchExpiresAt: new Date(now.getTime() + deliveryMs),
+        deliverySearchMeta: {
+          radiusMeters: INITIAL_DELIVERY_RADIUS_M(),
+          attempt: 1,
+          lastBroadcastAt: now,
+        },
+      },
+      $push: {
+        skippedBy: deliveryId,
+        riderCancellations: { deliveryBoy: deliveryId, reason: trimmedReason, at: now },
+      },
+    },
+    { new: true },
+  ).populate("seller", "shopName address name location serviceRadius");
+
+  if (!updated) {
+    const err = new Error(
+      "This order can no longer be cancelled — it may already be out for delivery, delivered, or reassigned.",
+    );
+    err.statusCode = 409;
+    throw err;
+  }
+
+  await scheduleDeliveryTimeoutJob(orderId, 1);
+
+  emitOrderStatusUpdate(
+    orderId,
+    {
+      workflowStatus: WORKFLOW_STATUS.DELIVERY_SEARCH,
+      deliverySearchExpiresAt: updated.deliverySearchExpiresAt,
+    },
+    updated.customer,
+  );
+
+  if (isExpressOrder(updated)) {
+    await broadcastExpressOrder(updated);
+  } else {
+    await emitDeliveryBroadcastForSeller(
+      updated.seller,
+      deliveryBroadcastPayloadFromOrder(updated),
+      { excludeIds: updated.skippedBy },
+    );
+  }
+
+  // Strike tracking — logged unconditionally; flagged only past the
+  // threshold, and even then nothing financial happens automatically.
+  try {
+    const rider = await Delivery.findByIdAndUpdate(
+      deliveryId,
+      {
+        $inc: { cancellationCount: 1 },
+        $set: { lastCancellationAt: now },
+        $push: {
+          cancellationLog: {
+            $each: [{ orderId, reason: trimmedReason, at: now }],
+            $slice: -20,
+          },
+        },
+      },
+      { new: true },
+    );
+    if (
+      rider &&
+      !rider.flaggedForReview &&
+      rider.cancellationCount >= RIDER_CANCELLATION_REVIEW_THRESHOLD()
+    ) {
+      await Delivery.findByIdAndUpdate(deliveryId, { $set: { flaggedForReview: true } });
+    }
+  } catch (e) {
+    logger.warn("riderCancelAssignmentAtomic: failed to update rider strike count", {
+      deliveryId: String(deliveryId),
+      orderId,
+      error: e.message,
+    });
+  }
+
   return updated;
 }
 

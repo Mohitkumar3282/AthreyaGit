@@ -105,24 +105,58 @@ async function computeDeliveryStats(deliveryBoyId) {
   };
 }
 
+/** Start-of-range cutoff for each earnings tab — "today" is local midnight, others are trailing windows. */
+function periodStart(period) {
+  const d = new Date();
+  if (period === "today") {
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  if (period === "monthly") {
+    d.setDate(d.getDate() - 30);
+    return d;
+  }
+  // "weekly" (default)
+  d.setDate(d.getDate() - 7);
+  return d;
+}
+
+// Chart trend window: "today"/"weekly" both show a 7-day trailing trend for
+// context (the tab still controls the totals above), "monthly" widens to 30.
+function chartDaysForPeriod(period) {
+  return period === "monthly" ? 30 : 7;
+}
+
 /**
- * Earnings page payload: totals, 7-day chart, latest 20 transactions.
- * Cached for ~30s (`deliveryEarnings` TTL) to absorb dashboard polling.
+ * Earnings page payload: totals for the selected period, a trailing chart,
+ * and the latest 20 transactions. Cached per-period for ~30s
+ * (`deliveryEarnings` TTL) to absorb dashboard polling.
  */
-export async function getDeliveryEarnings(rawId) {
+export async function getDeliveryEarnings(rawId, period = "weekly") {
   const deliveryBoyId = toDeliveryBoyId(rawId);
-  const cacheKey = buildKey("delivery", "earnings", String(deliveryBoyId));
+  const normalizedPeriod = ["today", "weekly", "monthly"].includes(period)
+    ? period
+    : "weekly";
+  const cacheKey = buildKey(
+    "delivery",
+    "earnings",
+    String(deliveryBoyId),
+    normalizedPeriod,
+  );
   return getOrSet(
     cacheKey,
-    () => computeDeliveryEarnings(deliveryBoyId),
+    () => computeDeliveryEarnings(deliveryBoyId, normalizedPeriod),
     getTTL("deliveryEarnings"),
   );
 }
 
-async function computeDeliveryEarnings(deliveryBoyId) {
+async function computeDeliveryEarnings(deliveryBoyId, period = "weekly") {
+  const rangeStart = periodStart(period);
+
   const transactions = await Transaction.find({
     user: deliveryBoyId,
     userModel: "Delivery",
+    createdAt: { $gte: rangeStart },
   })
     .sort({ createdAt: -1 })
     .limit(200)
@@ -174,8 +208,12 @@ async function computeDeliveryEarnings(deliveryBoyId) {
 
   const cashCollected = roundCurrency(wallet?.cashInHand || 0);
 
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  // Chart always shows a trailing trend window — "today" still gets 7 days
+  // of context around it, "monthly" widens to 30.
+  const chartDays = chartDaysForPeriod(period);
+  const chartRangeStart = new Date();
+  chartRangeStart.setDate(chartRangeStart.getDate() - (chartDays - 1));
+  chartRangeStart.setHours(0, 0, 0, 0);
 
   const dailyAggregation = await Transaction.aggregate([
     {
@@ -183,7 +221,7 @@ async function computeDeliveryEarnings(deliveryBoyId) {
         user: deliveryBoyId,
         userModel: "Delivery",
         status: "Settled",
-        createdAt: { $gte: sevenDaysAgo },
+        createdAt: { $gte: chartRangeStart },
         type: { $in: ["Delivery Earning", "Incentive", "Bonus"] },
       },
     },
@@ -197,19 +235,20 @@ async function computeDeliveryEarnings(deliveryBoyId) {
   ]);
 
   const chartData = [];
-  for (let i = 6; i >= 0; i--) {
+  for (let i = chartDays - 1; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
     const dateStr = d.toISOString().split("T")[0];
     const foundAt = dailyAggregation.find((a) => a._id === dateStr);
     chartData.push({
-      name: DAY_NAMES[d.getDay()],
+      name: chartDays > 7 ? String(d.getDate()) : DAY_NAMES[d.getDay()],
       earnings: foundAt ? foundAt.amount : 0,
       incentives: 0,
     });
   }
 
   return {
+    period,
     totalEarnings,
     onlinePay,
     incentives,

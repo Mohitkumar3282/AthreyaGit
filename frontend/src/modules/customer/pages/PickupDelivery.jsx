@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { 
   ChevronLeft, 
+  ChevronDown,
+  Plus,
   MapPin, 
   Upload, 
   CheckCircle, 
@@ -31,10 +33,11 @@ import { useSettings } from "@core/context/SettingsContext";
 import { useAuth } from "@core/context/AuthContext";
 import axiosInstance from "@core/api/axios";
 import Card from "@/shared/components/ui/Card";
-import { 
-  homeToHomeImg, 
-  shopToHomeImg, 
-  cargoToHomeImg 
+import MapPicker from "@/shared/components/MapPicker";
+import {
+  homeToHomeImg,
+  shopToHomeImg,
+  cargoToHomeImg
 } from "@/assets/express";
 
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -90,6 +93,451 @@ const DEFAULT_RIDER_TASK_TYPES = [
   { id: "errand", label: "Pickup & Drop Errand", telugu: "పికప్ & డ్రాప్ పని", icon: "🛵" },
   { id: "other", label: "Custom Local Task", telugu: "ఇతర స్థానిక పని", icon: "📝" },
 ];
+
+const AddressDropdown = ({
+  options = [],
+  value,
+  onChange,
+  allowCustom = false,
+  customValue = "custom_drop",
+  customLabel = "Other / Custom Drop Address...",
+  placeholder = "Select Address",
+  label = "",
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const selectedOption = useMemo(() => {
+    if (allowCustom && value === customValue) {
+      return { _id: customValue, label: customLabel, fullAddress: "Enter manual address below" };
+    }
+    return options.find((opt) => opt._id === value || opt.id === value) || options[0] || null;
+  }, [options, value, allowCustom, customValue, customLabel]);
+
+  const getItemIcon = (opt) => {
+    if (opt?._id === customValue || opt?.id === customValue) return <Plus size={14} className="text-emerald-700" />;
+    const lbl = (opt?.label || opt?.name || "").toLowerCase();
+    if (lbl.includes("current") || opt?._id === "current_location_temp") return <Navigation size={13} className="text-emerald-600" />;
+    if (lbl.includes("map") || opt?._id?.includes("map")) return <MapPin size={13} className="text-sky-600" />;
+    if (lbl.includes("home") || lbl.includes("ఇంటి")) return <Home size={13} className="text-emerald-600" />;
+    return <MapPin size={13} className="text-emerald-600" />;
+  };
+
+  return (
+    <div className="relative w-full" ref={dropdownRef}>
+      {/* Trigger Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="w-full mt-1 px-3 py-2.5 bg-slate-50 hover:bg-slate-100/90 active:bg-slate-100 border border-slate-200/90 hover:border-emerald-500/60 rounded-xl text-left transition flex items-center justify-between gap-2 shadow-2xs group cursor-pointer"
+      >
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div className="w-6 h-6 rounded-lg bg-emerald-100/70 text-emerald-800 flex items-center justify-center shrink-0">
+            {getItemIcon(selectedOption)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-bold text-slate-800 truncate">
+              {selectedOption ? (selectedOption.label || selectedOption.name || "Selected Address") : placeholder}
+            </div>
+            {selectedOption && (selectedOption.fullAddress || selectedOption.address) && (
+              <div className="text-[10.5px] font-medium text-slate-500 truncate max-w-full">
+                {selectedOption.fullAddress || selectedOption.address}
+              </div>
+            )}
+          </div>
+        </div>
+        <ChevronDown
+          size={16}
+          className={`text-slate-400 group-hover:text-slate-600 shrink-0 transition-transform duration-200 ${
+            isOpen ? "rotate-180 text-emerald-700" : ""
+          }`}
+        />
+      </button>
+
+      {/* Dropdown Options Popup */}
+      {isOpen && (
+        <div className="absolute z-50 left-0 right-0 top-full mt-1.5 bg-white border border-slate-200/90 rounded-2xl shadow-xl overflow-hidden max-h-72 flex flex-col animate-in fade-in-50 zoom-in-95 duration-150">
+          <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-wider">
+            {label || "Choose an Address"}
+          </div>
+          <div className="overflow-y-auto divide-y divide-slate-100 flex-1">
+            {options.map((addr) => {
+              const addrId = addr._id || addr.id;
+              const isSelected = value === addrId;
+              const addrTitle = addr.label || addr.name || "Address";
+              const addrDetails = addr.fullAddress || addr.address;
+
+              return (
+                <button
+                  key={addrId}
+                  type="button"
+                  onClick={() => {
+                    onChange(addrId);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full p-2.5 sm:p-3 text-left flex items-start gap-2.5 hover:bg-emerald-50/50 transition cursor-pointer ${
+                    isSelected ? "bg-emerald-50/80 font-bold" : "bg-white"
+                  }`}
+                >
+                  <div
+                    className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                      isSelected
+                        ? "bg-emerald-600 text-white shadow-xs"
+                        : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    {getItemIcon(addr)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-xs font-black text-slate-900 leading-snug">
+                        {addrTitle}
+                      </span>
+                      {addr._id === "current_location_temp" && (
+                        <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded-md">
+                          Live GPS
+                        </span>
+                      )}
+                      {addr._id?.includes("map") && (
+                        <span className="px-1.5 py-0.5 bg-sky-100 text-sky-800 text-[9px] font-bold rounded-md">
+                          Map Pin
+                        </span>
+                      )}
+                    </div>
+                    {addrDetails && (
+                      <p className="text-[11px] text-slate-500 font-normal leading-relaxed mt-0.5 line-clamp-2 break-words">
+                        {addrDetails}
+                      </p>
+                    )}
+                  </div>
+                  {isSelected && (
+                    <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 ml-1 mt-0.5">
+                      <Check size={11} strokeWidth={3} />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+
+            {allowCustom && (
+              <button
+                type="button"
+                onClick={() => {
+                  onChange(customValue);
+                  setIsOpen(false);
+                }}
+                className={`w-full p-2.5 sm:p-3 text-left flex items-center gap-2.5 hover:bg-slate-50 transition cursor-pointer border-t border-dashed border-slate-200 ${
+                  value === customValue ? "bg-emerald-50/80 font-bold" : "bg-white"
+                }`}
+              >
+                <div
+                  className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+                    value === customValue
+                      ? "bg-emerald-600 text-white"
+                      : "bg-slate-100 text-emerald-700"
+                  }`}
+                >
+                  <Plus size={15} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="text-xs font-black text-emerald-800">
+                    {customLabel}
+                  </span>
+                  <p className="text-[10px] text-slate-400 leading-tight">
+                    Type a manual landmark or doorstep address
+                  </p>
+                </div>
+                {value === customValue && (
+                  <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 ml-1">
+                    <Check size={11} strokeWidth={3} />
+                  </div>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ShopDropdown = ({
+  shops = [],
+  value,
+  onChange,
+  allowCustom = true,
+  customValue = "custom_shop",
+  customLabel = "Other Local Shop in Aswapuram (ఇతర షాప్)...",
+  loading = false,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const selectedShop = useMemo(() => {
+    if (value === customValue) {
+      return { _id: customValue, shopName: "Other Local Store", locality: "Enter name & location below" };
+    }
+    return shops.find((s) => s._id === value || s.id === value) || null;
+  }, [shops, value, customValue]);
+
+  if (loading) {
+    return <p className="text-xs text-slate-400 py-2">Loading nearby stores in Aswapuram...</p>;
+  }
+
+  return (
+    <div className="relative w-full" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="w-full mt-1 px-3 py-2.5 bg-slate-50 hover:bg-slate-100/90 active:bg-slate-100 border border-slate-200/90 hover:border-emerald-500/60 rounded-xl text-left transition flex items-center justify-between gap-2 shadow-2xs group cursor-pointer"
+      >
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div className="w-6 h-6 rounded-lg bg-emerald-100/70 text-emerald-800 flex items-center justify-center shrink-0">
+            <Store size={14} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-bold text-slate-800 truncate">
+              {selectedShop ? selectedShop.shopName : "-- Choose Store --"}
+            </div>
+            {selectedShop && selectedShop.locality && (
+              <div className="text-[10.5px] font-medium text-slate-500 truncate max-w-full">
+                {selectedShop.locality}
+              </div>
+            )}
+          </div>
+        </div>
+        <ChevronDown
+          size={16}
+          className={`text-slate-400 group-hover:text-slate-600 shrink-0 transition-transform duration-200 ${
+            isOpen ? "rotate-180 text-emerald-700" : ""
+          }`}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 left-0 right-0 top-full mt-1.5 bg-white border border-slate-200/90 rounded-2xl shadow-xl overflow-hidden max-h-72 flex flex-col animate-in fade-in-50 zoom-in-95 duration-150">
+          <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-wider">
+            Choose Store in Aswapuram
+          </div>
+          <div className="overflow-y-auto divide-y divide-slate-100 flex-1">
+            {shops.map((s) => {
+              const shopId = s._id || s.id;
+              const isSelected = value === shopId;
+              return (
+                <button
+                  key={shopId}
+                  type="button"
+                  onClick={() => {
+                    onChange(shopId);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full p-2.5 sm:p-3 text-left flex items-start gap-2.5 hover:bg-emerald-50/50 transition cursor-pointer ${
+                    isSelected ? "bg-emerald-50/80 font-bold" : "bg-white"
+                  }`}
+                >
+                  <div
+                    className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                      isSelected ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    <Store size={14} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-xs font-black text-slate-900 leading-snug">
+                      {s.shopName}
+                    </span>
+                    <p className="text-[11px] text-slate-500 font-normal mt-0.5 truncate">
+                      {s.locality || s.address || "Aswapuram"}
+                    </p>
+                  </div>
+                  {isSelected && (
+                    <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 ml-1 mt-0.5">
+                      <Check size={11} strokeWidth={3} />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+
+            {allowCustom && (
+              <button
+                type="button"
+                onClick={() => {
+                  onChange(customValue);
+                  setIsOpen(false);
+                }}
+                className={`w-full p-2.5 sm:p-3 text-left flex items-center gap-2.5 hover:bg-slate-50 transition cursor-pointer border-t border-dashed border-slate-200 ${
+                  value === customValue ? "bg-emerald-50/80 font-bold" : "bg-white"
+                }`}
+              >
+                <div
+                  className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+                    value === customValue ? "bg-emerald-600 text-white" : "bg-slate-100 text-emerald-700"
+                  }`}
+                >
+                  <Plus size={15} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="text-xs font-black text-emerald-800">
+                    {customLabel}
+                  </span>
+                  <p className="text-[10px] text-slate-400 leading-tight">
+                    Type any unlisted local shop name & street
+                  </p>
+                </div>
+                {value === customValue && (
+                  <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 ml-1">
+                    <Check size={11} strokeWidth={3} />
+                  </div>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const CargoPointDropdown = ({
+  points = CARGO_POINTS,
+  value,
+  onChange,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const selectedPoint = useMemo(() => {
+    return points.find((p) => p.id === value) || points[0];
+  }, [points, value]);
+
+  return (
+    <div className="relative w-full" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="w-full mt-1 px-3 py-2.5 bg-slate-50 hover:bg-slate-100/90 active:bg-slate-100 border border-slate-200/90 hover:border-emerald-500/60 rounded-xl text-left transition flex items-center justify-between gap-2 shadow-2xs group cursor-pointer"
+      >
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div className="w-6 h-6 rounded-lg bg-emerald-100/70 text-emerald-800 flex items-center justify-center shrink-0">
+            <Truck size={14} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-bold text-slate-800 truncate">
+              {selectedPoint?.name || "Select Transport Point"}
+            </div>
+            {selectedPoint?.loc && (
+              <div className="text-[10.5px] font-medium text-slate-500 truncate max-w-full">
+                {selectedPoint.loc}
+              </div>
+            )}
+          </div>
+        </div>
+        <ChevronDown
+          size={16}
+          className={`text-slate-400 group-hover:text-slate-600 shrink-0 transition-transform duration-200 ${
+            isOpen ? "rotate-180 text-emerald-700" : ""
+          }`}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 left-0 right-0 top-full mt-1.5 bg-white border border-slate-200/90 rounded-2xl shadow-xl overflow-hidden max-h-72 flex flex-col animate-in fade-in-50 zoom-in-95 duration-150">
+          <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-wider">
+            Select Cargo or Bus Stand Counter
+          </div>
+          <div className="overflow-y-auto divide-y divide-slate-100 flex-1">
+            {points.map((p) => {
+              const isSelected = value === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    onChange(p.id);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full p-2.5 sm:p-3 text-left flex items-start gap-2.5 hover:bg-emerald-50/50 transition cursor-pointer ${
+                    isSelected ? "bg-emerald-50/80 font-bold" : "bg-white"
+                  }`}
+                >
+                  <div
+                    className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                      isSelected ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    <Truck size={14} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-xs font-black text-slate-900 leading-snug">
+                      {p.name}
+                    </span>
+                    <p className="text-[11px] text-slate-500 font-normal mt-0.5 truncate">
+                      {p.loc}
+                    </p>
+                  </div>
+                  {isSelected && (
+                    <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 ml-1 mt-0.5">
+                      <Check size={11} strokeWidth={3} />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const PickupDelivery = () => {
   const navigate = useNavigate();
@@ -147,6 +595,9 @@ const PickupDelivery = () => {
   const [h2hParcelDetails, setH2hParcelDetails] = useState("");
   const [h2hWeight, setH2hWeight] = useState("Up to 1 kg");
   const [h2hItemsCount, setH2hItemsCount] = useState("1");
+  // Drop point chosen via GPS / map pin (Rapido-style) instead of a saved address.
+  const [h2hMapDropAddress, setH2hMapDropAddress] = useState(null);
+  const [isH2hMapOpen, setIsH2hMapOpen] = useState(false);
 
   // 2. Shop to Home State
   const [selectedShopId, setSelectedShopId] = useState("");
@@ -180,6 +631,9 @@ const PickupDelivery = () => {
   const [riderInstructions, setRiderInstructions] = useState("");
   const [riderTiming, setRiderTiming] = useState("instant"); // instant or scheduled
   const [riderScheduleTime, setRiderScheduleTime] = useState("");
+  // Drop point chosen via GPS / map pin (Rapido-style) instead of a saved address.
+  const [riderMapDropAddress, setRiderMapDropAddress] = useState(null);
+  const [isRiderMapOpen, setIsRiderMapOpen] = useState(false);
 
   // Format Current Location into an address object
   const currentLocAddress = useMemo(() => {
@@ -207,6 +661,30 @@ const PickupDelivery = () => {
     }
     return list;
   }, [addresses, currentLocAddress]);
+
+  // Turn a confirmed MapPicker pin into an address-shaped object so every
+  // distance/fare/submit lookup that already searches by _id "just works"
+  // without needing a separate code path for a map-picked drop point.
+  const buildMapAddress = (id, result, fallbackName) => result ? {
+    _id: id,
+    id,
+    label: "📍 Selected on Map",
+    name: fallbackName || "Selected on Map",
+    fullAddress: result.address,
+    address: result.address,
+    city: result.city || "Aswapuram",
+    location: { lat: result.lat, lng: result.lng },
+  } : null;
+
+  const h2hDropAddressOptions = useMemo(() => {
+    const mapAddr = buildMapAddress("h2h_map_drop", h2hMapDropAddress, h2hReceiverName || "Receiver");
+    return mapAddr ? [mapAddr, ...allAddresses] : allAddresses;
+  }, [allAddresses, h2hMapDropAddress, h2hReceiverName]);
+
+  const riderDropAddressOptions = useMemo(() => {
+    const mapAddr = buildMapAddress("rider_map_drop", riderMapDropAddress, "Drop Contact");
+    return mapAddr ? [mapAddr, ...allAddresses] : allAddresses;
+  }, [allAddresses, riderMapDropAddress]);
 
   // Set default addresses on load
   useEffect(() => {
@@ -331,7 +809,7 @@ const PickupDelivery = () => {
     }
 
     if (activeTab === "home_to_home") {
-      const selectedDrop = allAddresses.find(a => a._id === h2hSelectedDropAddressId || a.id === h2hSelectedDropAddressId);
+      const selectedDrop = h2hDropAddressOptions.find(a => a._id === h2hSelectedDropAddressId || a.id === h2hSelectedDropAddressId);
       if (currentLocation?.latitude && selectedDrop?.location) {
         return calculateDistance(
           currentLocation.latitude,
@@ -344,7 +822,7 @@ const PickupDelivery = () => {
     }
 
     if (activeTab === "rider_delivery") {
-      const selectedDrop = allAddresses.find(a => a._id === riderSelectedAddressId || a.id === riderSelectedAddressId);
+      const selectedDrop = riderDropAddressOptions.find(a => a._id === riderSelectedAddressId || a.id === riderSelectedAddressId);
       if (currentLocation?.latitude && selectedDrop?.location) {
         return calculateDistance(
           currentLocation.latitude,
@@ -377,6 +855,8 @@ const PickupDelivery = () => {
     shopSelectedAddressId,
     shops,
     allAddresses,
+    h2hDropAddressOptions,
+    riderDropAddressOptions,
     h2hSelectedDropAddressId,
     riderSelectedAddressId,
     cargoSelectedAddressId,
@@ -395,7 +875,7 @@ const PickupDelivery = () => {
     const findAddr = (id) => allAddresses.find((a) => a._id === id || a.id === id);
 
     if (activeTab === "home_to_home") {
-      const d = findAddr(h2hSelectedDropAddressId);
+      const d = h2hDropAddressOptions.find((a) => a._id === h2hSelectedDropAddressId || a.id === h2hSelectedDropAddressId);
       return { pickup: cur, drop: d ? d.location || DEFAULT_POINT : cur, weight: h2hWeight };
     }
     if (activeTab === "shop_to_home") {
@@ -412,12 +892,13 @@ const PickupDelivery = () => {
       return { pickup: cur, drop: a.location || DEFAULT_POINT, weight: cargoWeight };
     }
     if (activeTab === "rider_delivery") {
-      const d = findAddr(riderSelectedAddressId);
+      const d = riderDropAddressOptions.find((a) => a._id === riderSelectedAddressId || a.id === riderSelectedAddressId);
       return { pickup: cur, drop: d ? d.location || DEFAULT_POINT : cur, timing: riderTiming };
     }
     return null;
   }, [
     activeTab, currentLocation, allAddresses, shops, selectedShopId,
+    h2hDropAddressOptions, riderDropAddressOptions,
     h2hSelectedDropAddressId, h2hWeight, shopSelectedAddressId, shopWeight,
     cargoSelectedAddressId, cargoWeight, riderSelectedAddressId, riderTiming,
   ]);
@@ -532,7 +1013,7 @@ const PickupDelivery = () => {
         toast.error("Please enter or select pickup address");
         return;
       }
-      const selectedDrop = allAddresses.find(a => a._id === h2hSelectedDropAddressId || a.id === h2hSelectedDropAddressId);
+      const selectedDrop = h2hDropAddressOptions.find(a => a._id === h2hSelectedDropAddressId || a.id === h2hSelectedDropAddressId);
       const dropAddrStr = selectedDrop ? (selectedDrop.fullAddress || selectedDrop.address) : h2hDropAddress;
       if (!dropAddrStr.trim()) {
         toast.error("Please specify drop address");
@@ -565,7 +1046,7 @@ const PickupDelivery = () => {
       };
 
       parcelDetailsText = `🏠 [HOME TO HOME PICKUP]\n` +
-        `📦 Category: ${PARCEL_CATEGORIES.find(c => c.id === h2hParcelCategory)?.label || "Parcel"}\n` +
+        `📦 Category: ${parcelCategories.find(c => c.id === h2hParcelCategory)?.label || "Parcel"}\n` +
         `🔢 Items: ${h2hItemsCount || 1} | ⚖️ Weight: ${h2hWeight}\n` +
         `📝 Details: ${h2hParcelDetails}\n` +
         `📤 Pickup From: ${h2hPickupAddress} (Sender: ${h2hSenderName} - ${h2hSenderPhone})\n` +
@@ -706,7 +1187,7 @@ const PickupDelivery = () => {
         toast.error("Please specify pickup location");
         return;
       }
-      const selectedAddress = allAddresses.find(a => a._id === riderSelectedAddressId || a.id === riderSelectedAddressId);
+      const selectedAddress = riderDropAddressOptions.find(a => a._id === riderSelectedAddressId || a.id === riderSelectedAddressId);
       const dropAddrStr = selectedAddress ? (selectedAddress.fullAddress || selectedAddress.address) : riderDropLoc;
       if (!dropAddrStr.trim()) {
         toast.error("Please specify drop location");
@@ -739,7 +1220,7 @@ const PickupDelivery = () => {
       };
 
       parcelDetailsText = `🛵 [RIDER PICKUP REQUEST]\n` +
-        `📋 Task: ${RIDER_TASK_TYPES.find(t => t.id === riderTaskType)?.label || "Personal Errand"}\n` +
+        `📋 Task: ${riderTaskTypes.find(t => t.id === riderTaskType)?.label || "Personal Errand"}\n` +
         `📝 Instructions: ${riderInstructions}\n` +
         `📏 Estimated Distance: ${calculatedDistance} km\n` +
         `⏱️ Schedule: ${riderTiming === "instant" ? "Immediate Instant Pickup" : `Scheduled: ${riderScheduleTime}`}\n` +
@@ -992,20 +1473,26 @@ const PickupDelivery = () => {
 
             <div className="space-y-2.5">
               <div>
-                <Label className="text-[11px] font-bold text-slate-700">Select Saved Address or Type Custom</Label>
-                {allAddresses.length > 0 && (
-                  <select
-                    value={h2hSelectedDropAddressId}
-                    onChange={(e) => setH2hSelectedDropAddressId(e.target.value)}
-                    className="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none"
+                <div className="flex justify-between items-center mb-1">
+                  <Label className="text-[11px] font-bold text-slate-700">Select Saved Address or Type Custom</Label>
+                  <button
+                    type="button"
+                    onClick={() => setIsH2hMapOpen(true)}
+                    className="text-[10px] font-black text-emerald-700 hover:underline flex items-center gap-0.5 shrink-0"
                   >
-                    {allAddresses.map((addr) => (
-                      <option key={addr._id} value={addr._id}>
-                        {addr.label || addr.name || "Address"} - {addr.fullAddress || addr.address}
-                      </option>
-                    ))}
-                    <option value="custom_drop">Other / Custom Drop Address...</option>
-                  </select>
+                    <MapPin size={10} /> GPS / Select on Map
+                  </button>
+                </div>
+                {h2hDropAddressOptions.length > 0 && (
+                  <AddressDropdown
+                    options={h2hDropAddressOptions}
+                    value={h2hSelectedDropAddressId}
+                    onChange={setH2hSelectedDropAddressId}
+                    allowCustom={true}
+                    customValue="custom_drop"
+                    customLabel="Other / Custom Drop Address..."
+                    label="Select Drop Address in Aswapuram"
+                  />
                 )}
                 {h2hSelectedDropAddressId === "custom_drop" && (
                   <Input
@@ -1016,6 +1503,17 @@ const PickupDelivery = () => {
                   />
                 )}
               </div>
+
+              {/* Live estimated distance for the selected drop point */}
+              {h2hSelectedDropAddressId && h2hSelectedDropAddressId !== "custom_drop" && (
+                <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-100 rounded-xl">
+                  <Navigation size={14} className="text-emerald-700 shrink-0" />
+                  <span className="text-[11px] font-bold text-emerald-900">
+                    Estimated Distance: <span className="font-black">{calculatedDistance} km</span>
+                    {deliveryFee ? <span className="text-emerald-700"> · Fare ₹{deliveryFee}</span> : null}
+                  </span>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -1141,23 +1639,14 @@ const PickupDelivery = () => {
 
             <div>
               <Label className="text-[11px] font-bold text-slate-700">Choose Registered Store or Enter Custom</Label>
-              {loadingShops ? (
-                <p className="text-xs text-slate-400 py-2">Loading nearby stores...</p>
-              ) : (
-                <select
-                  value={selectedShopId}
-                  onChange={(e) => setSelectedShopId(e.target.value)}
-                  className="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none"
-                >
-                  <option value="">-- Choose Store --</option>
-                  {shops.map((s) => (
-                    <option key={s._id} value={s._id}>
-                      {s.shopName} ({s.locality || "Aswapuram"})
-                    </option>
-                  ))}
-                  <option value="custom_shop">Other Local Shop in Aswapuram (ఇతర షాప్)...</option>
-                </select>
-              )}
+              <ShopDropdown
+                shops={shops}
+                value={selectedShopId}
+                onChange={setSelectedShopId}
+                loading={loadingShops}
+                allowCustom={true}
+                customValue="custom_shop"
+              />
 
               {selectedShopId === "custom_shop" && (
                 <div className="grid grid-cols-2 gap-2 mt-2">
@@ -1296,17 +1785,13 @@ const PickupDelivery = () => {
               Home Delivery Address (డెలివరీ చిరునామా)
             </h3>
 
-            <select
+            <AddressDropdown
+              options={allAddresses}
               value={shopSelectedAddressId}
-              onChange={(e) => setShopSelectedAddressId(e.target.value)}
-              className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none"
-            >
-              {allAddresses.map((addr) => (
-                <option key={addr._id} value={addr._id}>
-                  {addr.label || addr.name || "Home"} - {addr.fullAddress || addr.address}
-                </option>
-              ))}
-            </select>
+              onChange={setShopSelectedAddressId}
+              allowCustom={false}
+              label="Select Delivery Address"
+            />
           </Card>
         </div>
       )}
@@ -1325,17 +1810,11 @@ const PickupDelivery = () => {
 
             <div>
               <Label className="text-[11px] font-bold text-slate-700">Transport Counter</Label>
-              <select
+              <CargoPointDropdown
+                points={CARGO_POINTS}
                 value={selectedCargoPointId}
-                onChange={(e) => setSelectedCargoPointId(e.target.value)}
-                className="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none"
-              >
-                {CARGO_POINTS.map((point) => (
-                  <option key={point.id} value={point.id}>
-                    {point.name} ({point.loc})
-                  </option>
-                ))}
-              </select>
+                onChange={setSelectedCargoPointId}
+              />
 
               {selectedCargoPointId === "other_cargo" && (
                 <Input
@@ -1459,17 +1938,13 @@ const PickupDelivery = () => {
               Home Delivery Address (డెలివరీ చిరునామా)
             </h3>
 
-            <select
+            <AddressDropdown
+              options={allAddresses}
               value={cargoSelectedAddressId}
-              onChange={(e) => setCargoSelectedAddressId(e.target.value)}
-              className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none"
-            >
-              {allAddresses.map((addr) => (
-                <option key={addr._id} value={addr._id}>
-                  {addr.label || addr.name || "Home"} - {addr.fullAddress || addr.address}
-                </option>
-              ))}
-            </select>
+              onChange={setCargoSelectedAddressId}
+              allowCustom={false}
+              label="Select Delivery Address"
+            />
           </Card>
         </div>
       )}
@@ -1545,19 +2020,25 @@ const PickupDelivery = () => {
               </div>
 
               <div>
-                <Label className="text-[11px] font-bold text-slate-700">Drop Destination (ఎక్కడికి ఇవ్వాలి)</Label>
-                <select
+                <div className="flex justify-between items-center mb-1">
+                  <Label className="text-[11px] font-bold text-slate-700">Drop Destination (ఎక్కడికి ఇవ్వాలి)</Label>
+                  <button
+                    type="button"
+                    onClick={() => setIsRiderMapOpen(true)}
+                    className="text-[10px] font-black text-emerald-700 hover:underline flex items-center gap-0.5 shrink-0"
+                  >
+                    <MapPin size={10} /> GPS / Select on Map
+                  </button>
+                </div>
+                <AddressDropdown
+                  options={riderDropAddressOptions}
                   value={riderSelectedAddressId}
-                  onChange={(e) => setRiderSelectedAddressId(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none"
-                >
-                  {allAddresses.map((addr) => (
-                    <option key={addr._id} value={addr._id}>
-                      {addr.label || addr.name || "Address"} - {addr.fullAddress || addr.address}
-                    </option>
-                  ))}
-                  <option value="custom_rider_drop">Other / Custom Drop Address...</option>
-                </select>
+                  onChange={setRiderSelectedAddressId}
+                  allowCustom={true}
+                  customValue="custom_rider_drop"
+                  customLabel="Other / Custom Drop Address..."
+                  label="Select Drop Destination"
+                />
                 {riderSelectedAddressId === "custom_rider_drop" && (
                   <Input
                     placeholder="Enter destination in Aswapuram"
@@ -1568,12 +2049,14 @@ const PickupDelivery = () => {
                 )}
               </div>
 
-              {/* Live estimated trip distance for this rider request */}
+              {/* Live estimated trip distance + fare for this rider request —
+                  updates automatically the moment a drop point is picked. */}
               {riderSelectedAddressId !== "custom_rider_drop" && (
                 <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-100 rounded-xl">
                   <Navigation size={14} className="text-emerald-700 shrink-0" />
                   <span className="text-[11px] font-bold text-emerald-900">
                     Estimated Trip Distance: <span className="font-black">{calculatedDistance} km</span>
+                    {deliveryFee ? <span className="text-emerald-700"> · Fare ₹{deliveryFee}</span> : null}
                   </span>
                 </div>
               )}
@@ -1802,6 +2285,44 @@ const PickupDelivery = () => {
           </p>
         </div>
       )}
+
+      {/* Drop location pickers — GPS / drag-pin, Rapido-style. Confirming turns
+          the pin into an address entry the distance/fare/submit logic already
+          knows how to read (see h2hDropAddressOptions / riderDropAddressOptions). */}
+      <MapPicker
+        isOpen={isH2hMapOpen}
+        onClose={() => setIsH2hMapOpen(false)}
+        mode="point"
+        title="Select Drop Location"
+        searchPlaceholder="Search drop address in Aswapuram..."
+        confirmLabel="Use This Location"
+        initialLocation={
+          currentLocation?.latitude
+            ? { lat: currentLocation.latitude, lng: currentLocation.longitude }
+            : null
+        }
+        onConfirm={(result) => {
+          setH2hMapDropAddress(result);
+          setH2hSelectedDropAddressId("h2h_map_drop");
+        }}
+      />
+      <MapPicker
+        isOpen={isRiderMapOpen}
+        onClose={() => setIsRiderMapOpen(false)}
+        mode="point"
+        title="Select Drop Location"
+        searchPlaceholder="Search drop address in Aswapuram..."
+        confirmLabel="Use This Location"
+        initialLocation={
+          currentLocation?.latitude
+            ? { lat: currentLocation.latitude, lng: currentLocation.longitude }
+            : null
+        }
+        onConfirm={(result) => {
+          setRiderMapDropAddress(result);
+          setRiderSelectedAddressId("rider_map_drop");
+        }}
+      />
     </div>
   );
 };

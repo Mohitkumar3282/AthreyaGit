@@ -12,6 +12,7 @@ import {
   onDeliveryBroadcast,
   onDeliveryBroadcastWithdrawn,
   onReturnTaskAssigned,
+  onNotificationNew,
 } from "@/core/services/orderSocket";
 import {
   loadHandledIncomingOrderIds,
@@ -615,6 +616,26 @@ const DeliveryLayout = () => {
       }
     });
   }, [user?.isOnline]);
+
+  // Shop marked the order "Ready for Pickup" — surface it immediately so the
+  // rider doesn't have to keep polling order details to know when to head in.
+  useEffect(() => {
+    if (!user?.isOnline) return undefined;
+    const getToken = getDeliveryToken;
+    return onNotificationNew(getToken, (payload) => {
+      if (payload?.eventType !== "ORDER_READY") return;
+      const orderId = payload?.data?.orderId;
+      toast.success(payload?.body || "Order ready for pickup!", {
+        duration: 8000,
+        action: orderId
+          ? {
+              label: "Navigate",
+              onClick: () => navigate(`/delivery/order-details/${orderId}`),
+            }
+          : undefined,
+      });
+    });
+  }, [user?.isOnline, navigate]);
 
   useEffect(() => {
     if (!user?.isOnline) return undefined;

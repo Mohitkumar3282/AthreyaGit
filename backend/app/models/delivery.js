@@ -113,6 +113,56 @@ const deliverySchema = new mongoose.Schema(
         lastLocationAt: {
             type: Date,
         },
+
+        /** Aggregate customer rating — `rating` is the derived average, kept
+         *  in sync with `ratingSum`/`ratingCount` by an atomic pipeline update
+         *  whenever a new order rating comes in (see orderController.rateRider). */
+        rating: {
+            type: Number,
+            default: 5.0,
+        },
+        ratingSum: {
+            type: Number,
+            default: 0,
+        },
+        ratingCount: {
+            type: Number,
+            default: 0,
+        },
+
+        /**
+         * Cancellation policy (post-acceptance bail-outs only — see
+         * Order.riderCancellations). No penalty is ever applied automatically;
+         * crossing the threshold only sets `flaggedForReview` so an admin can
+         * look at the log and decide. `penaltyLog` records what an admin
+         * actually applied, if anything.
+         */
+        cancellationCount: {
+            type: Number,
+            default: 0,
+        },
+        lastCancellationAt: {
+            type: Date,
+        },
+        flaggedForReview: {
+            type: Boolean,
+            default: false,
+        },
+        cancellationLog: [
+            {
+                orderId: String,
+                reason: String,
+                at: { type: Date, default: Date.now },
+            },
+        ],
+        penaltyLog: [
+            {
+                amount: Number,
+                reason: String,
+                appliedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" },
+                at: { type: Date, default: Date.now },
+            },
+        ],
     },
     {
         timestamps: true,

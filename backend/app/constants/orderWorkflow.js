@@ -35,6 +35,15 @@ export const RETURN_PICKUP_RADIUS_MULTIPLIER = () =>
   parseFloat(process.env.RETURN_PICKUP_RADIUS_MULTIPLIER || "1.5");
 
 /**
+ * Cancellation policy: a rider backing out of an order they already
+ * accepted is never auto-fined, but once their post-acceptance cancellation
+ * count reaches this many, they're flagged for admin review. Any penalty is
+ * a separate, explicit admin action — never automatic.
+ */
+export const RIDER_CANCELLATION_REVIEW_THRESHOLD = () =>
+  parseInt(process.env.RIDER_CANCELLATION_REVIEW_THRESHOLD || "3", 10);
+
+/**
  * Map workflow -> legacy `status` string (existing enum on Order schema).
  */
 export function legacyStatusFromWorkflow(workflowStatus) {

@@ -67,9 +67,14 @@ const ActiveDeliveryBoys = () => {
                 status: r.isOnline ? 'available' : 'offline',
                 vehicle: r.vehicleType,
                 vehicleNum: r.vehicleNumber || 'N/A',
-                rating: 4.5, // Mock rating for now
-                totalOrders: 0, // Mock total orders
-                todayEarnings: 0, // Mock earnings
+                rating: typeof r.rating === "number" ? r.rating : 5.0,
+                ratingCount: r.ratingCount || 0,
+                totalOrders: r.totalOrders || 0,
+                isVerified: !!r.isVerified,
+                cancellationCount: r.cancellationCount || 0,
+                flaggedForReview: !!r.flaggedForReview,
+                cancellationLog: Array.isArray(r.cancellationLog) ? r.cancellationLog : [],
+                todayEarnings: 0, // TODO: wire to real per-rider daily earnings (earnings-dashboard pass)
                 location: r.currentArea || 'Unknown',
                 lastSync: 'Now',
                 joinDate: new Date(r.createdAt).toLocaleDateString()
@@ -115,6 +120,66 @@ const handleAction = (type, rider) => {
         if (window.confirm(`Are you sure you want to deactivate ${rider.name}?`)) {
             setRiders(riders.filter(r => r.id !== rider.id));
         }
+    }
+};
+
+const handleReviewCancellations = async (rider) => {
+    const choice = window.prompt(
+        `${rider.name} has ${rider.cancellationCount} post-acceptance cancellation(s) flagged for review.\n\n` +
+        `Type "dismiss" to clear the flag (cancellations judged justified), or type a penalty amount in ₹ to deduct from their wallet.`,
+    );
+    if (!choice) return;
+
+    const trimmed = choice.trim();
+    let payload;
+    if (trimmed.toLowerCase() === 'dismiss') {
+        payload = { action: 'dismiss' };
+    } else {
+        const amount = Number(trimmed);
+        if (!Number.isFinite(amount) || amount <= 0) {
+            toast.error('Enter "dismiss" or a positive penalty amount');
+            return;
+        }
+        const reason = window.prompt('Reason for this penalty:');
+        if (!reason || !reason.trim()) {
+            toast.error('A reason is required to apply a penalty');
+            return;
+        }
+        payload = { action: 'penalize', amount, reason: reason.trim() };
+    }
+
+    try {
+        await adminApi.reviewRiderCancellations(rider.id, payload);
+        toast.success(payload.action === 'dismiss' ? 'Flag dismissed' : 'Penalty applied and flag cleared');
+        fetchRiders(page);
+        if (viewingRider?.id === rider.id) setViewingRider(null);
+    } catch (error) {
+        toast.error(error.response?.data?.message || 'Failed to record review');
+    }
+};
+
+const handleAwardIncentive = async (rider) => {
+    const typeChoice = window.prompt('Award type — type "incentive" or "bonus":');
+    if (!typeChoice) return;
+    const type = typeChoice.trim().toLowerCase() === 'bonus' ? 'Bonus' : 'Incentive';
+
+    const amountStr = window.prompt(`${type} amount in ₹:`);
+    const amount = Number(amountStr);
+    if (!Number.isFinite(amount) || amount <= 0) {
+        toast.error('Enter a positive amount');
+        return;
+    }
+    const reason = window.prompt(`Reason for this ${type.toLowerCase()}:`);
+    if (!reason || !reason.trim()) {
+        toast.error('A reason is required');
+        return;
+    }
+
+    try {
+        await adminApi.awardRiderIncentive(rider.id, { type, amount, reason: reason.trim() });
+        toast.success(`${type} of ₹${amount} awarded to ${rider.name}`);
+    } catch (error) {
+        toast.error(error.response?.data?.message || 'Failed to award incentive');
     }
 };
 
@@ -317,6 +382,19 @@ return (
                                         </div>
                                     </div>
 
+                                    {/* Cancellation review flag */}
+                                    {rider.flaggedForReview && (
+                                        <button
+                                            onClick={() => handleReviewCancellations(rider)}
+                                            className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-rose-50 border border-rose-200 rounded-xl text-left hover:bg-rose-100 transition-colors"
+                                        >
+                                            <span className="text-[10px] font-black text-rose-700 uppercase tracking-wide">
+                                                ⚠ {rider.cancellationCount} cancellations — needs review
+                                            </span>
+                                            <span className="text-[10px] font-black text-rose-700 underline shrink-0">Review</span>
+                                        </button>
+                                    )}
+
                                     {/* Action Footer */}
                                     <div className="pt-2 flex items-center gap-2">
                                         <button
@@ -437,22 +515,27 @@ return (
                                     </div>
                                 </div>
                                 <div className="text-center border-l border-slate-200">
-                                    <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Fleet Rank</p>
-                                    <span className="text-lg font-black text-slate-900">#42</span>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Ratings Given</p>
+                                    <span className="text-lg font-black text-slate-900">{viewingRider.ratingCount}</span>
                                 </div>
                                 <div className="text-center border-l border-slate-200">
                                     <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Total Deliveries</p>
                                     <span className="text-lg font-black text-slate-900 text-brand-600">{viewingRider.totalOrders}</span>
                                 </div>
                                 <div className="text-center border-l border-slate-200">
-                                    <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Wallet Creds</p>
-                                    <span className="text-lg font-black text-slate-900 text-brand-600">₹4,250</span>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Verification</p>
+                                    <span className={cn("text-lg font-black", viewingRider.isVerified ? "text-emerald-600" : "text-amber-600")}>
+                                        {viewingRider.isVerified ? "Verified" : "Pending"}
+                                    </span>
                                 </div>
                             </div>
 
                             <div className="mt-8 flex gap-4">
-                                <button className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all">
-                                    Send Message
+                                <button
+                                    onClick={() => handleAwardIncentive(viewingRider)}
+                                    className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                                >
+                                    Award Incentive / Bonus
                                 </button>
                                 <button className="px-6 py-4 bg-rose-50 text-rose-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-rose-100 transition-all active:scale-95">
                                     DEACTIVATE

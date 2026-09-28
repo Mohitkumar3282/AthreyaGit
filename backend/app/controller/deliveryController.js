@@ -40,7 +40,10 @@ export const getDeliveryStats = async (req, res) => {
 ================================ */
 export const getDeliveryEarnings = async (req, res) => {
     try {
-        const result = await getDeliveryEarningsFromService(req.user.id);
+        const period = ["today", "weekly", "monthly"].includes(req.query?.period)
+            ? req.query.period
+            : "weekly";
+        const result = await getDeliveryEarningsFromService(req.user.id, period);
         return handleResponse(res, 200, "Earnings fetched", result);
     } catch (error) {
         return handleResponse(res, error.statusCode || 500, error.message);

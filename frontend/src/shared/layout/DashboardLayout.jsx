@@ -377,7 +377,7 @@ const DashboardLayout = ({ children, navItems, title }) => {
 
     const handleDeclineOrder = async (orderId) => {
         try {
-            await sellerApi.updateOrderStatus(orderId, { status: 'cancelled' });
+            await sellerApi.updateOrderStatus(orderId, { status: 'cancelled', reason: 'Declined by seller' });
             toast.error(`Order #${orderId} Declined`);
             stopOrderRingtone();
             setNewOrderAlert(null);

@@ -64,7 +64,7 @@ import {
   emitToDelivery,
 } from "../services/orderSocketEmitter.js";
 import * as walletService from "../services/finance/walletService.js";
-import { OWNER_TYPE } from "../constants/finance.js";
+import { OWNER_TYPE, LEDGER_TRANSACTION_TYPE } from "../constants/finance.js";
 import { processPayout } from "../services/finance/payoutService.js";
 import { buildKey, invalidate } from "../services/cacheService.js";
 import { computeReturnWindowForOrder } from "../utils/returnWindow.js";
@@ -588,6 +588,10 @@ export const cancelOrder = async (req, res) => {
     const { reason } = req.body;
     const customerId = req.user.id;
 
+    if (!String(reason || "").trim()) {
+      return handleResponse(res, 400, "A cancellation reason is required");
+    }
+
     const orderKey = orderMatchQueryFromRouteParam(orderId);
     if (!orderKey) {
       return handleResponse(res, 404, "Order not found");
@@ -656,6 +660,142 @@ export const cancelOrder = async (req, res) => {
     }
 
     return handleResponse(res, 200, "Order cancelled successfully", order);
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};
+
+/* ===============================
+   RATE RIDER (Customer)
+================================ */
+export const rateRider = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const stars = Number(req.body?.stars);
+    const comment =
+      typeof req.body?.comment === "string" ? req.body.comment.trim().slice(0, 500) : "";
+    const tipAmount = req.body?.tipAmount != null ? Number(req.body.tipAmount) : 0;
+    const customerId = req.user.id;
+
+    if (!Number.isInteger(stars) || stars < 1 || stars > 5) {
+      return handleResponse(res, 400, "stars must be an integer between 1 and 5");
+    }
+    if (!Number.isFinite(tipAmount) || tipAmount < 0 || tipAmount > 500) {
+      return handleResponse(res, 400, "tipAmount must be between 0 and 500");
+    }
+
+    const orderKey = orderMatchQueryFromRouteParam(orderId);
+    if (!orderKey) {
+      return handleResponse(res, 404, "Order not found");
+    }
+
+    const order = await Order.findOne({ ...orderKey, customer: customerId });
+    if (!order) {
+      return handleResponse(res, 404, "Order not found");
+    }
+
+    const isDelivered =
+      order.workflowStatus === WORKFLOW_STATUS.DELIVERED || order.status === "delivered";
+    if (!isDelivered) {
+      return handleResponse(res, 400, "You can only rate the rider after delivery");
+    }
+
+    if (!order.deliveryBoy) {
+      return handleResponse(res, 400, "This order has no assigned rider to rate");
+    }
+
+    if (order.riderRating?.stars) {
+      return handleResponse(res, 409, "You have already rated this delivery");
+    }
+
+    order.riderRating = { stars, comment, ratedAt: new Date() };
+    await order.save();
+
+    // Atomic pipeline update — sum/count/average move together in one
+    // operation so concurrent ratings for the same rider can't race each
+    // other into a stale average.
+    try {
+      await Delivery.findByIdAndUpdate(order.deliveryBoy, [
+        {
+          $set: {
+            ratingSum: { $add: [{ $ifNull: ["$ratingSum", 0] }, stars] },
+            ratingCount: { $add: [{ $ifNull: ["$ratingCount", 0] }, 1] },
+          },
+        },
+        {
+          $set: {
+            rating: { $round: [{ $divide: ["$ratingSum", "$ratingCount"] }, 2] },
+          },
+        },
+      ]);
+    } catch (aggErr) {
+      logger.warn("rateRider: failed to update rider aggregate rating", {
+        orderId: order.orderId,
+        deliveryBoy: String(order.deliveryBoy),
+        error: aggErr.message,
+      });
+    }
+
+    let tipError = null;
+    if (tipAmount > 0) {
+      try {
+        // Real money movement — comes out of the customer's wallet balance
+        // (no payment-gateway flow for a post-delivery top-up yet, so a
+        // customer with no wallet balance can't tip today).
+        await walletService.debitWallet({
+          ownerType: OWNER_TYPE.CUSTOMER,
+          ownerId: customerId,
+          amount: tipAmount,
+          ledgerType: LEDGER_TRANSACTION_TYPE.ADJUSTMENT,
+          ledgerDescription: `Tip to delivery partner for order #${order.orderId}`,
+          orderId: order._id,
+        });
+        await walletService.creditWallet({
+          ownerType: OWNER_TYPE.DELIVERY_PARTNER,
+          ownerId: order.deliveryBoy,
+          amount: tipAmount,
+          ledgerType: LEDGER_TRANSACTION_TYPE.ADJUSTMENT,
+          ledgerDescription: `Tip received for order #${order.orderId}`,
+          orderId: order._id,
+        });
+        // Mirrors it into the legacy Transaction ledger the earnings page
+        // actually reads from (see deliveryEarningsService.resolveTipAmount).
+        await Transaction.findOneAndUpdate(
+          { reference: `TIP-${order.orderId}` },
+          {
+            $setOnInsert: {
+              user: order.deliveryBoy,
+              userModel: "Delivery",
+              order: order._id,
+              type: "Delivery Earning",
+              amount: tipAmount,
+              status: "Settled",
+              reference: `TIP-${order.orderId}`,
+              meta: { tipAmount, source: "customer_tip" },
+            },
+          },
+          { upsert: true, new: true },
+        );
+      } catch (walletErr) {
+        tipError = walletErr.message;
+        logger.warn("rateRider: tip transfer failed", {
+          orderId: order.orderId,
+          customerId,
+          tipAmount,
+          error: walletErr.message,
+        });
+      }
+    }
+
+    if (tipError) {
+      return handleResponse(
+        res,
+        200,
+        `Thanks for rating your delivery partner! (Tip failed: ${tipError})`,
+        order,
+      );
+    }
+    return handleResponse(res, 200, "Thanks for rating your delivery partner!", order);
   } catch (error) {
     return handleResponse(res, 500, error.message);
   }
@@ -775,9 +915,14 @@ export const updateOrderStatus = async (req, res) => {
 
     // Handle Cancellation (Stock Reversal & Transaction Update)
     if (status === "cancelled" && oldStatus !== "cancelled") {
+      const cancelReason = String(req.body?.reason || "").trim();
+      if (!cancelReason) {
+        return handleResponse(res, 400, "A cancellation reason is required");
+      }
+
       order.workflowStatus = WORKFLOW_STATUS.CANCELLED;
       order.cancelledBy = "admin";
-      order.cancelReason = req.body?.reason || "Cancelled by Admin";
+      order.cancelReason = cancelReason;
 
       // 1. Reverse Stock
       for (const item of order.items) {

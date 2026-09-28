@@ -26,6 +26,7 @@ import {
   assignRiderToOrder,
   getExpressOrders,
   rebroadcastExpressOrder,
+  rateRider,
 } from "../controller/orderController.js";
 import {
   getExpressFare,
@@ -43,6 +44,7 @@ import {
 import {
   confirmPickup,
   markArrivedAtStore,
+  riderCancelOrder,
   advanceDeliveryRiderUi,
   requestDeliveryOtp,
   verifyDeliveryOtp,
@@ -121,6 +123,7 @@ router.post(
 router.get("/my-orders", verifyToken, getMyOrders);
 router.get("/details/:orderId", verifyToken, getOrderDetails);
 router.put("/cancel/:orderId", verifyToken, cancelOrder);
+router.post("/:orderId/rate-rider", verifyToken, rateRider);
 router.post("/:orderId/returns", verifyToken, requestReturn);
 router.get("/:orderId/returns", verifyToken, getReturnDetails);
 
@@ -266,6 +269,12 @@ router.post(
   verifyToken,
   allowRoles("delivery", "admin"),
   markArrivedAtStore,
+);
+router.post(
+  "/workflow/:orderId/rider-cancel",
+  verifyToken,
+  allowRoles("delivery", "admin"),
+  riderCancelOrder,
 );
 router.post(
   "/workflow/:orderId/rider/advance-ui",

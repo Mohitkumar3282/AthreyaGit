@@ -13,6 +13,10 @@ export const adminDeliveryApi = {
         axiosInstance.delete(`/admin/delivery-partners/reject/${id}`),
     getActiveFleet: (params) =>
         axiosInstance.get('/admin/active-fleet', { params }),
+    reviewRiderCancellations: (id, data) =>
+        axiosInstance.post(`/admin/delivery-partners/${id}/review-cancellations`, data),
+    awardRiderIncentive: (id, data) =>
+        axiosInstance.post(`/admin/delivery-partners/${id}/incentive`, data),
 };
 
 export default adminDeliveryApi;

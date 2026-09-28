@@ -36,10 +36,10 @@ const EarningsPage = () => {
     recentTransactions: [],
   });
 
-  const fetchEarnings = async () => {
+  const fetchEarnings = async (period) => {
     try {
       setLoading(true);
-      const response = await deliveryApi.getEarnings();
+      const response = await deliveryApi.getEarnings(period);
       if (response.data.success && response.data.result) {
         const result = response.data.result;
         setEarningsData({
@@ -59,9 +59,9 @@ const EarningsPage = () => {
   };
 
   React.useEffect(() => {
-    fetchEarnings();
+    fetchEarnings(activeTab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [activeTab]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -156,7 +156,7 @@ const EarningsPage = () => {
                 Earnings Trend
               </h3>
               <Button variant="ghost" size="sm" className="h-8 text-xs">
-                Last 7 Days
+                Last {activeTab === "monthly" ? 30 : 7} Days
               </Button>
             </div>
             <div className="h-64 w-full">

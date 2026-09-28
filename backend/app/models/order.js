@@ -446,6 +446,12 @@ const orderSchema = new mongoose.Schema(
       enum: ["customer", "seller", "admin", "system"],
     },
     cancelReason: String,
+    /** Customer's post-delivery rating of the rider — one per order, feeds the rider's aggregate rating on the Delivery model. */
+    riderRating: {
+      stars: { type: Number, min: 1, max: 5 },
+      comment: { type: String, trim: true, maxlength: 500 },
+      ratedAt: Date,
+    },
     deviceType: {
       type: String,
       enum: ["Mobile", "Desktop", "Tablet"],
@@ -482,6 +488,19 @@ const orderSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Delivery",
+      },
+    ],
+    /**
+     * A rider backing out AFTER accepting (not the same as rejecting an
+     * unaccepted broadcast — see `skippedBy`). The order itself isn't
+     * cancelled: it drops back into DELIVERY_SEARCH for reassignment. Every
+     * entry here also feeds the rider's strike count on the Delivery model.
+     */
+    riderCancellations: [
+      {
+        deliveryBoy: { type: mongoose.Schema.Types.ObjectId, ref: "Delivery" },
+        reason: { type: String, trim: true, maxlength: 500 },
+        at: { type: Date, default: Date.now },
       },
     ],
     returnStatus: {

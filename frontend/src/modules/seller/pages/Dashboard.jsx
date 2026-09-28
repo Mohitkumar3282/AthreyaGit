@@ -219,10 +219,21 @@ const Dashboard = () => {
   };
 
   const handleStatusUpdate = async (orderId, newStatus) => {
+    const payload = { status: newStatus.toLowerCase() };
+
+    // Cancellation policy: every cancellation needs a reason on record —
+    // the backend now rejects a cancel with none.
+    if (payload.status === "cancelled") {
+      const reason = window.prompt("Reason for cancelling this order:");
+      if (!reason || !reason.trim()) {
+        toast.error("A cancellation reason is required");
+        return;
+      }
+      payload.reason = reason.trim();
+    }
+
     try {
-      await sellerApi.updateOrderStatus(orderId, {
-        status: newStatus.toLowerCase(),
-      });
+      await sellerApi.updateOrderStatus(orderId, payload);
       toast.success(`Order status updated to ${newStatus}`);
       setSelectedOrder((prev) =>
         prev && prev.id === orderId ? { ...prev, status: newStatus } : prev

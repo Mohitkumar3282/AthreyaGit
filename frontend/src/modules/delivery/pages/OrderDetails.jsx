@@ -537,6 +537,21 @@ const OrderDetails = () => {
     window.open("https://maps.google.com", "_blank");
   };
 
+  const handleRiderCancelOrder = async () => {
+    const reason = window.prompt(
+      "Why are you cancelling this order? This is recorded against your account.",
+    );
+    if (!reason || !reason.trim()) return;
+
+    try {
+      await deliveryApi.riderCancelOrder(orderId, { reason: reason.trim() });
+      toast.success("Order cancelled — another rider will be found");
+      navigate("/delivery/dashboard");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to cancel order");
+    }
+  };
+
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
@@ -679,6 +694,15 @@ const OrderDetails = () => {
           </Button>
           <h1 className="text-base font-bold text-slate-800">Order #{orderShortId}</h1>
         </div>
+        <div className="flex items-center gap-3">
+        {!isReturn && isAssignedRider && step <= 2 && (
+          <button
+            onClick={handleRiderCancelOrder}
+            className="text-[10px] font-bold text-rose-600 uppercase tracking-wide hover:underline"
+          >
+            Cancel Order
+          </button>
+        )}
         <div className="flex flex-col items-end">
           <span
             className={`text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wide ${publicStatusStage === 1
@@ -706,6 +730,7 @@ const OrderDetails = () => {
                 COLLECT CASH: ₹{Math.max(0, (order.pricing?.total || 0) - (order.pricing?.walletAmount || 0))}
               </span>
             )}
+        </div>
         </div>
       </div>
 

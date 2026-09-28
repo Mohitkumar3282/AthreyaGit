@@ -235,8 +235,21 @@ const Orders = () => {
     };
 
     const handleStatusUpdate = async (orderId, newStatus) => {
+        const payload = { status: newStatus.toLowerCase() };
+
+        // Cancellation policy: every cancellation needs a reason on record —
+        // the backend now rejects a cancel with none.
+        if (payload.status === "cancelled") {
+            const reason = window.prompt("Reason for cancelling this order:");
+            if (!reason || !reason.trim()) {
+                showToast("A cancellation reason is required", "error");
+                return;
+            }
+            payload.reason = reason.trim();
+        }
+
         try {
-            await sellerApi.updateOrderStatus(orderId, { status: newStatus.toLowerCase() });
+            await sellerApi.updateOrderStatus(orderId, payload);
             showToast(`Order status updated to ${newStatus}`, "success");
             fetchOrders(); // Refresh orders
             if (selectedOrder && selectedOrder.id === orderId) {
@@ -244,7 +257,7 @@ const Orders = () => {
             }
         } catch (error) {
             console.error("Failed to update status:", error);
-            showToast("Failed to update status", "error");
+            showToast(error.response?.data?.message || "Failed to update status", "error");
         }
     };
 

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useSettings } from '@core/context/SettingsContext';
 import { useLocation as useCustomerLocation } from '../context/LocationContext';
+import { haversineMeters } from '@shared/utils/eta';
 import { MapPin, Rocket, RefreshCw } from 'lucide-react';
 
 /**
@@ -13,7 +14,13 @@ import { MapPin, Rocket, RefreshCw } from 'lucide-react';
  *  - If serviceAreas array is empty OR no area is enabled → OPEN (allow all).
  *  - If at least one area is enabled AND customer location is known → check.
  *  - If customer location is unknown → ALLOW through (don't block on loading).
- *  - Match: pincode match OR area name substring match in customer city/suburb.
+ *  - Match, in order:
+ *      1. Radius: customer's live coordinates within `radiusKm` of the area's
+ *         geocoded center (lat/long) — this is what the admin's "Max Range"
+ *         setting actually controls.
+ *      2. Exact pincode match.
+ *      3. Area name substring match against customer city/suburb (fallback
+ *         for areas saved without a geocoded center).
  */
 const ServiceAreaGate = ({ children }) => {
     const { settings, loading: settingsLoading } = useSettings();
@@ -36,12 +43,26 @@ const ServiceAreaGate = ({ children }) => {
             currentLocation?.suburb ||
             ''
         ).trim().toLowerCase();
+        const customerLat = Number(currentLocation?.latitude);
+        const customerLng = Number(currentLocation?.longitude);
+        const hasCustomerCoords = Number.isFinite(customerLat) && Number.isFinite(customerLng);
 
-        if (!pincode && !city) {
+        if (!pincode && !city && !hasCustomerCoords) {
             return { isServiced: true, hasActiveAreas: true };
         }
 
         const matched = activeAreas.some(area => {
+            // Radius match — what the admin's "Max Range" setting controls.
+            const areaLat = Number(area.latitude);
+            const areaLng = Number(area.longitude);
+            const radiusKm = Number(area.radiusKm) || 0;
+            if (hasCustomerCoords && radiusKm > 0 && Number.isFinite(areaLat) && Number.isFinite(areaLng)) {
+                const distanceMeters = haversineMeters(
+                    { lat: customerLat, lng: customerLng },
+                    { lat: areaLat, lng: areaLng },
+                );
+                if (distanceMeters != null && distanceMeters <= radiusKm * 1000) return true;
+            }
             // Pincode match
             if (pincode && area.pincode && area.pincode.trim() === pincode) return true;
             // Name match (case-insensitive substring both ways)

@@ -9,8 +9,8 @@ import { Search, MapPin, Navigation, Loader2 } from "lucide-react";
 import Modal from "./ui/Modal";
 import Button from "./ui/Button";
 import Input from "./ui/Input";
+import { GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_SCRIPT_ID } from "@/core/services/googleMapsLoader";
 
-const libraries = ["places"];
 const mapContainerStyle = {
   width: "100%",
   height: "340px",
@@ -72,7 +72,14 @@ const MapPicker = ({
   initialRadius = 5,
   maxRadius = 20,
   preferCurrentLocationOnOpen = false,
+  // "shop": original seller-onboarding picker — radius slider + circle overlay.
+  // "point": a single drop-off pin, no radius (delivery / rider drop location).
+  mode = "shop",
+  title,
+  searchPlaceholder,
+  confirmLabel = "Confirm Location",
 }) => {
+  const showRadius = mode === "shop";
   const [center, setCenter] = useState(initialLocation || defaultCenter);
   const [marker, setMarker] = useState(initialLocation);
   const [radius, setRadius] = useState(initialRadius);
@@ -94,9 +101,9 @@ const MapPicker = ({
   }, []);
 
   const { isLoaded, loadError } = useJsApiLoader({
-    id: "google-map-script",
+    id: GOOGLE_MAPS_SCRIPT_ID,
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
-    libraries,
+    libraries: GOOGLE_MAPS_LIBRARIES,
   });
 
   useEffect(() => {
@@ -208,14 +215,15 @@ const MapPicker = ({
   }, [clearCircleOverlay]);
 
   useEffect(() => {
+    if (!showRadius) return undefined;
     if (!isLoaded || !mapRef.current || !window.google?.maps) {
-      return;
+      return undefined;
     }
 
     clearCircleOverlay();
 
     if (!marker) {
-      return;
+      return undefined;
     }
 
     circleRef.current = new window.google.maps.Circle({
@@ -235,7 +243,7 @@ const MapPicker = ({
     return () => {
       clearCircleOverlay();
     };
-  }, [isLoaded, marker, radius, clearCircleOverlay]);
+  }, [showRadius, isLoaded, marker, radius, clearCircleOverlay]);
 
   const handleConfirm = async () => {
     if (!marker) {
@@ -256,7 +264,7 @@ const MapPicker = ({
 
       onConfirm({
         ...marker,
-        radius,
+        ...(showRadius ? { radius } : {}),
         address: result.formatted_address,
         ...extractAddressDetails(result),
       });
@@ -266,7 +274,7 @@ const MapPicker = ({
       // Fallback: confirm without address
       onConfirm({
         ...marker,
-        radius,
+        ...(showRadius ? { radius } : {}),
         address: address || "Custom Location",
       });
       onClose();
@@ -289,7 +297,7 @@ const MapPicker = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Select Shop Location"
+      title={title || "Select Shop Location"}
       size="md"
       footer={
         <div className="flex justify-between w-full items-center">
@@ -306,7 +314,7 @@ const MapPicker = ({
               {isGeocoding ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
               ) : null}
-              Confirm Location
+              {confirmLabel}
             </Button>
           </div>
         </div>
@@ -325,7 +333,7 @@ const MapPicker = ({
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
-                    placeholder="Search for your shop area..."
+                    placeholder={searchPlaceholder || "Search for your shop area..."}
                     className="pl-10"
                   />
                 </div>
@@ -340,6 +348,12 @@ const MapPicker = ({
             <Navigation className="w-4 h-4" />
           </Button>
         </div>
+        {mode === "point" && (
+          <p className="text-xs text-gray-500 flex items-start gap-1.5 -mt-1">
+            <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-primary" />
+            Drag the pin, search, or tap <Navigation className="w-3 h-3 inline mx-0.5" /> to use your current location.
+          </p>
+        )}
 
         <div className="rounded-xl overflow-hidden border border-gray-200 shadow-inner relative">
           {!isLoaded ? (
@@ -373,32 +387,34 @@ const MapPicker = ({
           )}
         </div>
 
-        <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-          <div className="flex justify-between items-center">
-            <label className="text-sm font-medium text-gray-700">
-              Service Radius (km)
-            </label>
-            <span className="text-sm font-bold text-primary">{radius} km</span>
+        {showRadius && (
+          <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-medium text-gray-700">
+                Service Radius (km)
+              </label>
+              <span className="text-sm font-bold text-primary">{radius} km</span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max={maxRadius}
+              step="1"
+              value={radius}
+              onChange={(e) => setRadius(Number(e.target.value))}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+            />
+            <div className="flex justify-between text-[10px] text-gray-400">
+              <span>1 km</span>
+              <span>{maxRadius} km</span>
+            </div>
+            <p className="text-xs text-gray-500 flex items-start gap-1">
+              <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
+              Customers within this radius from your shop will be able to see and
+              order from you.
+            </p>
           </div>
-          <input
-            type="range"
-            min="1"
-            max={maxRadius}
-            step="1"
-            value={radius}
-            onChange={(e) => setRadius(Number(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
-          />
-          <div className="flex justify-between text-[10px] text-gray-400">
-            <span>1 km</span>
-            <span>{maxRadius} km</span>
-          </div>
-          <p className="text-xs text-gray-500 flex items-start gap-1">
-            <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
-            Customers within this radius from your shop will be able to see and
-            order from you.
-          </p>
-        </div>
+        )}
       </div>
     </Modal>
   );

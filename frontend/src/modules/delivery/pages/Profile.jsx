@@ -24,6 +24,7 @@ import { useAuth } from "@core/context/AuthContext";
 import { useSettings } from "@core/context/SettingsContext";
 import axiosInstance from '@core/api/axios';
 import { useEffect } from 'react';
+import { deliveryApi } from "../services/deliveryApi";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -31,6 +32,8 @@ const Profile = () => {
   const { settings } = useSettings();
   const appName = settings?.appName || "App";
   const [faqs, setFaqs] = useState([]);
+  const [rider, setRider] = useState(null);
+  const [tripsCompleted, setTripsCompleted] = useState(null);
 
   useEffect(() => {
     const fetchFaqs = async () => {
@@ -43,6 +46,26 @@ const Profile = () => {
     };
     fetchFaqs();
   }, []);
+
+  useEffect(() => {
+    deliveryApi
+      .getProfile()
+      .then((res) => {
+        if (res.data?.success) setRider(res.data.result);
+      })
+      .catch((error) => console.error("Error fetching rider profile:", error));
+    deliveryApi
+      .getStats()
+      .then((res) => {
+        if (res.data?.success) setTripsCompleted(res.data.result?.deliveries ?? 0);
+      })
+      .catch((error) => console.error("Error fetching rider stats:", error));
+  }, []);
+
+  const joinedLabel = rider?.createdAt
+    ? new Date(rider.createdAt).toLocaleDateString("en-IN", { month: "short", year: "2-digit" })
+    : "—";
+  const ratingLabel = typeof rider?.rating === "number" ? rider.rating.toFixed(1) : "5.0";
 
   const menuItems = [
     {
@@ -143,17 +166,19 @@ const Profile = () => {
             <div className="absolute bottom-0 right-0 w-6 h-6 bg-brand-500 border-2 border-white rounded-full"></div>
           </div>
           <div className="text-white">
-            <h2 className="font-bold text-xl">Rahul Kumar</h2>
+            <h2 className="font-bold text-xl">{rider?.name || "..."}</h2>
             <p className="text-white/80 text-sm flex items-center mb-1">
-              <Phone size={14} className="mr-1" /> +91 98765 43210
+              <Phone size={14} className="mr-1" /> {rider?.phone || "—"}
             </p>
             <div className="flex items-center space-x-2">
               <span className="bg-white/20 px-2 py-0.5 rounded text-xs font-medium backdrop-blur-sm">
-                ID: 882190
+                ID: {rider?._id ? String(rider._id).slice(-6).toUpperCase() : "—"}
               </span>
-              <span className="bg-brand-500 text-primary-foreground px-2 py-0.5 rounded text-xs font-bold shadow-sm">
-                VERIFIED
-              </span>
+              {rider?.isVerified && (
+                <span className="bg-brand-500 text-primary-foreground px-2 py-0.5 rounded text-xs font-bold shadow-sm">
+                  VERIFIED
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -169,14 +194,14 @@ const Profile = () => {
           <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">
             Joined
           </p>
-          <p className="font-bold text-gray-900 text-lg">Jan '24</p>
+          <p className="font-bold text-gray-900 text-lg">{joinedLabel}</p>
         </div>
         <div className="w-px bg-gray-100"></div>
         <div className="flex-1">
           <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">
             Trips
           </p>
-          <p className="font-bold text-gray-900 text-lg">1,240</p>
+          <p className="font-bold text-gray-900 text-lg">{tripsCompleted ?? "—"}</p>
         </div>
         <div className="w-px bg-gray-100"></div>
         <div className="flex-1">
@@ -184,7 +209,7 @@ const Profile = () => {
             Rating
           </p>
           <p className="font-bold text-gray-900 text-lg flex justify-center items-center">
-            4.8 <span className="text-yellow-400 text-sm ml-1">★</span>
+            {ratingLabel} <span className="text-yellow-400 text-sm ml-1">★</span>
           </p>
         </div>
       </motion.div>

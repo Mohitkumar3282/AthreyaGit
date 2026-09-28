@@ -252,15 +252,13 @@ const MainLocationHeader = ({
     isPaused: false,
   });
 
+  // Lead with the customer's chosen area — see Home.jsx for why this can't be a
+  // real nearby store's own name, which may itself be named after another town.
   const typingPhrases = React.useMemo(() => {
-    if (nearbyStores.length > 0) {
-      return nearbyStores.map(name => `"${name}"`);
-    }
     const area = getAreaName(currentLocation);
-    if (area && area !== "Select Location") {
-      return [`"${area} stores"`, '"groceries"', '"supermarket"', '"bakery"'];
-    }
-    return ['"nearby stores"', '"groceries"', '"supermarket"', '"bakery"'];
+    const areaPhrase = area && area !== "Select Location" ? `"${area} stores"` : '"nearby stores"';
+    const storePhrases = nearbyStores.slice(0, 4).map(name => `"${name}"`);
+    return [areaPhrase, ...storePhrases, '"groceries"', '"supermarket"', '"bakery"'];
   }, [nearbyStores, currentLocation]);
 
   useEffect(() => {

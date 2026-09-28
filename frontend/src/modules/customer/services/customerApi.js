@@ -108,6 +108,8 @@ export const customerApi = {
     axiosInstance.get(`/orders/workflow/${orderId}/route`, { params }),
   cancelOrder: (orderId, data) =>
     axiosInstance.put(`/orders/cancel/${orderId}`, data),
+  rateRider: (orderId, data) =>
+    axiosInstance.post(`/orders/${orderId}/rate-rider`, data),
   requestReturn: (orderId, data) =>
     axiosInstance.post(`/orders/${orderId}/returns`, data),
   getReturnDetails: (orderId) =>
