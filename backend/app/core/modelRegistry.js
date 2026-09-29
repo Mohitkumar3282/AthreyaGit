@@ -73,6 +73,7 @@ import "../models/setting.js";
 // Read-optimized / cache models
 import "../models/dashboardStats.js";
 import "../models/geocodeCache.js";
+import "../models/translationCache.js";
 import "../models/mediaMetadata.js";
 import "../models/notification.js";
 import "../models/searchIndexFailure.js";
@@ -148,6 +149,7 @@ export const REQUIRED_MODELS = Object.freeze([
 
   // Read-optimized / cache
   "GeocodeCache",
+  "TranslationCache",
   "StockHistory",
   "DashboardStats",
   "SellerMetrics",

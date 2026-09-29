@@ -14,6 +14,9 @@ import { customerApi } from '../services/customerApi';
 import MiniCart from '../components/shared/MiniCart';
 import { useLocation as useAppLocation } from '../context/LocationContext';
 import { useSettings } from '@core/context/SettingsContext';
+import { useLanguage } from '@core/context/LanguageContext';
+import { LANGUAGES } from '@core/i18n/dictionary';
+import LanguagePicker from '@shared/components/LanguagePicker';
 import { getTeluguCategoryName } from '@shared/utils/categoryTranslations';
 import LogoTransparent from '@/assets/LogoTransparent.png';
 import LogoWhiteBike from '@/assets/LogoWhiteBike.png';
@@ -27,6 +30,7 @@ const CategoryProductsPage = () => {
     const { currentLocation } = useAppLocation();
     const { settings } = useSettings();
     const { cartCount } = useCart();
+    const { language } = useLanguage();
     const initialSubcategoryId = location.state?.activeSubcategoryId || 'all';
     const { isOpen: isProductDetailOpen } = useProductDetail();
     
@@ -297,13 +301,26 @@ const CategoryProductsPage = () => {
 
                     {/* Language & Cart */}
                     <div className="flex items-center gap-3.5 shrink-0 ml-2">
-                        {/* Language Selector */}
-                        <button className="flex flex-col items-center justify-center text-white bg-transparent border-0 p-0 cursor-pointer hover:opacity-80">
-                            <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/20">
-                                <span className="text-xs">🌐</span>
-                            </div>
-                            <span className="text-[9px] font-black text-slate-300 mt-1">భాష</span>
-                        </button>
+                        {/* Language Selector — opens a dropdown of supported languages */}
+                        <LanguagePicker
+                            renderTrigger={({ toggle, open }) => (
+                                <button
+                                    onClick={toggle}
+                                    title="Change language"
+                                    className="flex flex-col items-center justify-center text-white bg-transparent border-0 p-0 cursor-pointer hover:opacity-80"
+                                >
+                                    <div className={cn(
+                                        "w-8 h-8 rounded-lg flex items-center justify-center border transition-colors",
+                                        open || language !== "en" ? "bg-[#A3E635] border-[#A3E635]" : "bg-white/10 border-white/20"
+                                    )}>
+                                        <span className="text-xs">🌐</span>
+                                    </div>
+                                    <span className="text-[9px] font-black text-slate-300 mt-1">
+                                        {LANGUAGES.find((l) => l.code === language)?.code.toUpperCase() || "EN"}
+                                    </span>
+                                </button>
+                            )}
+                        />
 
                         {/* Cart Badge */}
                         <button 

@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Clock } from "lucide-react";
 
 import { useProductDetail } from "../../context/ProductDetailContext";
+import Translated from "@shared/components/Translated";
 
 const ProductCard = React.memo(
   ({ product, badge, className, compact = false, neutralBg = false }) => {
@@ -267,13 +268,14 @@ const ProductCard = React.memo(
           </div>
 
           <div className={cn(compact ? "h-8" : "h-8 sm:h-9")}>
-            <h4
+            <Translated
+              as="h4"
+              text={product.name}
               className={cn(
                 "font-[600] text-[#1A1A1A] leading-tight line-clamp-2",
                 compact ? "text-[10.5px]" : "text-[12px] sm:text-[13px]",
-              )}>
-              {product.name}
-            </h4>
+              )}
+            />
           </div>
 
 

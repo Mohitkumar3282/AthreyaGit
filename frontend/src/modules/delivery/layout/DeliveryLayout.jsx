@@ -33,6 +33,10 @@ import {
 import { createSocketTokenReader } from "@core/utils/authStorage";
 import { STORAGE_KEYS } from "@core/utils/storage";
 import orderAlertSound from "@/assets/sounds/order_alert.mp3";
+import { useLanguage } from "@core/context/LanguageContext";
+import { LANGUAGES } from "@core/i18n/dictionary";
+import LanguagePicker from "@shared/components/LanguagePicker";
+import { Languages } from "lucide-react";
 
 const getDeliveryToken = createSocketTokenReader(STORAGE_KEYS.AUTH_DELIVERY);
 
@@ -73,6 +77,7 @@ const DeliveryLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { language } = useLanguage();
 
   const [activeOrder, setActiveOrder] = useState(null);
   const [timeLeft, setTimeLeft] = useState(60);
@@ -1061,6 +1066,26 @@ const DeliveryLayout = () => {
           </AnimatePresence>,
           document.body,
         )}
+
+      {shouldShowBottomNav && (
+        <div className="fixed top-3 right-3 z-[300]">
+          <LanguagePicker
+            renderTrigger={({ toggle }) => (
+              <button
+                type="button"
+                onClick={toggle}
+                title="Change language"
+                className="flex items-center gap-1 bg-white/95 backdrop-blur-sm border border-gray-200 shadow-md rounded-full px-2.5 py-1.5 text-gray-700 active:scale-95 transition-transform"
+              >
+                <Languages className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-black">
+                  {LANGUAGES.find((l) => l.code === language)?.code.toUpperCase() || "EN"}
+                </span>
+              </button>
+            )}
+          />
+        </div>
+      )}
 
       <main
         className={`h-full min-h-screen overflow-y-auto ${shouldShowBottomNav ? "pb-24" : ""} no-scrollbar`}>

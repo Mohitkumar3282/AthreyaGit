@@ -2,6 +2,7 @@ import { Suspense, useState } from 'react';
 import AppRouter from '@core/routes/AppRouter';
 import { AuthProvider } from '@core/context/AuthContext';
 import { SettingsProvider } from '@core/context/SettingsContext';
+import { LanguageProvider } from '@core/context/LanguageContext';
 import { SupportUnreadProvider } from '@core/context/SupportUnreadContext';
 import SeoHead from '@core/components/SeoHead';
 import { ToastProvider } from './shared/components/ui/Toast';
@@ -15,22 +16,24 @@ function App() {
 
     return (
         <ErrorBoundary>
-            <AuthProvider>
-                <SettingsProvider>
-                    <SeoHead />
-                    <ToastProvider>
-                        <Suspense fallback={<Loader fullScreen />}>
-                            <SupportUnreadProvider>
-                                <LenisScroll />
-                                <AppRouter />
-                                {showSplash && (
-                                    <SplashScreen onFinished={() => setShowSplash(false)} />
-                                )}
-                            </SupportUnreadProvider>
-                        </Suspense>
-                    </ToastProvider>
-                </SettingsProvider>
-            </AuthProvider>
+            <LanguageProvider>
+                <AuthProvider>
+                    <SettingsProvider>
+                        <SeoHead />
+                        <ToastProvider>
+                            <Suspense fallback={<Loader fullScreen />}>
+                                <SupportUnreadProvider>
+                                    <LenisScroll />
+                                    <AppRouter />
+                                    {showSplash && (
+                                        <SplashScreen onFinished={() => setShowSplash(false)} />
+                                    )}
+                                </SupportUnreadProvider>
+                            </Suspense>
+                        </ToastProvider>
+                    </SettingsProvider>
+                </AuthProvider>
+            </LanguageProvider>
         </ErrorBoundary>
     );
 }

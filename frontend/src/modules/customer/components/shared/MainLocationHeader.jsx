@@ -7,6 +7,9 @@ import LocationDrawer from "./LocationDrawer";
 import { useLocation } from "../../context/LocationContext";
 import { useProductDetail } from "../../context/ProductDetailContext";
 import { useSettings } from "@core/context/SettingsContext";
+import { useLanguage } from "@core/context/LanguageContext";
+import { LANGUAGES } from "@core/i18n/dictionary";
+import LanguagePicker from "@shared/components/LanguagePicker";
 import { useCart } from "../../context/CartContext";
 import { cn } from "@/lib/utils";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
@@ -199,6 +202,7 @@ const MainLocationHeader = ({
   const [isLocationOpen, setIsLocationOpen] = useState(false);
   const [cartAnimData, setCartAnimData] = useState(null);
   const { cartCount } = useCart();
+  const { language } = useLanguage();
 
   // Dynamically load shopping-cart Lottie on mount
   useEffect(() => {
@@ -539,13 +543,26 @@ const MainLocationHeader = ({
  
                 {/* Language & Cart */}
                 <div className="flex items-center gap-2.5 shrink-0 ml-2">
-                  {/* Language Selector */}
-                  <button className="flex flex-col items-center justify-center text-white bg-transparent border-0 p-0 cursor-pointer hover:opacity-80">
-                    <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center border border-white/25">
-                      <Languages size={15} />
-                    </div>
-                    <span className="text-[8px] font-black text-slate-300 mt-0.5">భాష</span>
-                  </button>
+                  {/* Language Selector — opens a dropdown of supported languages */}
+                  <LanguagePicker
+                    renderTrigger={({ toggle, open }) => (
+                      <button
+                        onClick={toggle}
+                        title="Change language"
+                        className="flex flex-col items-center justify-center text-white bg-transparent border-0 p-0 cursor-pointer hover:opacity-80"
+                      >
+                        <div className={cn(
+                          "w-7 h-7 rounded-lg flex items-center justify-center border transition-colors",
+                          open || language !== "en" ? "bg-[#A3E635] border-[#A3E635] text-[#042A0F]" : "bg-white/10 border-white/25"
+                        )}>
+                          <Languages size={15} />
+                        </div>
+                        <span className="text-[8px] font-black text-slate-300 mt-0.5">
+                          {LANGUAGES.find((l) => l.code === language)?.code.toUpperCase() || "EN"}
+                        </span>
+                      </button>
+                    )}
+                  />
  
                   {/* Cart with badge */}
                   <button 

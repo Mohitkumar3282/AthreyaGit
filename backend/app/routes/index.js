@@ -19,6 +19,7 @@ import offerRoute from "./offerRoutes.js";
 import couponRoute from "./couponRoutes.js";
 import settingsRoute from "./settingsRoutes.js";
 import mapsRoute from "./mapsRoutes.js";
+import translateRoute from "./translateRoutes.js";
 import mediaRoute from "./mediaRoutes.js";
 import healthRoute from "./healthRoutes.js";
 import metricsRoute from "./metricsRoutes.js";
@@ -57,6 +58,7 @@ const setupRoutes = (app) => {
     router.use("/orders", orderRoute);
     router.use("/payments", paymentRoute);
     router.use("/maps", mapsRoute);
+    router.use("/translate", translateRoute);
     router.use("/media", mediaRoute);
     // experienceRoute, offerRoute, couponRoute are mounted at "/" intentionally:
     // each of these routers declares ABSOLUTE paths internally (e.g.

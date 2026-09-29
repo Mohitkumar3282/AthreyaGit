@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useSettings } from '@core/context/SettingsContext';
 import { useLocation as useCustomerLocation } from '../context/LocationContext';
 import { haversineMeters } from '@shared/utils/eta';
-import { MapPin, Rocket, RefreshCw } from 'lucide-react';
+import { MapPin, Rocket, RefreshCw, Search } from 'lucide-react';
+import LocationDrawer from './shared/LocationDrawer';
 
 /**
  * ServiceAreaGate
@@ -24,7 +25,8 @@ import { MapPin, Rocket, RefreshCw } from 'lucide-react';
  */
 const ServiceAreaGate = ({ children }) => {
     const { settings, loading: settingsLoading } = useSettings();
-    const { currentLocation, isFetchingLocation, fetchAndCacheLocation } = useCustomerLocation();
+    const { currentLocation, isFetchingLocation, refreshLocation } = useCustomerLocation();
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
     const { isServiced } = useMemo(() => {
         const areas = settings?.serviceAreas || [];
@@ -136,17 +138,26 @@ const ServiceAreaGate = ({ children }) => {
                 {/* Actions */}
                 <div className="space-y-3">
                     <button
-                        onClick={() => fetchAndCacheLocation?.()}
+                        onClick={() => refreshLocation?.()}
                         disabled={isFetchingLocation}
                         className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-[#A3E635] text-[#042A0F] rounded-2xl text-sm font-black uppercase tracking-wider active:scale-95 transition-all disabled:opacity-60"
                     >
                         <RefreshCw className={`h-4 w-4 ${isFetchingLocation ? 'animate-spin' : ''}`} />
                         {isFetchingLocation ? 'Detecting...' : 'Refresh My Location'}
                     </button>
+                    <button
+                        onClick={() => setIsDrawerOpen(true)}
+                        className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-white/10 border border-white/20 text-white rounded-2xl text-sm font-black uppercase tracking-wider active:scale-95 transition-all hover:bg-white/15"
+                    >
+                        <Search className="h-4 w-4" />
+                        Enter Pincode / Address
+                    </button>
                     <p className="text-white/40 text-xs font-semibold">
                         We are expanding fast — check back soon!
                     </p>
                 </div>
+
+                <LocationDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
 
                 {/* Rocket decoration */}
                 <div className="flex justify-center opacity-20 mt-4">

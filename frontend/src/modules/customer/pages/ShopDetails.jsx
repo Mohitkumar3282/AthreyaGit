@@ -11,6 +11,7 @@ import ProductCard from "../components/shared/ProductCard";
 import { useCart } from "../context/CartContext";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
 import SkeletonLoader from "../components/shared/SkeletonLoader";
+import Translated from "@shared/components/Translated";
 
 const SHOP_CATEGORIES = [
   "All", "Groceries", "Fruits & Vegetables", "Dairy & Milk", "Bakery",
@@ -302,9 +303,11 @@ const ShopDetails = () => {
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                  <h1 className="text-xl md:text-3xl font-black text-slate-900 tracking-tight leading-tight">
-                    {shop.shopName}
-                  </h1>
+                  <Translated
+                    as="h1"
+                    text={shop.shopName}
+                    className="text-xl md:text-3xl font-black text-slate-900 tracking-tight leading-tight"
+                  />
                   {shop.isVerified && (
                     <span className="inline-flex items-center gap-0.5 bg-blue-50 text-blue-600 font-extrabold text-[9px] px-1.5 py-0.5 rounded-full border border-blue-100 uppercase tracking-wider">
                       <ShieldCheck size={10} /> Verified

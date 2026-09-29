@@ -2,17 +2,19 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, LayoutGrid, ShoppingBag, User, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@core/context/LanguageContext';
 
 const navItems = [
-    { label: 'Home', teluguLabel: 'హోమ్', icon: Home, path: '/' },
-    { label: 'Wallet', teluguLabel: 'వాలెట్', icon: Wallet, path: '/wallet' },
-    { label: 'Category', teluguLabel: 'కేటగిరీలు', icon: LayoutGrid, path: '/categories' },
-    { label: 'Orders', teluguLabel: 'ఆర్డర్లు', icon: ShoppingBag, path: '/orders' },
-    { label: 'Profile', teluguLabel: 'ప్రొఫైల్', icon: User, path: '/profile' },
+    { key: 'home', label: 'Home', teluguLabel: 'హోమ్', icon: Home, path: '/' },
+    { key: 'wallet', label: 'Wallet', teluguLabel: 'వాలెట్', icon: Wallet, path: '/wallet' },
+    { key: 'category', label: 'Category', teluguLabel: 'కేటగిరీలు', icon: LayoutGrid, path: '/categories' },
+    { key: 'orders', label: 'Orders', teluguLabel: 'ఆర్డర్లు', icon: ShoppingBag, path: '/orders' },
+    { key: 'profile', label: 'Profile', teluguLabel: 'ప్రొఫైల్', icon: User, path: '/profile' },
 ];
 
 const BottomNav = () => {
     const location = useLocation();
+    const { isEnglish, t } = useLanguage();
     const path = location.pathname.replace(/\/$/, '') || '/';
     const isHome = path === '/';
     const isCategories = path === '/categories';
@@ -68,14 +70,14 @@ const BottomNav = () => {
                                 <span
                                     className={cn(
                                         "text-[10px] font-bold tracking-tight transition-all duration-300 leading-none",
-                                        isGreenTheme 
+                                        isGreenTheme
                                             ? (isActive ? "text-white" : "text-slate-400")
                                             : (isActive ? "text-[#1a6e2e]" : "text-gray-400")
                                     )}
                                 >
-                                    {item.label}
+                                    {isEnglish ? item.label : t(item.key, item.label)}
                                 </span>
-                                {isGreenTheme && (
+                                {isGreenTheme && isEnglish && (
                                     <span
                                         className={cn(
                                             "text-[9px] font-medium tracking-tight mt-0.5 leading-none transition-all duration-300",

@@ -5,7 +5,8 @@ import {
     HiOutlineUserCircle,
     HiOutlineBell,
     HiOutlineSearch,
-    HiOutlineMenu
+    HiOutlineMenu,
+    HiOutlineTranslate
 } from 'react-icons/hi';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -16,11 +17,15 @@ import NotificationPopup from './NotificationPopup';
 import { toast } from 'sonner';
 
 import { useSettings } from '@core/context/SettingsContext';
+import { useLanguage } from '@core/context/LanguageContext';
+import { LANGUAGES } from '@core/i18n/dictionary';
+import LanguagePicker from '@shared/components/LanguagePicker';
 import { onNotificationNew } from '@core/services/orderSocket';
 
 const Topbar = ({ onMenuClick }) => {
     const { user, logout, role, token } = useAuth();
     const { settings } = useSettings();
+    const { language } = useLanguage();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -241,6 +246,25 @@ const Topbar = ({ onMenuClick }) => {
                         </button>
                     </div>
                 )}
+                <LanguagePicker
+                    renderTrigger={({ toggle, open }) => (
+                        <button
+                            onClick={toggle}
+                            title="Change language"
+                            className={cn(
+                                "p-2 rounded-xl transition-all duration-300 flex items-center gap-1.5",
+                                open || language !== "en"
+                                    ? "bg-primary/10 text-primary"
+                                    : "hover:bg-primary/5 text-gray-500 hover:text-primary"
+                            )}
+                        >
+                            <HiOutlineTranslate className="h-5 w-5" />
+                            <span className="text-[10px] font-black hidden sm:inline">
+                                {LANGUAGES.find((l) => l.code === language)?.code.toUpperCase() || 'EN'}
+                            </span>
+                        </button>
+                    )}
+                />
                 <div className="relative" ref={notificationRef}>
                     <button
                         onClick={() => setShowNotifications(!showNotifications)}
