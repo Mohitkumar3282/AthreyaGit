@@ -235,10 +235,13 @@ const AdminSettings = () => {
             name: '',
             pincode: '',
             radiusKm: '',
+            latitude: null,
+            longitude: null,
             enabled: true,
             note: '',
         },
     });
+    const [savingArea, setSavingArea] = useState(false);
 
     const openAddArea = () => {
         setAreaModal({
@@ -249,6 +252,8 @@ const AdminSettings = () => {
                 name: '',
                 pincode: '',
                 radiusKm: '11',
+                latitude: null,
+                longitude: null,
                 enabled: true,
                 note: '',
             },
@@ -268,13 +273,19 @@ const AdminSettings = () => {
                 name: item.name || '',
                 pincode: item.pincode || '',
                 radiusKm: resolvedRadius,
+                latitude: Number.isFinite(item.latitude) ? item.latitude : null,
+                longitude: Number.isFinite(item.longitude) ? item.longitude : null,
                 enabled: item.enabled !== false,
                 note: item.note || '',
             },
         });
     };
 
-    const handleSaveArea = () => {
+    // The admin's "Max Range" radius is only ever enforced if we know WHERE
+    // to measure it from. Geocode the pincode/name into a center point here,
+    // on save, so ServiceAreaGate can do real distance matching instead of
+    // silently falling back to an exact pincode string match.
+    const handleSaveArea = async () => {
         const { form, editIndex } = areaModal;
         if (!form.name.trim() && !form.pincode.trim()) {
             showToast('Please enter an area name or pincode', 'error');
@@ -284,11 +295,36 @@ const AdminSettings = () => {
         const autoId = form.id.trim() || form.name.toLowerCase().replace(/[^a-z0-9]+/g, '_') || 'area_' + Date.now();
         const parsedRadius = Number(form.radiusKm) || (form.note?.match(/(\d+(?:\.\d+)?)\s*(?:km|kms)?/i)?.[1] ? Number(form.note.match(/(\d+(?:\.\d+)?)\s*(?:km|kms)?/i)[1]) : 0);
 
+        let latitude = Number.isFinite(form.latitude) ? form.latitude : null;
+        let longitude = Number.isFinite(form.longitude) ? form.longitude : null;
+
+        setSavingArea(true);
+        try {
+            const query = [form.name.trim(), form.pincode.trim(), 'India'].filter(Boolean).join(', ');
+            const res = await adminApi.geocodeAddress(query);
+            const location = res?.data?.result?.location;
+            if (Number.isFinite(location?.lat) && Number.isFinite(location?.lng)) {
+                latitude = location.lat;
+                longitude = location.lng;
+            } else if (latitude == null || longitude == null) {
+                showToast('Could not pinpoint this area on the map — radius matching may not work until it is re-saved with a valid pincode/name.', 'warning');
+            }
+        } catch (e) {
+            console.error('Failed to geocode service area:', e);
+            if (latitude == null || longitude == null) {
+                showToast('Could not pinpoint this area on the map — radius matching may not work until it is re-saved with a valid pincode/name.', 'warning');
+            }
+        } finally {
+            setSavingArea(false);
+        }
+
         const finalArea = {
             id: autoId,
             name: form.name.trim(),
             pincode: form.pincode.trim(),
             radiusKm: parsedRadius,
+            latitude,
+            longitude,
             enabled: form.enabled !== false,
             note: form.note.trim(),
         };
@@ -1450,10 +1486,18 @@ const AdminSettings = () => {
                                                                 </p>
                                                             )}
                                                             {(area.radiusKm > 0 || (area.note && area.note.match(/(\d+(?:\.\d+)?)\s*(?:km|kms)?/i))) && (
-                                                                <div className="mt-1 flex items-center gap-1">
+                                                                <div className="mt-1 flex items-center gap-1 flex-wrap">
                                                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-bold">
                                                                         🎯 Max Range: {area.radiusKm || area.note.match(/(\d+(?:\.\d+)?)\s*(?:km|kms)?/i)[1]} km
                                                                     </span>
+                                                                    {area.radiusKm > 0 && !(Number.isFinite(area.latitude) && Number.isFinite(area.longitude)) && (
+                                                                        <span
+                                                                            title="No map center saved for this area yet — the radius won't be enforced until you re-save it (Edit → Apply Changes)."
+                                                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold"
+                                                                        >
+                                                                            ⚠️ Not pinpointed — re-save to enforce
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                             )}
                                                             {area.note && (
@@ -1783,9 +1827,11 @@ const AdminSettings = () => {
                             <button
                                 type="button"
                                 onClick={handleSaveArea}
-                                className="px-5 py-2 bg-[#042A0F] hover:bg-[#063A16] text-[#A3E635] rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95"
+                                disabled={savingArea}
+                                className="px-5 py-2 bg-[#042A0F] hover:bg-[#063A16] text-[#A3E635] rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-60 inline-flex items-center gap-2"
                             >
-                                {areaModal.editIndex !== null ? 'Apply Changes' : 'Add Area'}
+                                {savingArea && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                {savingArea ? 'Locating...' : (areaModal.editIndex !== null ? 'Apply Changes' : 'Add Area')}
                             </button>
                         </div>
                     </div>

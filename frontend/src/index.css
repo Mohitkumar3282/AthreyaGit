@@ -579,3 +579,15 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/*
+  Google Places Autocomplete (`.pac-container`) is appended directly to
+  <body> by Google's own script, outside React's tree, so it can't inherit
+  z-index from whatever component rendered the search input. Our dialogs
+  (MapPicker's drop-location picker included) sit at `z-[600]` — higher than
+  Google's default — so the suggestion dropdown was rendering *behind* the
+  modal: the Autocomplete was working the whole time, just invisible.
+*/
+.pac-container {
+  z-index: 9999 !important;
+}
+
