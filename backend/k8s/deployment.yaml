@@ -250,7 +250,7 @@ spec:
         - name: AUTO_CANCEL_INTERVAL_MS
           value: "10000"
         - name: PAYOUT_BATCH_INTERVAL_MS
-          value: "900000"
+          value: "86400000"
         - name: ENABLE_PAYOUT_BATCH_JOB
           value: "true"
         resources:

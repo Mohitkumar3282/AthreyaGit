@@ -23,6 +23,7 @@ import {
     getPendingSellers,
     approveSellerApplication,
     rejectSellerApplication,
+    deleteSellerByAdmin,
     getSellerWithdrawals,
     getDeliveryWithdrawals,
     updateWithdrawalStatus,
@@ -162,6 +163,7 @@ router.get("/sellers/pending", verifyToken, allowRoles("admin"), getPendingSelle
 router.get("/sellers/:id", verifyToken, allowRoles("admin"), getSellerById);
 router.put("/sellers/:id", verifyToken, allowRoles("admin"), updateSellerByAdmin);
 router.patch("/sellers/approve/:id", verifyToken, allowRoles("admin"), approveSellerApplication);
+router.delete("/sellers/:id", verifyToken, allowRoles("admin"), deleteSellerByAdmin);
 router.delete("/sellers/reject/:id", verifyToken, allowRoles("admin"), rejectSellerApplication);
 
 router.get(

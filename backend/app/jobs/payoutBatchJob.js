@@ -2,7 +2,7 @@ import { bulkProcessPayouts } from "../services/finance/payoutService.js";
 import logger from "../services/logger.js";
 
 const PAYOUT_BATCH_INTERVAL_MS = () =>
-  parseInt(process.env.PAYOUT_BATCH_INTERVAL_MS || "900000", 10);
+  parseInt(process.env.PAYOUT_BATCH_INTERVAL_MS || "86400000", 10);
 
 /**
  * Payout batch job handler
@@ -12,10 +12,21 @@ const payoutBatchJobHandler = async () => {
   const startTime = Date.now();
   
   try {
-    const result = await bulkProcessPayouts({
-      limit: parseInt(process.env.PAYOUT_BATCH_LIMIT || "25", 10),
-      remarks: "Auto-batch payout job",
-    });
+    // Daily settlement: payouts are already net of the agreed commission
+    // (paymentBreakdown.sellerPayoutTotal), so drain every eligible payout
+    // in batches and credit the remainder to the seller wallet.
+    const batchLimit = parseInt(process.env.PAYOUT_BATCH_LIMIT || "200", 10);
+    const result = { total: 0, completed: 0, failed: 0 };
+    for (let round = 0; round < 100; round += 1) {
+      const batch = await bulkProcessPayouts({
+        limit: batchLimit,
+        remarks: "Daily settlement (net of commission)",
+      });
+      result.total += batch.total;
+      result.completed += batch.completed;
+      result.failed += batch.failed;
+      if (batch.completed === 0) break;
+    }
     
     const duration = Date.now() - startTime;
     
@@ -46,7 +57,7 @@ const payoutBatchJobHandler = async () => {
 export default function startPayoutBatchJob() {
   // This function is now a no-op - the distributed scheduler handles registration
   // Kept for backward compatibility
-  if (process.env.ENABLE_PAYOUT_BATCH_JOB !== "true") {
+  if (!isPayoutBatchJobEnabled()) {
     return;
   }
   logger.warn('startPayoutBatchJob called directly - use distributed scheduler instead');
@@ -68,4 +79,5 @@ export const getPayoutBatchJobInterval = () => PAYOUT_BATCH_INTERVAL_MS();
  * Check if payout batch job is enabled
  * @returns {boolean}
  */
-export const isPayoutBatchJobEnabled = () => process.env.ENABLE_PAYOUT_BATCH_JOB === "true";
+// On by default so settlement runs every 24h; set ENABLE_PAYOUT_BATCH_JOB=false to disable.
+export const isPayoutBatchJobEnabled = () => process.env.ENABLE_PAYOUT_BATCH_JOB !== "false";

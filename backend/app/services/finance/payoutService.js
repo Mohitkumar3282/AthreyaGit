@@ -311,6 +311,15 @@ export const bulkProcessPayouts = async ({
       status: { $in: [PAYOUT_STATUS.PENDING, PAYOUT_STATUS.PROCESSING] },
     };
     if (payoutType) query.payoutType = payoutType;
+
+    // Automatic runs must not release payouts still inside the return window;
+    // returnWindowReleaseJob releases those once the window expires.
+    const heldOrders = await Order.find({ "settlementStatus.sellerPayout": "HOLD" })
+      .select("_id")
+      .lean();
+    if (heldOrders.length > 0) {
+      query.relatedOrderIds = { $nin: heldOrders.map((o) => o._id) };
+    }
     const list = await Payout.find(query)
       .sort({ createdAt: 1 })
       .limit(Math.max(Math.min(Number(limit) || 50, 200), 1))
