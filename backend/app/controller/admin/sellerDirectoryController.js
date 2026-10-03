@@ -203,3 +203,34 @@ export const updateSellerByAdmin = async (req, res) => {
     return handleResponse(res, 500, error.message);
   }
 };
+
+export const deleteSellerByAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const seller = await Seller.findById(id).select("_id");
+    if (!seller) {
+      return handleResponse(res, 404, "Seller not found");
+    }
+
+    // Orders still in flight would be orphaned - make the admin resolve them first.
+    const openOrders = await Order.countDocuments({
+      seller: seller._id,
+      status: { $in: ["pending", "confirmed", "packed", "out_for_delivery"] },
+    });
+    if (openOrders > 0) {
+      return handleResponse(
+        res,
+        409,
+        `Seller has ${openOrders} open order(s). Complete or cancel them before deleting.`,
+      );
+    }
+
+    // Orders, payouts and ledger entries are kept for financial records.
+    await Product.deleteMany({ sellerId: seller._id });
+    await Seller.deleteOne({ _id: seller._id });
+
+    return handleResponse(res, 200, "Seller deleted permanently");
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};

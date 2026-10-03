@@ -19,6 +19,7 @@ import {
   HiOutlineCheckCircle,
   HiOutlineXCircle,
   HiOutlineEllipsisVertical,
+  HiOutlineTrash,
 } from "react-icons/hi2";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -137,6 +138,17 @@ const ActiveSellers = () => {
       setRefreshTick(val => val + 1);
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to approve seller");
+    }
+  };
+
+  const handleDeleteSeller = async (seller) => {
+    if (!window.confirm(`Permanently delete "${seller.shopName || seller.name}" and all their products? This cannot be undone.`)) return;
+    try {
+      await adminApi.deleteSeller(seller.id || seller._id);
+      toast.success("Seller deleted permanently");
+      setRefreshTick(val => val + 1);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to delete seller");
     }
   };
 
@@ -584,6 +596,16 @@ const ActiveSellers = () => {
                               >
                                 <HiOutlineEye className="h-4 w-4 text-slate-400" />
                                 View Details
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleDeleteSeller(seller);
+                                  setActiveDropdownId(null);
+                                }}
+                                className="w-full px-3 py-2.5 text-left text-xs font-bold text-rose-700 hover:bg-rose-50 rounded-xl transition-all flex items-center gap-2"
+                              >
+                                <HiOutlineTrash className="h-4 w-4 text-rose-500" />
+                                Delete Seller
                               </button>
                             </motion.div>
                           )}

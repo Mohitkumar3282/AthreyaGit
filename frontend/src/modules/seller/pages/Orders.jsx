@@ -42,8 +42,7 @@ const Orders = () => {
     const [orders, setOrders] = useState([]);
     const [summary, setSummary] = useState({
         totalOrders: 0,
-        totalAmount: 0,
-        pending: 0,
+                pending: 0,
         confirmed: 0,
         packed: 0,
         outForDelivery: 0,
@@ -115,23 +114,16 @@ const Orders = () => {
             const formattedOrders = (rawOrders || []).map(order => ({
                 id: order.orderId,
                 _id: order._id,
-                customer: {
-                    name: order.customer?.name || 'Unknown',
-                    phone: order.customer?.phone || '',
-                    avatar: (order.customer?.name || 'U').charAt(0)
-                },
                 orderType: order.orderType || 'regular',
                 parcelDetails: order.parcelDetails || '',
                 parcelImage: order.parcelImage || '',
                 pickupType: order.pickupType || '',
-                billAmount: order.billAmount || 0,
                 items: (order.items || []).map(item => ({
                     name: item.name,
                     price: item.price,
                     qty: item.quantity,
                     image: item.image
                 })),
-                total: order.pricing?.total || 0,
                 status: getLegacyStatusFromOrder(order),
                 workflowStatus: order.workflowStatus,
                 workflowVersion: order.workflowVersion,
@@ -141,19 +133,11 @@ const Orders = () => {
                 time: order.createdAt
                     ? new Date(order.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
                     : '',
-                address: order.address
-                    ? `${order.address.address || ''}, ${order.address.city || ''}`.trim()
-                    : '',
-                location: order.address?.location || null,
-                payment: order.payment?.method === 'cash' || order.payment?.method === 'cod'
-                    ? 'Cash on Delivery'
-                    : 'Online Paid'
             }));
 
             setOrders(formattedOrders);
             setSummary({
                 totalOrders: Number(payload.summary?.totalOrders || payload.total || formattedOrders.length || 0),
-                totalAmount: Number(payload.summary?.totalAmount || 0),
                 pending: Number(payload.summary?.pending || 0),
                 confirmed: Number(payload.summary?.confirmed || 0),
                 packed: Number(payload.summary?.packed || 0),
@@ -188,8 +172,7 @@ const Orders = () => {
 
     const filteredOrders = useMemo(() => {
         return safeOrders.filter(order => {
-            const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                order.customer.name.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase());
             const statusToMatch = activeTab === 'Out for Delivery' ? 'out_for_delivery' : activeTab.toLowerCase();
             const matchesTab = activeTab === 'All' || order.status.toLowerCase() === statusToMatch;
             return matchesSearch && matchesTab;
@@ -271,17 +254,13 @@ const Orders = () => {
             const s = String(v ?? "").replace(/"/g, '""');
             return /[",\n\r]/.test(s) ? `"${s}"` : s;
         };
-        const headers = ["Order ID", "Customer", "Phone", "Date", "Time", "Total (₹)", "Status", "Address", "Payment"];
+        const headers = ["Order ID", "Date", "Time", "Status", "Items (name x qty @ price)"];
         const rows = data.map((o) => [
             o.id,
-            o.customer?.name ?? "",
-            o.customer?.phone ?? "",
             o.date,
             o.time,
-            o.total,
             o.status,
-            o.address ?? "",
-            o.payment ?? "",
+            (o.items || []).map((it) => `${it.name} x${it.qty} @ ₹${it.price}`).join("; "),
         ]);
         const csvContent = [
             headers.map(escapeCsv).join(","),
@@ -398,7 +377,7 @@ const Orders = () => {
                                         type="text"
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        placeholder="Search by Order ID or Customer Name..."
+                                        placeholder="Search by Order ID..."
                                         className="w-full pl-10 pr-4 py-2.5 bg-slate-100/50 border-none rounded-lg text-sm font-semibold text-slate-700 placeholder:text-slate-500 focus:ring-2 focus:ring-primary/5 transition-all outline-none"
                                     />
                                 </div>
@@ -503,13 +482,7 @@ const Orders = () => {
                                                         <HiOutlineCalendarDays className="h-3 w-3 shrink-0" />
                                                         {order.date} • {order.time}
                                                     </p>
-                                                    <div className="flex items-center gap-2 mt-2">
-                                                        <div className="h-7 w-7 rounded-full bg-slate-900 flex items-center justify-center text-[10px] font-black text-white shrink-0">
-                                                            {order.customer.avatar}
-                                                        </div>
-                                                        <p className="text-xs font-bold text-slate-800 truncate">{order.customer.name}</p>
-                                                    </div>
-                                                    <p className="text-sm font-black text-slate-900 mt-2">₹{order.total.toLocaleString()}</p>
+                                                    <p className="text-xs font-semibold text-slate-600 mt-2">{order.items.length} items</p>
                                                 </div>
                                                 <div className="flex flex-col items-end gap-2 shrink-0">
                                                     <Badge variant={getStatusColor(order.status)} className="text-[10px] font-black uppercase px-2 py-0">
@@ -553,8 +526,7 @@ const Orders = () => {
                                     <thead>
                                         <tr className="bg-slate-50/50 border-b border-slate-100">
                                             <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-600 uppercase tracking-widest">Order Details</th>
-                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-600 uppercase tracking-widest">Customer</th>
-                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-600 uppercase tracking-widest">Total</th>
+                                            <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-600 uppercase tracking-widest">Items</th>
                                             <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-600 uppercase tracking-widest">Status</th>
                                             <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-bold text-slate-600 uppercase tracking-widest text-right">Actions</th>
                                         </tr>
@@ -584,19 +556,7 @@ const Orders = () => {
                                                         </div>
                                                     </td>
                                                     <td className="px-4 lg:px-6 py-3 lg:py-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="h-8 w-8 rounded-full bg-slate-900 flex items-center justify-center text-[10px] font-black text-white shadow-sm ring-2 ring-white">
-                                                                {order.customer.avatar}
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-xs font-bold text-slate-900">{order.customer.name}</p>
-                                                                <p className="text-xs font-semibold text-slate-600">{order.customer.phone}</p>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 lg:px-6 py-3 lg:py-4">
                                                         <div className="flex flex-col">
-                                                            <span className="text-xs font-bold text-slate-900">₹{order.total.toLocaleString()}</span>
                                                             <span className="text-xs font-semibold text-slate-600">{order.items.length} items</span>
                                                         </div>
                                                     </td>
@@ -738,17 +698,14 @@ const Orders = () => {
                                         </button>
                                     </div>
 
-                                    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-                                        {/* Summary Grid */}
-                                        <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                                            <div className="p-3 sm:p-4 rounded-2xl bg-brand-50 border border-brand-100">
-                                                <p className="text-[10px] sm:text-xs font-bold text-brand-400 uppercase tracking-widest mb-1">Total Revenue</p>
-                                                <p className="text-base sm:text-xl font-black text-brand-700 truncate">₹{summary.totalAmount.toLocaleString('en-IN')}</p>
-                                            </div>
-                                            <div className="p-3 sm:p-4 rounded-2xl bg-brand-50 border border-brand-100">
-                                                <p className="text-[10px] sm:text-xs font-bold text-brand-400 uppercase tracking-widest mb-1">Avg. Order Value</p>
-                                                <p className="text-base sm:text-xl font-black text-brand-700">₹{summary.totalOrders ? (summary.totalAmount / summary.totalOrders).toFixed(0) : '0'}</p>
-                                            </div>
+                                    <div className="p-4 sm:p-6 grid grid-cols-2 gap-3 sm:gap-4">
+                                        <div className="p-3 sm:p-4 rounded-2xl bg-brand-50 border border-brand-100">
+                                            <p className="text-[10px] sm:text-xs font-bold text-brand-400 uppercase tracking-widest mb-1">Total Orders</p>
+                                            <p className="text-base sm:text-xl font-black text-brand-700">{summary.totalOrders}</p>
+                                        </div>
+                                        <div className="p-3 sm:p-4 rounded-2xl bg-brand-50 border border-brand-100">
+                                            <p className="text-[10px] sm:text-xs font-bold text-brand-400 uppercase tracking-widest mb-1">Active Orders</p>
+                                            <p className="text-base sm:text-xl font-black text-brand-700">{summary.activeOrders}</p>
                                         </div>
                                     </div>
 
@@ -816,74 +773,6 @@ const Orders = () => {
                                     </div>
 
                                     <div className="px-4 py-4 sm:px-6 sm:py-5 overflow-y-auto scrollbar-hide flex-1">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
-                                            <div className="space-y-3 sm:space-y-4">
-                                                <div>
-                                                    <div className="flex items-center justify-between gap-2 mb-2">
-                                                        <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
-                                                            <HiOutlineMapPin className="h-3 w-3 text-primary" /> Delivery Address
-                                                        </h4>
-                                                        {selectedOrder.location &&
-                                                            typeof selectedOrder.location.lat === "number" &&
-                                                            typeof selectedOrder.location.lng === "number" && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const { lat, lng } = selectedOrder.location;
-                                                                        window.open(
-                                                                            `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
-                                                                            "_blank",
-                                                                        );
-                                                                    }}
-                                                                    className="text-[10px] font-bold text-primary hover:underline"
-                                                                >
-                                                                    View on map
-                                                                </button>
-                                                            )}
-                                                    </div>
-                                                    <p className="text-xs font-bold text-slate-800 leading-relaxed bg-slate-50 p-3 rounded-2xl border border-slate-100 shadow-sm">
-                                                        {selectedOrder.address}
-                                                    </p>
-                                                </div>
-                                                <div>
-                                                    <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-2 flex items-center gap-2">
-                                                        <HiOutlinePhone className="h-3 w-3 text-brand-500" /> Contact Info
-                                                    </h4>
-                                                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 shadow-sm">
-                                                        <p className="text-xs font-bold text-slate-800">{selectedOrder.customer.name}</p>
-                                                        <p className="text-xs font-semibold text-slate-600 mt-0.5">{selectedOrder.customer.phone}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="space-y-3 sm:space-y-4">
-                                                <div className="bg-primary/5 p-3 sm:p-4 rounded-3xl border border-primary/10">
-                                                    <h4 className="text-xs font-black text-primary uppercase tracking-widest mb-3">Order Summary</h4>
-                                                    <div className="space-y-2">
-                                                        <div className="flex justify-between text-xs">
-                                                            <span className="font-bold text-slate-600">Subtotal</span>
-                                                            <span className="font-black text-slate-900">₹{(selectedOrder.total - 10).toFixed(2)}</span>
-                                                        </div>
-                                                        <div className="flex justify-between text-xs">
-                                                            <span className="font-bold text-slate-600">Delivery Fee</span>
-                                                            <span className="font-black text-brand-600">₹10.00</span>
-                                                        </div>
-                                                        <div className="h-px bg-primary/10 my-2" />
-                                                        <div className="flex justify-between text-sm">
-                                                            <span className="font-black text-slate-900">Total</span>
-                                                            <span className="font-black text-primary">₹{selectedOrder.total.toFixed(2)}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="bg-slate-900 p-3 sm:p-4 rounded-3xl text-white shadow-xl shadow-slate-900/10">
-                                                    <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-2">Payment Status</h4>
-                                                    <div className="flex items-center gap-2">
-                                                        <HiOutlineBanknotes className="h-5 w-5 text-brand-400" />
-                                                        <span className="text-xs font-bold tracking-tight">{selectedOrder.payment}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
                                         {selectedOrder.orderType === "custom_pickup" ? (
                                             <div className="space-y-4 mb-4">
                                                 <h4 className="text-xs font-black text-slate-600 uppercase tracking-widest">Custom Parcel Details</h4>
@@ -901,22 +790,6 @@ const Orders = () => {
                                                         </div>
                                                     </div>
                                                 )}
-                                                <div className="p-3 bg-amber-50 ring-1 ring-amber-100 rounded-2xl flex items-center justify-between text-amber-800">
-                                                    <div>
-                                                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Collection Payment Mode</p>
-                                                        <p className="text-xs font-bold mt-0.5">
-                                                            {selectedOrder.pickupType === "pay_and_collect"
-                                                                ? "Rider will pay bill in cash upon arrival"
-                                                                : "Prepaid parcel (No rider payment required)"}
-                                                        </p>
-                                                    </div>
-                                                    {selectedOrder.pickupType === "pay_and_collect" && (
-                                                        <div className="text-right">
-                                                            <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Bill Amount</p>
-                                                            <p className="text-sm font-black">₹{selectedOrder.billAmount}</p>
-                                                        </div>
-                                                    )}
-                                                </div>
                                             </div>
                                         ) : (
                                             <>

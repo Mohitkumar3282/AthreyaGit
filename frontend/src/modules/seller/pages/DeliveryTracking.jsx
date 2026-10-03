@@ -98,7 +98,6 @@ const DeliveryTracking = () => {
               ? new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
               : "",
             estimatedDelivery: "20-30 mins",
-            customerName: order.customer?.name || "Customer",
             address: order.address
               ? `${order.address.address || ""}, ${order.address.city || ""}`.trim()
               : "",
@@ -346,10 +345,6 @@ const DeliveryTracking = () => {
                                   {dlv.status}
                                 </Badge>
                               </div>
-                              <h4 className="text-[10px] font-bold text-slate-500 flex items-center gap-1 flex-wrap">
-                                <HiOutlineUser className="h-3 w-3 text-slate-400 shrink-0" />
-                                <span className="text-slate-900 capitalize font-black">{dlv.customerName}</span>
-                              </h4>
                             </div>
                             <div className="sm:text-right shrink-0">
                               <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">

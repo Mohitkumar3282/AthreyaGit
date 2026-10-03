@@ -95,7 +95,7 @@ services:
       - key: AUTO_CANCEL_INTERVAL_MS
         value: 10000
       - key: PAYOUT_BATCH_INTERVAL_MS
-        value: 900000
+        value: 86400000
       - key: ENABLE_PAYOUT_BATCH_JOB
         value: "true"
     autoDeploy: true

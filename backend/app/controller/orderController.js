@@ -1675,6 +1675,28 @@ export const updateReturnStatus = async (req, res) => {
   }
 };
 
+const SELLER_HIDDEN_ORDER_FIELDS = [
+  "customer",
+  "address",
+  "pickupAddress",
+  "pricing",
+  "paymentBreakdown",
+  "payment",
+  "paymentMode",
+  "deliveryBoy",
+  "deliveryOtp",
+  "deliveryOTP",
+  "tip",
+  "cashback",
+  "billAmount",
+];
+
+function toSellerOrderView(order) {
+  const view = { ...order };
+  for (const key of SELLER_HIDDEN_ORDER_FIELDS) delete view[key];
+  return view;
+}
+
 /* ===============================
    GET SELLER ORDERS
 ================================ */
@@ -1699,12 +1721,17 @@ export const getSellerOrders = async (req, res) => {
     });
 
 
+    // Sellers only see what was ordered and each item's price - never the
+    // customer's identity/contact/address or the order-level bill.
+    const items = role === "admin" ? orders : orders.map(toSellerOrderView);
+    if (role !== "admin") delete summary.totalAmount;
+
     return handleResponse(
       res,
       200,
       role === "admin" ? "All orders fetched" : "Seller orders fetched",
       {
-        items: orders,
+        items,
         page,
         limit,
         total,
