@@ -70,6 +70,13 @@ const deliverySchema = new mongoose.Schema(
             trim: true,
         },
 
+        // Max cash this rider may hold (COD). null/0 = no limit. Admin-controlled.
+        cashLimit: {
+            type: Number,
+            default: null,
+            min: 0,
+        },
+
         isVerified: {
             type: Boolean,
             default: false,

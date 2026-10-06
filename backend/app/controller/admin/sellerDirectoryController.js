@@ -234,3 +234,36 @@ export const deleteSellerByAdmin = async (req, res) => {
     return handleResponse(res, 500, error.message);
   }
 };
+
+export const updateSellerCommission = async (req, res) => {
+  try {
+    const { mode, percentage, monthlyFee } = req.body || {};
+    if (!["default", "percentage", "monthly_fee"].includes(mode)) {
+      return handleResponse(res, 400, "mode must be default, percentage or monthly_fee");
+    }
+    const update = { "commission.mode": mode };
+    if (mode === "percentage") {
+      const pct = Number(percentage);
+      if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+        return handleResponse(res, 400, "percentage must be between 0 and 100");
+      }
+      update["commission.percentage"] = pct;
+    }
+    if (mode === "monthly_fee") {
+      const fee = Number(monthlyFee);
+      if (!Number.isFinite(fee) || fee < 0) {
+        return handleResponse(res, 400, "monthlyFee must be 0 or more");
+      }
+      update["commission.monthlyFee"] = fee;
+    }
+    const seller = await Seller.findByIdAndUpdate(
+      req.params.id,
+      { $set: update },
+      { new: true },
+    ).select("shopName commission");
+    if (!seller) return handleResponse(res, 404, "Seller not found");
+    return handleResponse(res, 200, "Platform charges updated", seller);
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};

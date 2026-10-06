@@ -284,3 +284,22 @@ export const getActiveFleet = async (req, res) => {
     return handleResponse(res, 500, error.message);
   }
 };
+
+export const updateRiderCashLimit = async (req, res) => {
+  try {
+    const raw = req.body?.cashLimit;
+    const cashLimit = raw === null || raw === "" || raw === undefined ? null : Number(raw);
+    if (cashLimit !== null && (!Number.isFinite(cashLimit) || cashLimit < 0)) {
+      return handleResponse(res, 400, "cashLimit must be 0 or more (empty = no limit)");
+    }
+    const rider = await Delivery.findByIdAndUpdate(
+      req.params.id,
+      { $set: { cashLimit } },
+      { new: true },
+    ).select("name cashLimit");
+    if (!rider) return handleResponse(res, 404, "Delivery partner not found");
+    return handleResponse(res, 200, "Cash limit updated", rider);
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};

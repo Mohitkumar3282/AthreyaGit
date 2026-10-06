@@ -48,6 +48,8 @@ export const adminOrdersApi = {
         axiosInstance.post(`/admin/return-requests/${returnRequestId}/override`, data),
     initiateRefund: (returnRequestId, data) =>
         axiosInstance.post(`/admin/return-requests/${returnRequestId}/initiate-refund`, data),
+    applySellerPenalty: (returnRequestId, data) =>
+        axiosInstance.post(`/admin/return-requests/${returnRequestId}/penalty`, data),
     getAdminReturnStats: () =>
         axiosInstance.get('/admin/return-requests/stats'),
 };

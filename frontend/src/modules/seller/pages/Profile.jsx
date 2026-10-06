@@ -513,44 +513,6 @@ const SellerProfile = () => {
                   />
                 </div>
               </div>
-
-              <div className="space-y-3">
-                <label className="text-xs font-black uppercase tracking-widest text-slate-600 ml-1">
-                  Delivery Fee (₹)
-                </label>
-                <div className="relative group">
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300">
-                    <DollarSign size={16} />
-                  </div>
-                  <input
-                    type="number"
-                    name="deliveryFee"
-                    value={formData.deliveryFee}
-                    onChange={handleChange}
-                    disabled={!isEditing}
-                    className="w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-100 transition-all disabled:opacity-70"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-xs font-black uppercase tracking-widest text-slate-600 ml-1">
-                  Free Delivery Above (₹)
-                </label>
-                <div className="relative group">
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300">
-                    <DollarSign size={16} />
-                  </div>
-                  <input
-                    type="number"
-                    name="freeDeliveryAbove"
-                    value={formData.freeDeliveryAbove}
-                    onChange={handleChange}
-                    disabled={!isEditing}
-                    className="w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-100 transition-all disabled:opacity-70"
-                  />
-                </div>
-              </div>
             </div>
 
             <div className="mt-8 flex items-center justify-between p-4 bg-emerald-50 rounded-xl border border-emerald-100">

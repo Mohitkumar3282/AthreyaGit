@@ -413,6 +413,11 @@ export async function getActiveSellersData({
       email: seller.email || "",
       phone: seller.phone || "",
       category: seller.category || "General",
+      commission: {
+        mode: seller.commission?.mode || "default",
+        percentage: Number(seller.commission?.percentage || 0),
+        monthlyFee: Number(seller.commission?.monthlyFee || 0),
+      },
       status: seller.isVerified && seller.isActive ? "active" : "inactive",
       verificationStatus: seller.isVerified ? "verified" : "unverified",
       joinedAt,

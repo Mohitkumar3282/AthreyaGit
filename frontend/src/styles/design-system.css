@@ -46,12 +46,12 @@
 }
 
 .ds-caption {
-  font-size: 0.625rem;
-  line-height: 0.875rem;
-  color: rgb(107 114 128);
+  font-size: 0.6875rem;
+  line-height: 0.95rem;
+  color: rgb(100 116 139);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .ds-label {
@@ -94,10 +94,10 @@
 
 /* Card Layouts - Consistent Spacing */
 .ds-card {
-  background-color: #f1edff !important;
-  border-radius: 0.5rem;
-  border: 1px solid #dcd4ff !important;
-  box-shadow: 0 8px 32px 0 rgba(167, 139, 250, 0.08);
+  background-color: #ffffff;
+  border-radius: 1rem;
+  border: 1px solid rgb(241 245 249);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
 }
 
 .ds-card-compact {
@@ -113,31 +113,31 @@
 }
 
 .ds-card-header {
-  border-bottom: 1px solid rgba(219, 214, 254, 0.3);
+  border-bottom: 1px solid rgb(241 245 249);
   padding-bottom: 0.75rem;
   margin-bottom: 1rem;
 }
 
 .ds-card-footer {
-  border-top: 1px solid rgba(219, 214, 254, 0.3);
+  border-top: 1px solid rgb(241 245 249);
   padding-top: 0.75rem;
   margin-top: 1rem;
 }
 
 /* Stat Cards */
 .ds-stat-card {
-  background-color: #f1edff !important;
-  border-radius: 0.75rem;
-  border: 1px solid #dcd4ff !important;
-  box-shadow: 0 8px 32px 0 rgba(167, 139, 250, 0.08);
+  background-color: #ffffff;
+  border-radius: 1rem;
+  border: 1px solid rgb(241 245 249);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
   padding: 1.25rem;
   transition: all 0.3s;
 }
 
 .ds-stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 24px -10px rgba(167, 139, 250, 0.2) !important;
-  border-color: #bfaeff !important;
+  box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.08);
+  border-color: rgb(226 232 240);
 }
 
 .ds-stat-card-icon {

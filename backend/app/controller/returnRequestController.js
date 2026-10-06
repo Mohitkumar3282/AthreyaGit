@@ -1468,3 +1468,68 @@ export const deliveryBoyLogin = async (req, res) => {
     return handleResponse(res, 500, error.message);
   }
 };
+
+// POST /api/admin/return-requests/:returnRequestId/penalty
+// Fine the seller for a return caused by them (wrong/damaged item etc.).
+// Debited from the seller wallet; the balance may go negative and is then
+// recovered from upcoming settlements. One penalty per return request.
+export const applySellerPenalty = async (req, res) => {
+  try {
+    const { returnRequestId } = req.params;
+    const amount = Number(req.body?.amount);
+    const reason = String(req.body?.reason || "").trim();
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return handleResponse(res, 400, "Penalty amount must be greater than 0");
+    }
+    if (!reason) {
+      return handleResponse(res, 400, "Penalty reason is required");
+    }
+
+    const claimed = await ReturnRequest.findOneAndUpdate(
+      { _id: returnRequestId, "seller_penalty.appliedAt": null },
+      {
+        $set: {
+          "seller_penalty.amount": amount,
+          "seller_penalty.reason": reason,
+          "seller_penalty.appliedAt": new Date(),
+          "seller_penalty.appliedBy": String(req.user?.id || ""),
+        },
+      },
+      { new: true },
+    );
+    if (!claimed) {
+      const exists = await ReturnRequest.exists({ _id: returnRequestId });
+      return handleResponse(
+        res,
+        exists ? 409 : 404,
+        exists ? "A penalty was already applied to this request" : "Return request not found",
+      );
+    }
+
+    try {
+      await walletService.debitWallet({
+        ownerType: OWNER_TYPE.SELLER,
+        ownerId: claimed.seller_id,
+        amount,
+        allowNegative: true,
+        ledgerType: LEDGER_TRANSACTION_TYPE.ADJUSTMENT,
+        ledgerReference: String(claimed._id),
+        ledgerDescription: `Return penalty: ${reason}`,
+        orderId: claimed.order_id,
+        metadata: { kind: "return_penalty", returnRequestId: String(claimed._id) },
+        idempotencyKey: `return-penalty:${claimed._id}`,
+      });
+    } catch (err) {
+      // Roll the claim back so the admin can retry.
+      await ReturnRequest.updateOne(
+        { _id: claimed._id },
+        { $set: { seller_penalty: { amount: 0, reason: "", appliedAt: null, appliedBy: "" } } },
+      );
+      throw err;
+    }
+
+    return handleResponse(res, 200, "Penalty applied to seller", claimed);
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};

@@ -22,6 +22,7 @@ import {
   overrideReturnRequest,
   initiateRefund,
   getAdminReturnStats,
+  applySellerPenalty,
   deliveryBoyLogin,
 } from "../controller/returnRequestController.js";
 
@@ -208,6 +209,14 @@ router.post(
   verifyToken,
   allowRoles("admin"),
   initiateRefund
+);
+
+// Fine the seller for this return
+router.post(
+  "/admin/return-requests/:returnRequestId/penalty",
+  verifyToken,
+  allowRoles("admin"),
+  applySellerPenalty
 );
 
 // ── AUTHENTICATION / TESTING HELPERS ─────────────────────────────────────────

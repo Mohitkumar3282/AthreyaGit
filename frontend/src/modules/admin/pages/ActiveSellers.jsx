@@ -20,6 +20,7 @@ import {
   HiOutlineXCircle,
   HiOutlineEllipsisVertical,
   HiOutlineTrash,
+  HiOutlineBanknotes,
 } from "react-icons/hi2";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -138,6 +139,46 @@ const ActiveSellers = () => {
       setRefreshTick(val => val + 1);
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to approve seller");
+    }
+  };
+
+  const handleSetPlatformCharges = async (seller) => {
+    const c = seller.commission || { mode: "default" };
+    const current =
+      c.mode === "percentage" ? `${c.percentage}% commission`
+      : c.mode === "monthly_fee" ? `₹${c.monthlyFee} monthly fee`
+      : "category default commission";
+    const choice = window.prompt(
+      `Platform charges for ${seller.shopName}
+Current: ${current}
+
+Type:
+  "p" = percentage commission on every order
+  "m" = fixed monthly fee
+  "d" = default (category commission)`,
+    );
+    if (choice === null) return;
+    const key = choice.trim().toLowerCase();
+    let payload;
+    if (key === "p") {
+      const pct = Number(window.prompt("Commission percentage (0-100):", c.percentage || ""));
+      if (!Number.isFinite(pct) || pct < 0 || pct > 100) return toast.error("Enter a percentage between 0 and 100");
+      payload = { mode: "percentage", percentage: pct };
+    } else if (key === "m") {
+      const fee = Number(window.prompt("Monthly platform fee (₹):", c.monthlyFee || ""));
+      if (!Number.isFinite(fee) || fee < 0) return toast.error("Enter a valid amount");
+      payload = { mode: "monthly_fee", monthlyFee: fee };
+    } else if (key === "d") {
+      payload = { mode: "default" };
+    } else {
+      return toast.error('Type "p", "m" or "d"');
+    }
+    try {
+      await adminApi.updateSellerCommission(seller.id || seller._id, payload);
+      toast.success("Platform charges updated");
+      setRefreshTick(val => val + 1);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to update platform charges");
     }
   };
 
@@ -596,6 +637,16 @@ const ActiveSellers = () => {
                               >
                                 <HiOutlineEye className="h-4 w-4 text-slate-400" />
                                 View Details
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleSetPlatformCharges(seller);
+                                  setActiveDropdownId(null);
+                                }}
+                                className="w-full px-3 py-2.5 text-left text-xs font-bold text-amber-700 hover:bg-amber-50 rounded-xl transition-all flex items-center gap-2"
+                              >
+                                <HiOutlineBanknotes className="h-4 w-4 text-amber-500" />
+                                Platform Charges
                               </button>
                               <button
                                 onClick={() => {

@@ -66,7 +66,7 @@ const AdminSettings = () => {
         timezone: 'Asia/Kolkata',
         logoUrl: '',
         faviconUrl: '',
-        primaryColor: 'var(--primary)',
+        primaryColor: '#1a6e2e',
         secondaryColor: '#64748b',
         companyName: '',
         taxId: '',

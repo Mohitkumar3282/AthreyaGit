@@ -1,5 +1,7 @@
+import mongoose from "mongoose";
 import Product from "../../models/product.js";
 import Category from "../../models/category.js";
+import Seller from "../../models/seller.js";
 import {
   PRODUCT_APPROVAL_STATUS,
   resolveProductApprovalStatus,
@@ -455,6 +457,21 @@ export async function generateOrderPaymentBreakdown({
   const categories = await categoryQuery;
   const categoryById = new Map(categories.map((category) => [String(category._id), category]));
 
+  // Per-seller platform charges set by admin override category commission:
+  // percentage -> flat % on every item; monthly_fee -> no per-order commission.
+  let sellerCommission = null;
+  if (mongoose.isValidObjectId(sellerIds[0])) {
+    const sellerQuery = Seller.findById(sellerIds[0]).select("commission").lean();
+    if (session) sellerQuery.session(session);
+    sellerCommission = (await sellerQuery)?.commission;
+  }
+  const commissionOverride =
+    sellerCommission?.mode === "percentage"
+      ? Number(sellerCommission.percentage || 0)
+      : sellerCommission?.mode === "monthly_fee"
+        ? 0
+        : null;
+
   const effectiveSettings =
     deliverySettings || (await getOrCreateFinanceSettings());
   const effectiveHandlingStrategy =
@@ -467,7 +484,17 @@ export async function generateOrderPaymentBreakdown({
 
   const lineItems = normalizedItems.map((item) => {
     const category = categoryById.get(String(item.headerCategoryId));
-    const commission = calculateCategoryCommission(item, category);
+    const commission = calculateCategoryCommission(
+      item,
+      commissionOverride === null
+        ? category
+        : {
+            ...category,
+            adminCommissionType: COMMISSION_TYPE.PERCENTAGE,
+            adminCommission: commissionOverride,
+            adminCommissionValue: commissionOverride,
+          },
+    );
     productSubtotal = addMoney(productSubtotal, commission.itemSubtotal);
     sellerPayoutTotal = addMoney(sellerPayoutTotal, commission.sellerPayout);
     adminProductCommissionTotal = addMoney(

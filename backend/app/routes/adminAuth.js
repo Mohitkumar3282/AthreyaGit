@@ -24,6 +24,8 @@ import {
     approveSellerApplication,
     rejectSellerApplication,
     deleteSellerByAdmin,
+    updateSellerCommission,
+    updateRiderCashLimit,
     getSellerWithdrawals,
     getDeliveryWithdrawals,
     updateWithdrawalStatus,
@@ -163,6 +165,8 @@ router.get("/sellers/pending", verifyToken, allowRoles("admin"), getPendingSelle
 router.get("/sellers/:id", verifyToken, allowRoles("admin"), getSellerById);
 router.put("/sellers/:id", verifyToken, allowRoles("admin"), updateSellerByAdmin);
 router.patch("/sellers/approve/:id", verifyToken, allowRoles("admin"), approveSellerApplication);
+router.put("/sellers/:id/commission", verifyToken, allowRoles("admin"), updateSellerCommission);
+router.put("/delivery-partners/:id/cash-limit", verifyToken, allowRoles("admin"), updateRiderCashLimit);
 router.delete("/sellers/:id", verifyToken, allowRoles("admin"), deleteSellerByAdmin);
 router.delete("/sellers/reject/:id", verifyToken, allowRoles("admin"), rejectSellerApplication);
 

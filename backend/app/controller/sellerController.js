@@ -212,8 +212,8 @@ export const updateSellerProfile = async (req, res) => {
     if (storeTimings !== undefined) seller.storeTimings = storeTimings;
     if (contactNumber !== undefined) seller.contactNumber = contactNumber;
     if (minimumOrderAmount !== undefined) seller.minimumOrderAmount = Number(minimumOrderAmount);
-    if (deliveryFee !== undefined) seller.deliveryFee = Number(deliveryFee);
-    if (freeDeliveryAbove !== undefined) seller.freeDeliveryAbove = Number(freeDeliveryAbove);
+    // deliveryFee / freeDeliveryAbove are intentionally ignored: delivery
+    // charges are controlled only by admin (Fees & Charges, distance based).
     if (hygieneAssured !== undefined) seller.hygieneAssured = Boolean(hygieneAssured);
     if (rating !== undefined) seller.rating = Number(rating);
     if (reviewCount !== undefined) seller.reviewCount = Number(reviewCount);

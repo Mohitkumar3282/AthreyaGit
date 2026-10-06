@@ -26,6 +26,13 @@ const returnRequestSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    // Fine charged to the seller by admin for this return (one per request).
+    seller_penalty: {
+      amount: { type: Number, default: 0, min: 0 },
+      reason: { type: String, default: "" },
+      appliedAt: { type: Date, default: null },
+      appliedBy: { type: String, default: "" },
+    },
     status: {
       type: String,
       enum: [

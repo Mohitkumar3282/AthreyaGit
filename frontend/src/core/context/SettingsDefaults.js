@@ -52,8 +52,11 @@ export const DEFAULT_SETTINGS = {
 export function applyThemeVariables(settings) {
   if (!settings) return;
   const root = document.documentElement;
-  const primary = settings.primaryColor || DEFAULT_SETTINGS.primaryColor;
-  const secondary = settings.secondaryColor || DEFAULT_SETTINGS.secondaryColor;
+  // A value like "var(--primary)" would make --primary reference itself, which
+  // is invalid and blanks every themed element, so only real colors are applied.
+  const isColor = (v) => typeof v === "string" && v.trim() && !v.trim().startsWith("var(");
+  const primary = isColor(settings.primaryColor) ? settings.primaryColor : DEFAULT_SETTINGS.primaryColor;
+  const secondary = isColor(settings.secondaryColor) ? settings.secondaryColor : DEFAULT_SETTINGS.secondaryColor;
   
   root.style.setProperty("--primary", primary);
   root.style.setProperty("--secondary", secondary);

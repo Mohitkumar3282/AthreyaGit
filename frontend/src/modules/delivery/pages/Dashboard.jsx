@@ -178,52 +178,55 @@ const Dashboard = () => {
           </div>
 
           <div
-            className="relative w-full h-14 bg-gray-100/80 rounded-2xl flex items-center p-1.5 cursor-pointer shadow-inner overflow-hidden border border-gray-200/50"
+            className="relative w-full h-14 bg-slate-100/90 rounded-2xl flex items-center p-1.5 cursor-pointer shadow-inner overflow-hidden border border-slate-200"
             onClick={handleOnlineToggle}
           >
-            {/* Background Labels */}
+            {/* Background Labels - visible on the side not covered by the slider */}
             <div className="absolute inset-0 flex w-full">
-              <div className="w-1/2 flex items-center justify-center">
+              {/* Left slot (visible when knob is on the right, prompting to go offline) */}
+              <div className="w-1/2 flex items-center justify-center px-2">
                 <span className={cn(
-                  "text-[10px] font-black tracking-widest transition-opacity duration-300",
-                  isOnline ? "opacity-0" : "opacity-40 text-gray-500"
-                )}>SLIDE TO GO ONLINE</span>
+                  "text-[11px] font-black tracking-wider uppercase select-none transition-all duration-300 flex items-center gap-1.5",
+                  isOnline ? "opacity-100 text-slate-600 hover:text-rose-600" : "opacity-0 pointer-events-none"
+                )}>
+                  <XCircle size={14} className="text-rose-500" /> Go Offline
+                </span>
               </div>
-              <div className="w-1/2 flex items-center justify-center">
+              {/* Right slot (visible when knob is on the left, prompting to go online) */}
+              <div className="w-1/2 flex items-center justify-center px-2">
                 <span className={cn(
-                  "text-[10px] font-black tracking-widest transition-opacity duration-300",
-                  !isOnline ? "opacity-0" : "opacity-40 text-gray-500"
-                )}>SLIDE TO GO OFFLINE</span>
+                  "text-[11px] font-black tracking-wider uppercase select-none transition-all duration-300 flex items-center gap-1.5",
+                  !isOnline ? "opacity-100 text-emerald-700 font-extrabold" : "opacity-0 pointer-events-none"
+                )}>
+                  <CheckCircle size={14} className="text-emerald-600" /> Go Online
+                </span>
               </div>
             </div>
 
             <motion.div
               drag="x"
-              dragConstraints={{ left: 0, right: 0 }} // We will use dragElastic for feel, but onDragEnd for logic
+              dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.1}
               onDragEnd={(_, info) => {
                 const swipePower = info.offset.x;
-                if (swipePower > 50 && !isOnline) {
+                if (swipePower > 40 && !isOnline) {
                   handleOnlineToggle();
-                } else if (swipePower < -50 && isOnline) {
+                } else if (swipePower < -40 && isOnline) {
                   handleOnlineToggle();
                 }
               }}
               whileTap={{ scale: 0.98 }}
               className={cn(
-                "w-1/2 h-full rounded-xl shadow-md flex items-center justify-center gap-2 z-10 border transition-all duration-500 cursor-grab active:cursor-grabbing",
+                "w-1/2 h-full rounded-xl shadow-md flex items-center justify-center gap-2 z-10 border transition-all duration-300 cursor-grab active:cursor-grabbing",
                 isOnline 
-                  ? "bg-gradient-to-r from-primary to-[var(--brand-400)] border-[#389ecb] text-white" 
-                  : "bg-gradient-to-r from-slate-700 to-slate-800 border-slate-900 text-white"
+                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 border-emerald-700 text-white shadow-emerald-500/20" 
+                  : "bg-gradient-to-r from-slate-800 to-slate-900 border-slate-950 text-white shadow-slate-900/20"
               )}
               animate={{ x: isOnline ? "100%" : "0%" }}
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
             >
-              <motion.div
-                initial={false}
-                animate={{ rotate: isOnline ? 0 : 0 }}
-              >
-                {isOnline ? <CheckCircle size={18} strokeWidth={3} /> : <XCircle size={18} strokeWidth={3} />}
+              <motion.div initial={false}>
+                {isOnline ? <CheckCircle size={18} strokeWidth={2.5} /> : <XCircle size={18} strokeWidth={2.5} />}
               </motion.div>
               <span className="text-xs font-black uppercase tracking-widest select-none">
                 {isOnline ? "ONLINE" : "OFFLINE"}

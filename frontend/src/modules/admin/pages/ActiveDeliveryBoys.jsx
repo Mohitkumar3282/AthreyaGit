@@ -73,6 +73,7 @@ const ActiveDeliveryBoys = () => {
                 isVerified: !!r.isVerified,
                 cancellationCount: r.cancellationCount || 0,
                 flaggedForReview: !!r.flaggedForReview,
+                cashLimit: r.cashLimit ?? null,
                 cancellationLog: Array.isArray(r.cancellationLog) ? r.cancellationLog : [],
                 todayEarnings: 0, // TODO: wire to real per-rider daily earnings (earnings-dashboard pass)
                 location: r.currentArea || 'Unknown',
@@ -180,6 +181,27 @@ const handleAwardIncentive = async (rider) => {
         toast.success(`${type} of ₹${amount} awarded to ${rider.name}`);
     } catch (error) {
         toast.error(error.response?.data?.message || 'Failed to award incentive');
+    }
+};
+
+const handleSetCashLimit = async (rider) => {
+    const input = window.prompt(
+        `Max cash ${rider.name} can hold (₹). Current: ${rider.cashLimit ? '₹' + rider.cashLimit : 'No limit'}.
+Enter 0 or leave empty for no limit.`,
+        rider.cashLimit || ''
+    );
+    if (input === null) return;
+    const value = input.trim() === '' ? 0 : Number(input);
+    if (!Number.isFinite(value) || value < 0) {
+        toast.error('Enter a valid amount');
+        return;
+    }
+    try {
+        await adminApi.updateRiderCashLimit(rider.id, value === 0 ? null : value);
+        toast.success(value === 0 ? 'Cash limit removed' : `Cash limit set to ₹${value}`);
+        setRiders(prev => prev.map(r => r.id === rider.id ? { ...r, cashLimit: value === 0 ? null : value } : r));
+    } catch (error) {
+        toast.error(error.response?.data?.message || 'Failed to update cash limit');
     }
 };
 
@@ -394,6 +416,16 @@ return (
                                             <span className="text-[10px] font-black text-rose-700 underline shrink-0">Review</span>
                                         </button>
                                     )}
+
+                                    <button
+                                        onClick={() => handleSetCashLimit(rider)}
+                                        className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-left hover:bg-amber-100 transition-colors"
+                                    >
+                                        <span className="text-[10px] font-black text-amber-800 uppercase tracking-wide">
+                                            Cash limit: {rider.cashLimit ? `₹${rider.cashLimit}` : 'No limit'}
+                                        </span>
+                                        <span className="text-[10px] font-black text-amber-800 underline shrink-0">Change</span>
+                                    </button>
 
                                     {/* Action Footer */}
                                     <div className="pt-2 flex items-center gap-2">

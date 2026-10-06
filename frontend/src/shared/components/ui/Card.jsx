@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 
 const Card = ({ children, title, subtitle, className, headerAction, footer, contentClassName, ...props }) => {
     return (
-        <ShadcnCard className={cn("bg-transparent border-none shadow-none glass-card rounded-lg", className)} {...props}>
+        <ShadcnCard className={cn("bg-white border border-gray-100 shadow-sm rounded-2xl overflow-hidden", className)} {...props}>
             {(title || subtitle || headerAction) && (
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-gray-100/50 bg-gray-50/20 px-5 py-4">
                     <div className="space-y-1">

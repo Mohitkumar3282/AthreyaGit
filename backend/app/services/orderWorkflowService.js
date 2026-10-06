@@ -4,6 +4,7 @@ import DeliveryAssignment from "../models/deliveryAssignment.js";
 import OrderOtp from "../models/orderOtp.js";
 import Seller from "../models/seller.js";
 import Delivery from "../models/delivery.js";
+import Wallet from "../models/wallet.js";
 import {
   clearOrderTracking,
   clearRiderPresence,
@@ -487,6 +488,31 @@ function toDeliveryObjectId(deliveryId) {
 /**
  * First delivery partner to accept wins (atomic).
  */
+// Admin-set per-rider cash ceiling: a rider cannot take a COD order that would
+// push the cash they are holding past their limit (null/0 = unlimited).
+async function assertRiderWithinCashLimit(deliveryOid, orderId) {
+  const [rider, order, wallet] = await Promise.all([
+    Delivery.findById(deliveryOid).select("cashLimit").lean(),
+    Order.findOne({ orderId }).select("paymentMode paymentBreakdown pricing").lean(),
+    Wallet.findOne({ ownerType: "DELIVERY_PARTNER", ownerId: deliveryOid })
+      .select("cashInHand")
+      .lean(),
+  ]);
+  const limit = Number(rider?.cashLimit || 0);
+  if (!limit || !order || order.paymentMode !== "COD") return;
+
+  const gross = Number(order.paymentBreakdown?.grandTotal || order.pricing?.total || 0);
+  const net = Math.max(gross - Number(order.paymentBreakdown?.riderPayoutTotal || 0), 0);
+  const held = Number(wallet?.cashInHand || 0);
+  if (held + net > limit) {
+    const err = new Error(
+      `Cash limit reached (limit ₹${limit}, holding ₹${held.toFixed(2)}). Deposit cash with admin to accept more COD orders.`,
+    );
+    err.statusCode = 403;
+    throw err;
+  }
+}
+
 export async function deliveryAcceptAtomic(deliveryId, orderId, idempotencyKey) {
   orderId = await requireCanonicalOrderId(orderId);
   const deliveryOid = toDeliveryObjectId(deliveryId);
@@ -495,6 +521,8 @@ export async function deliveryAcceptAtomic(deliveryId, orderId, idempotencyKey) 
     err.statusCode = 400;
     throw err;
   }
+
+  await assertRiderWithinCashLimit(deliveryOid, orderId);
 
   if (idempotencyKey) {
     try {

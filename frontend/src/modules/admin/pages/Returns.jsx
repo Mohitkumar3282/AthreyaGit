@@ -294,6 +294,35 @@ const Returns = () => {
     }
   };
 
+  const handleApplyPenalty = async () => {
+    if (!selectedReturn) return;
+    const amountStr = window.prompt("Penalty amount to charge the seller (₹):");
+    if (amountStr === null) return;
+    const amount = Number(amountStr);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      showToast("Enter a valid amount", "error");
+      return;
+    }
+    const reason = window.prompt("Reason for the penalty (shown in seller ledger):");
+    if (!reason || !reason.trim()) {
+      showToast("A reason is required", "error");
+      return;
+    }
+    if (!window.confirm(`Charge ₹${amount} to ${selectedReturn.seller_id?.shopName || "the seller"}? This is deducted from their wallet.`)) return;
+    try {
+      setSubmittingAction(true);
+      const id = selectedReturn._id || selectedReturn.id;
+      await adminApi.applySellerPenalty(id, { amount, reason: reason.trim() });
+      showToast("Penalty applied to seller", "success");
+      const updatedDetail = await adminApi.getAdminReturnRequestDetail(id);
+      if (updatedDetail.data.success) setSelectedReturn(updatedDetail.data.result);
+    } catch (error) {
+      showToast(error.response?.data?.message || "Failed to apply penalty", "error");
+    } finally {
+      setSubmittingAction(false);
+    }
+  };
+
   const openRefundModal = () => {
     if (!selectedReturn) return;
     setRefundAmount(selectedReturn.refund_amount || 0);
@@ -876,6 +905,28 @@ const Returns = () => {
                             </div>
                           )}
                         </div>
+                      </div>
+
+                      {/* Seller penalty */}
+                      <div className="border border-rose-100 rounded-2xl p-4 bg-rose-50/30 space-y-2">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-rose-600">Seller Penalty</h4>
+                        {selectedReturn.seller_penalty?.appliedAt ? (
+                          <div className="text-xs font-semibold text-slate-700 space-y-1">
+                            <div className="flex justify-between">
+                              <span>Charged:</span>
+                              <span className="font-black text-rose-700">₹{selectedReturn.seller_penalty.amount}</span>
+                            </div>
+                            <p className="text-[11px] text-slate-500">{selectedReturn.seller_penalty.reason}</p>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={handleApplyPenalty}
+                            disabled={submittingAction}
+                            className="w-full py-2 bg-rose-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-700 disabled:opacity-60 transition-all"
+                          >
+                            Apply Penalty to Seller
+                          </button>
+                        )}
                       </div>
 
                       {/* Notes Box */}

@@ -29,6 +29,7 @@ import {
 } from "./app/core/shutdown.js";
 import { registerScheduledJob, startScheduledJobs } from "./app/services/distributedScheduler.js";
 import { getOrderAutoCancelJobHandler, getOrderAutoCancelJobInterval } from "./app/jobs/orderAutoCancelJob.js";
+import { getSellerMonthlyFeeJobHandler, getSellerMonthlyFeeJobInterval } from "./app/jobs/sellerMonthlyFeeJob.js";
 import { getReturnWindowReleaseJobHandler, getReturnWindowReleaseJobInterval } from "./app/jobs/returnWindowReleaseJob.js";
 import {
   getDeliveryBoyAcceptanceTimeoutJobHandler,
@@ -337,6 +338,13 @@ async function startScheduler() {
     getReturnWindowReleaseJobHandler()
   );
 
+  // Monthly platform fee for sellers on a fixed-fee plan (once per month)
+  registerScheduledJob(
+    'sellerMonthlyFeeJob',
+    getSellerMonthlyFeeJobInterval(),
+    getSellerMonthlyFeeJobHandler()
+  );
+
   // Register return requests jobs
   registerScheduledJob(
     'deliveryBoyAcceptanceTimeoutJob',
@@ -392,6 +400,7 @@ async function startScheduler() {
   const scheduledJobs = [
     'orderAutoCancelJob',
     'returnWindowReleaseJob',
+    'sellerMonthlyFeeJob',
     'deliveryBoyAcceptanceTimeoutJob',
     'returnWindowExpiryReminderJob',
     'staleRequestCleanupJob'

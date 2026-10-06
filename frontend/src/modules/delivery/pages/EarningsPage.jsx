@@ -115,31 +115,31 @@ const EarningsPage = () => {
         animate="visible"
       >
         <motion.div variants={itemVariants}>
-          <div className="bg-gradient-to-br from-primary to-brand-600 rounded-2xl p-6 text-white shadow-lg shadow-primary/30 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl" />
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-10 -mb-10 blur-xl" />
+          <div className="bg-gradient-to-br from-primary to-brand-700 rounded-3xl p-6 text-white shadow-xl shadow-primary/20 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-36 h-36 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-28 h-28 bg-black/10 rounded-full -ml-12 -mb-12 blur-xl pointer-events-none" />
 
-            <p className="text-brand-100 font-medium text-sm uppercase tracking-wide mb-1 relative z-10">
+            <p className="text-white/85 font-black text-xs uppercase tracking-widest mb-1.5 relative z-10">
               Total Earnings
             </p>
             <div className="flex items-baseline mb-6 relative z-10">
-              <span className="text-3xl font-bold mr-1">{RUPEE}</span>
-              <span className="text-5xl font-extrabold tracking-tight">
+              <span className="text-3xl font-extrabold mr-1 text-white">{RUPEE}</span>
+              <span className="text-5xl font-black tracking-tight text-white">
                 {Number(earningsData.totalEarnings || 0).toLocaleString()}
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/20 relative z-10">
               <div>
-                <p className="text-brand-100 text-xs mb-1">Incentives</p>
-                <p className="font-bold text-lg">
+                <p className="text-white/80 text-xs font-bold uppercase tracking-wider mb-1">Incentives</p>
+                <p className="font-black text-xl text-white">
                   +{RUPEE}
                   {Number(earningsData.incentives || 0).toLocaleString()}
                 </p>
               </div>
               <div>
-                <p className="text-brand-100 text-xs mb-1">Tips</p>
-                <p className="font-bold text-lg">
+                <p className="text-white/80 text-xs font-bold uppercase tracking-wider mb-1">Tips</p>
+                <p className="font-black text-xl text-white">
                   +{RUPEE}
                   {Number(earningsData.tipsReceived || 0).toLocaleString()}
                 </p>
@@ -149,37 +149,39 @@ const EarningsPage = () => {
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          <Card className="p-6">
+          <Card className="p-6 bg-white border border-gray-100 shadow-sm rounded-3xl">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="font-bold text-gray-800 flex items-center">
-                <TrendingUp size={20} className="mr-2 text-brand-500" />
+              <h3 className="font-black text-slate-900 text-base flex items-center">
+                <TrendingUp size={20} className="mr-2 text-primary" />
                 Earnings Trend
               </h3>
-              <Button variant="ghost" size="sm" className="h-8 text-xs">
+              <span className="bg-slate-100 text-slate-700 font-bold px-3 py-1 rounded-full text-[11px] uppercase tracking-wider">
                 Last {activeTab === "monthly" ? 30 : 7} Days
-              </Button>
+              </span>
             </div>
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={earningsData.chartData} barSize={20} margin={{ bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                <BarChart data={earningsData.chartData} barSize={20} margin={{ bottom: 10, top: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis
                     dataKey="name"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 10, fill: "#9ca3af" }}
-                    dy={10}
+                    tick={{ fontSize: 11, fill: "#475569", fontWeight: 700 }}
+                    dy={8}
                   />
                   <Tooltip
-                    cursor={{ fill: "#f9fafb" }}
+                    cursor={{ fill: "#f8fafc" }}
                     contentStyle={{
-                      borderRadius: "12px",
-                      border: "none",
-                      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                      backgroundColor: "#ffffff",
+                      borderRadius: "16px",
+                      border: "1px solid #e2e8f0",
+                      boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
+                      fontWeight: "bold",
                     }}
                   />
-                  <Bar dataKey="earnings" fill="var(--primary)" radius={[4, 4, 0, 0]} stackId="a" />
-                  <Bar dataKey="incentives" fill="#93c5fd" radius={[4, 4, 0, 0]} stackId="a" />
+                  <Bar dataKey="earnings" fill="var(--primary)" radius={[6, 6, 0, 0]} stackId="a" />
+                  <Bar dataKey="incentives" fill="#38bdf8" radius={[6, 6, 0, 0]} stackId="a" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -187,9 +189,9 @@ const EarningsPage = () => {
         </motion.div>
 
         <motion.div variants={itemVariants}>
-          <Card className="overflow-hidden">
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h3 className="font-bold text-gray-800">Recent Earnings</h3>
+          <Card className="overflow-hidden bg-white border border-gray-100 shadow-sm rounded-3xl">
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/60">
+              <h3 className="font-black text-slate-900 text-sm uppercase tracking-wider">Recent Earnings</h3>
               <Button variant="link" className="text-primary text-xs font-bold h-auto p-0">
                 View All
               </Button>

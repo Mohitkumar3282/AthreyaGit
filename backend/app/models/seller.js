@@ -191,6 +191,18 @@ const sellerSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // Admin-controlled platform charges. "default" = category commission.
+    commission: {
+      mode: {
+        type: String,
+        enum: ["default", "percentage", "monthly_fee"],
+        default: "default",
+      },
+      percentage: { type: Number, default: 0, min: 0, max: 100 },
+      monthlyFee: { type: Number, default: 0, min: 0 },
+      lastMonthlyFeeFor: { type: String, default: "" }, // "YYYY-MM"
+    },
+
     isActive: {
       type: Boolean,
       default: false,

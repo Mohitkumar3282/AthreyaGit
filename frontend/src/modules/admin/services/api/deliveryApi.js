@@ -15,6 +15,8 @@ export const adminDeliveryApi = {
         axiosInstance.get('/admin/active-fleet', { params }),
     reviewRiderCancellations: (id, data) =>
         axiosInstance.post(`/admin/delivery-partners/${id}/review-cancellations`, data),
+    updateRiderCashLimit: (id, cashLimit) =>
+        axiosInstance.put(`/admin/delivery-partners/${id}/cash-limit`, { cashLimit }),
     awardRiderIncentive: (id, data) =>
         axiosInstance.post(`/admin/delivery-partners/${id}/incentive`, data),
 };
