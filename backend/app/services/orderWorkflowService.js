@@ -492,12 +492,17 @@ function toDeliveryObjectId(deliveryId) {
 // push the cash they are holding past their limit (null/0 = unlimited).
 async function assertRiderWithinCashLimit(deliveryOid, orderId) {
   const [rider, order, wallet] = await Promise.all([
-    Delivery.findById(deliveryOid).select("cashLimit").lean(),
+    Delivery.findById(deliveryOid).select("cashLimit breakUntil").lean(),
     Order.findOne({ orderId }).select("paymentMode paymentBreakdown pricing").lean(),
     Wallet.findOne({ ownerType: "DELIVERY_PARTNER", ownerId: deliveryOid })
       .select("cashInHand")
       .lean(),
   ]);
+  if (rider?.breakUntil && new Date(rider.breakUntil) > new Date()) {
+    const err = new Error("You are on a break. End your break to accept orders.");
+    err.statusCode = 403;
+    throw err;
+  }
   const limit = Number(rider?.cashLimit || 0);
   if (!limit || !order || order.paymentMode !== "COD") return;
 

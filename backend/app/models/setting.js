@@ -308,6 +308,13 @@ const settingSchema = new mongoose.Schema(
                 default: "DELIVERY",
             },
         },
+        /**
+         * Rider incentive rules (daily targets, peak hours, weekly bonus, rain,
+         * breaks). Consumed by services/delivery/riderIncentiveService.js, which
+         * normalises/defaults every field, so a partial doc is safe.
+         */
+        riderIncentives: { type: mongoose.Schema.Types.Mixed, default: undefined },
+
         productApproval: {
             sellerCreateRequiresApproval: {
                 type: Boolean,

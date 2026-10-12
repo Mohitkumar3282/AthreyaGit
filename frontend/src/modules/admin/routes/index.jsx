@@ -23,6 +23,7 @@ import {
   Sparkles,
   User,
   Zap,
+  Gift,
 } from "lucide-react";
 
 const Dashboard = React.lazy(() => import("../pages/Dashboard"));
@@ -215,6 +216,12 @@ const navItems = [
     ],
   },
   {
+    label: "Rider Incentives",
+    path: "/admin/rider-incentives",
+    icon: Gift,
+    color: "amber",
+  },
+  {
     label: "Fees & Charges",
     path: "/admin/billing",
     icon: RotateCcw,
@@ -230,6 +237,7 @@ const navItems = [
   { label: "System Settings", path: "/admin/env", icon: Terminal, color: "dark" },
 ];
 
+const RiderIncentives = React.lazy(() => import("../pages/RiderIncentives"));
 const BillingCharges = React.lazy(() => import("../pages/BillingCharges"));
 
 const AdminRoutes = () => {
@@ -298,6 +306,7 @@ const AdminRoutes = () => {
         <Route path="/orders/:status" element={<OrdersList />} />
         <Route path="/orders/view/:orderId" element={<OrderDetail />} />
         <Route path="/returns" element={<Returns />} />
+        <Route path="/rider-incentives" element={<RiderIncentives />} />
         <Route path="/billing" element={<BillingCharges />} />
         <Route path="/settings" element={<AdminSettings />} />
         <Route path="/env" element={<EnvSettings />} />

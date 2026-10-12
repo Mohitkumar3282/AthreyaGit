@@ -15,6 +15,7 @@ import {
   requestWithdrawal,
   updateDeliveryLocation,
 } from "../controller/deliveryController.js";
+import { getMyIncentives, startMyBreak, endMyBreak } from "../controller/riderIncentiveController.js";
 import { getRiderWalletSummaryController } from "../controller/adminFinanceController.js";
 
 import { verifyToken, allowRoles } from "../middleware/authMiddleware.js";
@@ -36,6 +37,9 @@ router.get("/profile", verifyToken, getDeliveryProfile);
 router.put("/profile", verifyToken, updateDeliveryProfile);
 router.get("/stats", verifyToken, getDeliveryStats);
 router.get("/earnings", verifyToken, getDeliveryEarnings);
+router.get("/incentives", verifyToken, allowRoles("delivery"), getMyIncentives);
+router.post("/break", verifyToken, allowRoles("delivery"), startMyBreak);
+router.delete("/break", verifyToken, allowRoles("delivery"), endMyBreak);
 router.get("/cod/summary", verifyToken, allowRoles("delivery"), getDeliveryCodCashSummary);
 router.post("/cod/pay", verifyToken, allowRoles("delivery"), submitDeliveryCodCashToAdmin);
 router.get("/wallet/summary", verifyToken, allowRoles("delivery"), getRiderWalletSummaryController);

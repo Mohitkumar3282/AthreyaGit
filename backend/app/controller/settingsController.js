@@ -57,6 +57,7 @@ const ALLOWED_KEYS = [
   "deliveryEta",
   "walletCashback",
   "athreyaCoins",
+  "riderIncentives",
   "parcelCategories",
   "riderTaskTypes",
   "serviceAreas",
@@ -177,6 +178,38 @@ const updateSettingsSchema = Joi.object({
     maxEarnPerOrder: Joi.number().integer().min(0),
     creditOn: Joi.string().valid("DELIVERY", "PLACEMENT"),
   }).unknown(false),
+  riderIncentives: Joi.object({
+    dailyTargets: Joi.object({
+      enabled: Joi.boolean(),
+      tiers: Joi.array().items(Joi.object({
+        orders: Joi.number().integer().min(1).max(1000).required(),
+        bonus: Joi.number().min(0).max(100000).required(),
+      }).unknown(false)).max(10),
+    }).unknown(false),
+    peakHours: Joi.object({
+      enabled: Joi.boolean(),
+      windows: Joi.array().items(Joi.object({
+        start: Joi.string().pattern(/^([01]\d|2[0-3]):[0-5]\d$/).required(),
+        end: Joi.string().pattern(/^([01]\d|2[0-3]):[0-5]\d$/).required(),
+        bonus: Joi.number().min(0).max(10000).required(),
+      }).unknown(false)).max(10),
+    }).unknown(false),
+    weeklyBonus: Joi.object({
+      enabled: Joi.boolean(),
+      minOrders: Joi.number().integer().min(1).max(10000),
+      minRating: Joi.number().min(0).max(5),
+      bonus: Joi.number().min(0).max(100000),
+    }).unknown(false),
+    rain: Joi.object({
+      enabled: Joi.boolean(),
+      active: Joi.boolean(),
+      bonusPerDelivery: Joi.number().min(0).max(10000),
+    }).unknown(false),
+    breaks: Joi.object({
+      enabled: Joi.boolean(),
+      durations: Joi.array().items(Joi.number().integer().min(1).max(240)).max(8),
+    }).unknown(false),
+  }).unknown(false),
   parcelCategories: Joi.array().items(
     Joi.object({
       id: Joi.string().required(),
@@ -227,7 +260,7 @@ export const getPublicSettings = async (req, res) => {
       async () => {
         const existing = await Setting.findOne(filter)
           .select(
-            "appName supportEmail supportPhone whatsappNumber currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor returnDeliveryCommission deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge multiShopPickupFee deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy codEnabled onlineEnabled lowStockAlertsEnabled productApproval dailyNeeds dailyNeedsCategoryIds deliveryEta walletCashback athreyaCoins parcelCategories riderTaskTypes serviceAreas createdAt",
+            "appName supportEmail supportPhone whatsappNumber currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor returnDeliveryCommission deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge multiShopPickupFee deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy codEnabled onlineEnabled lowStockAlertsEnabled productApproval dailyNeeds dailyNeedsCategoryIds deliveryEta walletCashback athreyaCoins riderIncentives parcelCategories riderTaskTypes serviceAreas createdAt",
           )
           .lean();
         return existing || null;

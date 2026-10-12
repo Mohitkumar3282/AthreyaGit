@@ -19,6 +19,7 @@ import Card from "@/shared/components/ui/Card";
 
 import { useAuth } from "@core/context/AuthContext";
 import { deliveryApi } from "../services/deliveryApi";
+import IncentivesCard from "../components/IncentivesCard";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -235,6 +236,8 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      <IncentivesCard isOnline={isOnline} />
 
       {/* Tabs */}
       <div className="px-6 mb-2">

@@ -8,6 +8,9 @@ export const deliveryApi = {
   getProfile: () => axiosInstance.get("/delivery/profile"),
   updateProfile: (data) => axiosInstance.put("/delivery/profile", data),
   getStats: () => axiosInstance.get("/delivery/stats"),
+  getIncentives: () => axiosInstance.get("/delivery/incentives"),
+  startBreak: (minutes) => axiosInstance.post("/delivery/break", { minutes }),
+  endBreak: () => axiosInstance.delete("/delivery/break"),
   getEarnings: (period) =>
     axiosInstance.get("/delivery/earnings", { params: period ? { period } : {} }),
   getCodCashSummary: () => axiosInstance.get("/delivery/cod/summary"),

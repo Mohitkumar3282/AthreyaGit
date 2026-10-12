@@ -70,6 +70,9 @@ const deliverySchema = new mongoose.Schema(
             trim: true,
         },
 
+        // While in the future the rider is on a break: no orders offered/accepted.
+        breakUntil: { type: Date, default: null },
+
         // Max cash this rider may hold (COD). null/0 = no limit. Admin-controlled.
         cashLimit: {
             type: Number,

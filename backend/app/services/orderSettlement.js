@@ -1,4 +1,5 @@
 import Transaction from "../models/transaction.js";
+import { awardDeliveryIncentives } from "./delivery/riderIncentiveService.js";
 import {
   handleCodOrderFinance,
   settleDeliveredOrder,
@@ -68,5 +69,10 @@ export async function applyDeliveredSettlement(order, orderIdString) {
         { upsert: true, new: true },
       );
     }
+  }
+
+  // Automatic rider incentives (peak / rain / daily / weekly). Never throws.
+  if (settled.deliveryBoy) {
+    await awardDeliveryIncentives(settled);
   }
 }

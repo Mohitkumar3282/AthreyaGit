@@ -38,7 +38,10 @@ const ACTIVE_ORDER_STATUSES = [
 ];
 
 function buildDeliveryFilter() {
-  const q = { isOnline: true };
+  const q = {
+    isOnline: true,
+    $or: [{ breakUntil: null }, { breakUntil: { $lte: new Date() } }],
+  };
   if (requireVerifiedForBroadcast()) {
     q.isVerified = true;
   }
