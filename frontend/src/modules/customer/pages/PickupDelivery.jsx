@@ -84,7 +84,7 @@ const DEFAULT_PARCEL_CATEGORIES = [
   { id: "other", label: "Other Permitted Item", telugu: "ఇతర వస్తువులు", icon: "✨" },
 ];
 
-const WEIGHT_OPTIONS = ["Up to 1 kg", "1-3 kg", "3-5 kg", "5-10 kg", "10 kg+"];
+const WEIGHT_OPTIONS = ["Up to 1 kg", "1-3 kg", "3-5 kg", "5-10 kg", "10-25 kg", "25 kg+"];
 
 const DEFAULT_RIDER_TASK_TYPES = [
   { id: "keys", label: "Deliver Keys", telugu: "తాళాలు డెలివరీ", icon: "🔑" },

@@ -34,7 +34,8 @@ export const EXPRESS_WEIGHT_BANDS = [
   { key: "kg1To3", label: "1-3 kg" },
   { key: "kg3To5", label: "3-5 kg" },
   { key: "kg5To10", label: "5-10 kg" },
-  { key: "kg10Plus", label: "10 kg+" },
+  { key: "kg10Plus", label: "10-25 kg" },
+  { key: "kg25Plus", label: "25 kg+" },
 ];
 
 /** Rider requests carry a task, not a parcel weight. */
@@ -50,7 +51,7 @@ export const DEFAULT_EXPRESS_FARE = {
   nightCharge: { enabled: false, startHour: 22, endHour: 6, amount: 20 },
   // Zero by default so switching the fare table on never silently reprices
   // parcels; admin opts in per band.
-  weightSurcharge: { upTo1Kg: 0, kg1To3: 0, kg3To5: 0, kg5To10: 0, kg10Plus: 0 },
+  weightSurcharge: { upTo1Kg: 0, kg1To3: 0, kg3To5: 0, kg5To10: 0, kg10Plus: 0, kg25Plus: 0 },
   services: {
     home_to_home: { enabled: true, serviceFee: 0 },
     shop_to_home: { enabled: true, serviceFee: 0 },
@@ -156,6 +157,8 @@ export async function saveExpressFareSettings(patch = {}, { updatedBy = null } =
 export function resolveWeightBand(weight) {
   if (!weight) return null;
   const text = String(weight).trim().toLowerCase();
+  // "10 kg+" was the top band before 25 kg+ existed; keep it priced as 10-25 kg.
+  if (text === "10 kg+") return EXPRESS_WEIGHT_BANDS.find((b) => b.key === "kg10Plus");
   return EXPRESS_WEIGHT_BANDS.find((b) => b.label.toLowerCase() === text) || null;
 }
 

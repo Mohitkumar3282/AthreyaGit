@@ -3,6 +3,7 @@ import Seller from "../models/seller.js";
 import Product from "../models/product.js";
 import Review from "../models/review.js";
 import { handleResponse, calculateDistance } from "../utils/helper.js";
+import { getShopStatus } from "../services/shopHoursService.js";
 
 // Helper for Mock Sellers
 const getMockSeller = (id) => {
@@ -116,13 +117,19 @@ export const getShopById = async (req, res) => {
       return handleResponse(res, 404, "Shop not found");
     }
 
-    const seller = await Seller.findOne({ _id: id, isActive: true, isOpen: true, isVerified: true });
-    
+    const seller = await Seller.findOne({ _id: id, isActive: true, isVerified: true });
+
     if (!seller) {
       return handleResponse(res, 404, "Shop not found");
     }
 
-    return handleResponse(res, 200, "Shop details retrieved successfully", seller);
+    // Closed shops stay viewable; the app shows a "Shop Closed" message.
+    const status = getShopStatus(seller);
+    return handleResponse(res, 200, "Shop details retrieved successfully", {
+      ...seller.toObject(),
+      isOpen: status.isOpen,
+      closedMessage: status.closedMessage,
+    });
   } catch (error) {
     return handleResponse(res, 500, error.message);
   }
@@ -157,7 +164,7 @@ export const getShopProducts = async (req, res) => {
       return handleResponse(res, 404, "Shop not found");
     }
 
-    const seller = await Seller.findOne({ _id: id, isActive: true, isOpen: true, isVerified: true }).lean();
+    const seller = await Seller.findOne({ _id: id, isActive: true, isVerified: true }).lean();
     if (!seller) {
       return handleResponse(res, 404, "Shop not found or currently offline");
     }
@@ -200,8 +207,11 @@ export const getShopProducts = async (req, res) => {
       deliveryTime: "8-15 mins"
     }));
 
+    const shopStatus = getShopStatus(seller);
     return handleResponse(res, 200, "Shop products fetched successfully", {
       items: formatted,
+      isOpen: shopStatus.isOpen,
+      closedMessage: shopStatus.closedMessage,
       total,
       page: parseInt(page),
       totalPages: Math.ceil(total / parseInt(limit)) || 1
@@ -338,7 +348,6 @@ export const getSimilarShops = async (req, res) => {
       _id: { $ne: mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : null },
       category: category,
       isActive: true,
-      isOpen: true,
       isVerified: true
     };
 
@@ -356,8 +365,11 @@ export const getSimilarShops = async (req, res) => {
         sellerLat,
         sellerLng
       );
+      const status = getShopStatus(seller);
       return {
         ...seller,
+        isOpen: status.isOpen,
+        closedMessage: status.closedMessage,
         distance
       };
     });

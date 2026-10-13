@@ -271,6 +271,14 @@ const ShopDetails = () => {
 
   return (
     <div className="min-h-screen bg-white pb-32 font-sans">
+      {shop.isOpen === false && (
+        <div role="alert" className="sticky top-0 z-50 bg-red-600 text-white px-4 py-3 text-center shadow-lg">
+          <p className="text-sm font-black uppercase tracking-wide">Shop Closed</p>
+          <p className="text-[11px] font-semibold opacity-90">
+            {shop.closedMessage || "This shop is currently closed."} You can browse, but ordering is unavailable.
+          </p>
+        </div>
+      )}
 
       
       {/* 1. Header Banner Area */}
@@ -341,8 +349,8 @@ const ShopDetails = () => {
                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Delivery</div>
               </div>
               <div className="text-center">
-                <div className={`font-black text-xs px-2 py-0.5 rounded-full uppercase ${shop.isOpen ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                  {shop.isOpen ? 'Open' : 'Closed'}
+                <div className={`font-black text-xs px-2 py-0.5 rounded-full uppercase ${shop.isOpen === false ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                  {shop.isOpen === false ? 'Shop Closed' : 'Open'}
                 </div>
                 <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1">{shop.storeTimings || "9am - 10pm"}</div>
               </div>
@@ -477,7 +485,7 @@ const ShopDetails = () => {
               <h2 className="text-sm md:text-base font-black text-slate-800 tracking-tight uppercase mb-4 px-1 flex items-center gap-1.5">
                 <Sparkles size={16} className="text-amber-500" /> Best Sellers
               </h2>
-              <div className="grid grid-cols-3 md:grid-cols-4 gap-2.5 md:gap-4">
+              <div className={`grid grid-cols-3 md:grid-cols-4 gap-2.5 md:gap-4 ${shop.isOpen === false ? "pointer-events-none opacity-50 grayscale" : ""}`}>
                 {bestSellers.map(product => (
                   <ProductCard key={product.id} product={product} compact={true} />
                 ))}
@@ -499,7 +507,7 @@ const ShopDetails = () => {
                 <p className="text-[11px] text-slate-400 mt-1 max-w-[200px]">Try resetting filters or changing the search keyword.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-3 md:grid-cols-4 gap-2.5 md:gap-4">
+              <div className={`grid grid-cols-3 md:grid-cols-4 gap-2.5 md:gap-4 ${shop.isOpen === false ? "pointer-events-none opacity-50 grayscale" : ""}`}>
                 {filteredProducts.map(product => (
                   <ProductCard key={product.id} product={product} compact={true} />
                 ))}

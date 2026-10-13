@@ -1,6 +1,7 @@
 import Seller from "../../models/seller.js";
 import Order from "../../models/order.js";
 import Product from "../../models/product.js";
+import { getShopStatus } from "../shopHoursService.js";
 import {
   computeMapBounds,
   computeMapCenter,
@@ -413,6 +414,8 @@ export async function getActiveSellersData({
       email: seller.email || "",
       phone: seller.phone || "",
       category: seller.category || "General",
+      storeTimings: seller.storeTimings || "",
+      isOpenNow: getShopStatus(seller).isOpen,
       commission: {
         mode: seller.commission?.mode || "default",
         percentage: Number(seller.commission?.percentage || 0),

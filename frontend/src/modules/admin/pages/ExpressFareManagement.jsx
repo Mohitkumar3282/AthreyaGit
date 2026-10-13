@@ -22,7 +22,8 @@ const FALLBACK_BANDS = [
     { key: 'kg1To3', label: '1-3 kg' },
     { key: 'kg3To5', label: '3-5 kg' },
     { key: 'kg5To10', label: '5-10 kg' },
-    { key: 'kg10Plus', label: '10 kg+' },
+    { key: 'kg10Plus', label: '10-25 kg' },
+    { key: 'kg25Plus', label: '25 kg+' },
 ];
 
 const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;

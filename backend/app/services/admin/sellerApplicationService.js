@@ -117,7 +117,7 @@ export async function approveSellerApplicationById({ sellerId, reviewedBy }) {
   }
 
   // Invalidate nearby sellers cache so changes reflect immediately
-  delPattern(buildKey("sellers", "nearby_full", "*")).catch((err) => {
+  delPattern(buildKey("sellers", "nearby_all", "*")).catch((err) => {
     console.warn("[Admin approval] Cache invalidation failed:", err.message);
   });
 
@@ -149,7 +149,7 @@ export async function rejectSellerApplicationById({
   }
 
   // Invalidate nearby sellers cache so changes reflect immediately
-  delPattern(buildKey("sellers", "nearby_full", "*")).catch((err) => {
+  delPattern(buildKey("sellers", "nearby_all", "*")).catch((err) => {
     console.warn("[Admin rejection] Cache invalidation failed:", err.message);
   });
 

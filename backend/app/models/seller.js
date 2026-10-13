@@ -116,9 +116,17 @@ const sellerSchema = new mongoose.Schema(
       default: 0,
     },
 
+    // Kept in sync with store timings by shopHoursSyncJob (open = inside
+    // timings AND not manually paused). Do not set it directly.
     isOpen: {
       type: Boolean,
       default: true,
+    },
+
+    // Owner pressed "pause shop": stays closed even inside store timings.
+    manuallyClosed: {
+      type: Boolean,
+      default: false,
     },
 
     address: {

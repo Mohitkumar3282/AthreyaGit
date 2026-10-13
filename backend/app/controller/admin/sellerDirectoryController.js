@@ -3,6 +3,8 @@ import getPagination from "../../utils/pagination.js";
 import Seller from "../../models/seller.js";
 import Order from "../../models/order.js";
 import Product from "../../models/product.js";
+import { getShopStatus, parseStoreTimings } from "../../services/shopHoursService.js";
+import { delPattern, buildKey } from "../../services/cacheService.js";
 import {
   getActiveSellersData,
   getSellerLocationsData,
@@ -197,7 +199,22 @@ export const updateSellerByAdmin = async (req, res) => {
       };
     }
 
+    if (updateData.storeTimings !== undefined) {
+      if (!parseStoreTimings(updateData.storeTimings)) {
+        return handleResponse(res, 400, "Shop timings must look like '7:00 AM - 11:00 AM'");
+      }
+    }
+    // Open/closed always follows the timings (never set by hand).
+    seller.isOpen = getShopStatus(seller).isOpen;
+
     const updatedSeller = await seller.save();
+    if (updateData.storeTimings !== undefined) {
+      // Shop lists are cached; refresh them so the new hours apply right away.
+      await Promise.allSettled([
+        delPattern(buildKey("sellers", "nearby_all", "*")),
+        delPattern(buildKey("sellers", "all_active_all")),
+      ]);
+    }
     return handleResponse(res, 200, "Seller updated successfully by admin", updatedSeller);
   } catch (error) {
     return handleResponse(res, 500, error.message);

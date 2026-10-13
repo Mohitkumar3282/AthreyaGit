@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Product from "../../models/product.js";
 import Category from "../../models/category.js";
 import Seller from "../../models/seller.js";
+import { getShopStatus } from "../shopHoursService.js";
 import {
   PRODUCT_APPROVAL_STATUS,
   resolveProductApprovalStatus,
@@ -461,9 +462,20 @@ export async function generateOrderPaymentBreakdown({
   // percentage -> flat % on every item; monthly_fee -> no per-order commission.
   let sellerCommission = null;
   if (mongoose.isValidObjectId(sellerIds[0])) {
-    const sellerQuery = Seller.findById(sellerIds[0]).select("commission").lean();
+    const sellerQuery = Seller.findById(sellerIds[0])
+      .select("commission storeTimings manuallyClosed")
+      .lean();
     if (session) sellerQuery.session(session);
-    sellerCommission = (await sellerQuery)?.commission;
+    const sellerDoc = await sellerQuery;
+    sellerCommission = sellerDoc?.commission;
+    // Orders can only be placed while the shop is open (live check, so it
+    // does not depend on the 1-minute sync job).
+    const shopStatus = sellerDoc ? getShopStatus(sellerDoc) : null;
+    if (shopStatus && !shopStatus.isOpen) {
+      const err = new Error(shopStatus.closedMessage || "Shop is closed");
+      err.statusCode = 409;
+      throw err;
+    }
   }
   const commissionOverride =
     sellerCommission?.mode === "percentage"

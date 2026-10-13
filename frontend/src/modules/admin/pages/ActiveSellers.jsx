@@ -182,6 +182,22 @@ Type:
     }
   };
 
+  const handleSetShopTimings = async (seller) => {
+    const current = seller.storeTimings || "9:00 AM - 10:00 PM";
+    const [curOpen, curClose] = current.split(/s*(?:-|–|—|to)s*/i);
+    const open = window.prompt(`Opening time for ${seller.shopName} (e.g. 7:00 AM):`, curOpen || "9:00 AM");
+    if (open === null) return;
+    const close = window.prompt("Closing time (e.g. 11:00 AM):", curClose || "10:00 PM");
+    if (close === null) return;
+    try {
+      await adminApi.updateSeller(seller.id || seller._id, { storeTimings: `${open.trim()} - ${close.trim()}` });
+      toast.success("Shop timings saved. The shop now opens and closes automatically.");
+      setRefreshTick(val => val + 1);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to save timings");
+    }
+  };
+
   const handleDeleteSeller = async (seller) => {
     if (!window.confirm(`Permanently delete "${seller.shopName || seller.name}" and all their products? This cannot be undone.`)) return;
     try {
@@ -637,6 +653,16 @@ Type:
                               >
                                 <HiOutlineEye className="h-4 w-4 text-slate-400" />
                                 View Details
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleSetShopTimings(seller);
+                                  setActiveDropdownId(null);
+                                }}
+                                className="w-full px-3 py-2.5 text-left text-xs font-bold text-indigo-700 hover:bg-indigo-50 rounded-xl transition-all flex items-center gap-2"
+                              >
+                                <HiOutlineClock className="h-4 w-4 text-indigo-500" />
+                                Shop Timings ({seller.storeTimings || "not set"})
                               </button>
                               <button
                                 onClick={() => {

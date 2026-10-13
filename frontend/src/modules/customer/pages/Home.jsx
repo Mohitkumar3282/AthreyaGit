@@ -197,66 +197,104 @@ const Home = () => {
     }
   };
 
-  // Fetch search products lazily when search view is opened
+  // Every category node (header / category / sub-category) whose name matches
+  // the query, so searching "milk" finds the "Milk Products" category.
+  const matchingCategories = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    const out = [];
+    const walk = (nodes) => {
+      (nodes || []).forEach((node) => {
+        const id = node._id || node.id;
+        const name = node.name || "";
+        if (
+          id &&
+          name.trim().toLowerCase() !== "all" &&
+          (name.toLowerCase().includes(q) ||
+            (getTeluguCategoryName(name) || "").toLowerCase().includes(q))
+        ) {
+          out.push({ id, name, image: node.image });
+        }
+        walk(node.children);
+      });
+    };
+    walk(headerCategories);
+    return out.slice(0, 8);
+  }, [searchQuery, headerCategories]);
+
+  // Server-side product search (debounced): products whose name matches PLUS
+  // the products inside any matching category, not just the first page of
+  // nearby products.
   useEffect(() => {
-    if (!isSearchView || allProducts.length > 0) return;
-    
-    const fetchProducts = async () => {
-      const hasValidLocation =
-        Number.isFinite(currentLocation?.latitude) &&
-        Number.isFinite(currentLocation?.longitude);
-      if (!hasValidLocation) return;
-      
+    const q = searchQuery.trim();
+    if (!isSearchView || !q) {
+      setAllProducts([]);
+      return undefined;
+    }
+    const hasValidLocation =
+      Number.isFinite(currentLocation?.latitude) &&
+      Number.isFinite(currentLocation?.longitude);
+    if (!hasValidLocation) return undefined;
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
       setIsSearchLoading(true);
       try {
-        const response = await customerApi.getProducts({
-          limit: 100,
-          lat: currentLocation.latitude,
-          lng: currentLocation.longitude,
-        });
-        if (response.data.success) {
-          const rawResult = response.data.result;
-          const dbProds = Array.isArray(response.data.results)
-            ? response.data.results
-            : Array.isArray(rawResult?.items)
-            ? rawResult.items
-            : Array.isArray(rawResult)
-            ? rawResult
+        const geo = { lat: currentLocation.latitude, lng: currentLocation.longitude };
+        const requests = [
+          customerApi.getProducts({ search: q, limit: 40, ...geo }),
+          ...matchingCategories.slice(0, 2).map((c) =>
+            customerApi.getProducts({ category: c.id, limit: 40, ...geo }),
+          ),
+        ];
+        const responses = await Promise.allSettled(requests);
+        const byId = new Map();
+        responses.forEach((r) => {
+          if (r.status !== "fulfilled" || !r.value?.data?.success) return;
+          const raw = r.value.data.result;
+          const list = Array.isArray(r.value.data.results)
+            ? r.value.data.results
+            : Array.isArray(raw?.items)
+            ? raw.items
+            : Array.isArray(raw)
+            ? raw
             : [];
-          const formattedProds = dbProds.map(p => ({
-            ...p,
-            id: p._id,
-            image: p.mainImage || p.image || "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=400&h=400",
-            price: p.salePrice || p.price,
-            originalPrice: p.price,
-            weight: p.weight || '1 unit',
-            deliveryTime: '8-15 mins'
-          }));
-          setAllProducts(formattedProds);
-        }
+          list.forEach((prod) => {
+            if (!byId.has(prod._id)) {
+              byId.set(prod._id, {
+                ...prod,
+                id: prod._id,
+                image: prod.mainImage || prod.image || "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=400&h=400",
+                price: prod.salePrice || prod.price,
+                originalPrice: prod.price,
+                weight: prod.weight || "1 unit",
+                deliveryTime: "8-15 mins",
+              });
+            }
+          });
+        });
+        if (!cancelled) setAllProducts(Array.from(byId.values()));
       } catch (error) {
-        console.error('Error fetching search products:', error);
+        console.error("Error searching products:", error);
       } finally {
-        setIsSearchLoading(false);
+        if (!cancelled) setIsSearchLoading(false);
       }
-    };
-    
-    fetchProducts();
-  }, [isSearchView, currentLocation, allProducts.length]);
+    }, 300);
 
-  const filteredProducts = useMemo(() => {
-    if (!searchQuery.trim()) return [];
-    return allProducts.filter(p =>
-      p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.categoryId?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [searchQuery, allProducts]);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [isSearchView, searchQuery, currentLocation, matchingCategories]);
+
+  const filteredProducts = allProducts;
 
   const filteredShops = useMemo(() => {
     if (!searchQuery.trim()) return [];
     return shops.filter(s =>
       s.shopName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.locality?.toLowerCase().includes(searchQuery.toLowerCase())
+      s.locality?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (typeof s.category === "string" && s.category.toLowerCase().includes(searchQuery.toLowerCase()))
     );
   }, [searchQuery, shops]);
 
@@ -352,11 +390,23 @@ const Home = () => {
   useEffect(() => {
     if (currentLocation?.latitude && currentLocation?.longitude) {
       customerApi.getNearbySellers({ lat: currentLocation.latitude, lng: currentLocation.longitude })
-        .then(res => {
-          if (res.data?.success) {
-            setShops(res.data.results || res.data.result || []);
+        .then(async (res) => {
+          if (!res.data?.success) return;
+          const nearby = res.data.results || res.data.result || [];
+          if (nearby.length > 0) {
+            setShops(nearby);
+            return;
           }
+          // Outside every shop's delivery radius: still show all shops (they
+          // stay visible, ordering is checked at checkout).
+          const all = await customerApi.getNearbySellers({});
+          setShops(all.data?.results || all.data?.result || []);
         })
+        .catch(e => console.error("Error fetching shops:", e));
+    } else {
+      // No location yet: show all shops instead of an empty home page.
+      customerApi.getNearbySellers({})
+        .then(res => setShops(res.data?.results || res.data?.result || []))
         .catch(e => console.error("Error fetching shops:", e));
     }
   }, [currentLocation?.latitude, currentLocation?.longitude]);
@@ -434,6 +484,7 @@ const Home = () => {
     teluguName: shop.locality || "",
     rating: shop.rating || "4.5",
     time: shop.storeTimings || "20-30 mins",
+    isOpen: shop.isOpen !== false,
     image: applyCloudinaryTransform(shop.shopLogo || shop.shopBanner || "https://images.unsplash.com/photo-1534723452862-4c874018d66d?q=80&w=400&fit=crop"),
     path: `/shops/${shop._id || shop.id}`
   }));
@@ -651,6 +702,29 @@ const Home = () => {
             </div>
           ) : (
             <div className="space-y-6">
+              {/* 0. Categories matching query */}
+              {matchingCategories.length > 0 && (
+                <div>
+                  <h4 className="text-[12px] font-bold text-slate-300 mb-2.5 uppercase">Matching Categories</h4>
+                  <div className="flex gap-3 overflow-x-auto pb-1">
+                    {matchingCategories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        onClick={() => navigate(`/category/${cat.id}`)}
+                        className="flex flex-col items-center gap-1.5 shrink-0 w-[76px] active:scale-95 transition-transform"
+                      >
+                        <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white shadow-md">
+                          {cat.image && (
+                            <img src={applyCloudinaryTransform(cat.image)} alt={cat.name} className="w-full h-full object-cover" />
+                          )}
+                        </div>
+                        <span className="text-[10px] font-black text-white text-center line-clamp-2 leading-tight">{cat.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* 1. Stores matching query */}
               {filteredShops.length > 0 && (
                 <div>
@@ -705,7 +779,7 @@ const Home = () => {
                 </div>
               )}
 
-              {filteredShops.length === 0 && filteredProducts.length === 0 && searchQuery.trim() !== "" && (
+              {matchingCategories.length === 0 && filteredShops.length === 0 && filteredProducts.length === 0 && searchQuery.trim() !== "" && (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <span className="text-3xl">🔍</span>
                   <p className="text-sm font-black text-white mt-3">No products or stores found</p>
@@ -769,7 +843,14 @@ const Home = () => {
                     className="w-[145px] shrink-0 bg-white rounded-2xl overflow-hidden shadow-md cursor-pointer active:scale-95 transition-transform flex flex-col"
                   >
                     <div className="w-full h-[95px] relative">
-                      <img src={store.image} alt={store.name} className="w-full h-full object-cover" />
+                      <img src={store.image} alt={store.name} className={`w-full h-full object-cover ${store.isOpen ? "" : "grayscale opacity-70"}`} />
+                      <span
+                        className={`absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide shadow ${
+                          store.isOpen ? "bg-emerald-500 text-white" : "bg-red-600 text-white"
+                        }`}
+                      >
+                        {store.isOpen ? "Open" : "Closed"}
+                      </span>
                     </div>
                     <div className="p-2 flex flex-col justify-between flex-1 leading-none">
                       <div>

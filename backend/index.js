@@ -29,6 +29,7 @@ import {
 } from "./app/core/shutdown.js";
 import { registerScheduledJob, startScheduledJobs } from "./app/services/distributedScheduler.js";
 import { getOrderAutoCancelJobHandler, getOrderAutoCancelJobInterval } from "./app/jobs/orderAutoCancelJob.js";
+import { getShopHoursSyncJobHandler, getShopHoursSyncJobInterval } from "./app/jobs/shopHoursSyncJob.js";
 import { getSellerMonthlyFeeJobHandler, getSellerMonthlyFeeJobInterval } from "./app/jobs/sellerMonthlyFeeJob.js";
 import { getReturnWindowReleaseJobHandler, getReturnWindowReleaseJobInterval } from "./app/jobs/returnWindowReleaseJob.js";
 import {
@@ -338,6 +339,13 @@ async function startScheduler() {
     getReturnWindowReleaseJobHandler()
   );
 
+  // Auto open/close shops from their store timings
+  registerScheduledJob(
+    'shopHoursSyncJob',
+    getShopHoursSyncJobInterval(),
+    getShopHoursSyncJobHandler()
+  );
+
   // Monthly platform fee for sellers on a fixed-fee plan (once per month)
   registerScheduledJob(
     'sellerMonthlyFeeJob',
@@ -401,6 +409,7 @@ async function startScheduler() {
     'orderAutoCancelJob',
     'returnWindowReleaseJob',
     'sellerMonthlyFeeJob',
+    'shopHoursSyncJob',
     'deliveryBoyAcceptanceTimeoutJob',
     'returnWindowExpiryReminderJob',
     'staleRequestCleanupJob'

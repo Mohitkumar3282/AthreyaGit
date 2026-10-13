@@ -3,7 +3,15 @@ import Transaction from "../models/transaction.js";
 import { handleResponse, calculateDistance } from "../utils/helper.js";
 import mongoose from "mongoose";
 import { invalidateSellerName } from "../services/entityNameCache.js";
+import { getShopStatus } from "../services/shopHoursService.js";
 import { buildKey, getOrSet, getTTL, delPattern } from "../services/cacheService.js";
+
+// Shops stay listed when closed; status is computed live from store timings
+// (the cached rows may be up to a few minutes old).
+const withShopStatus = (seller) => {
+  const status = getShopStatus(seller);
+  return { ...seller, isOpen: status.isOpen, closedMessage: status.closedMessage };
+};
 
 /* ===============================
    GET NEARBY SELLERS
@@ -13,13 +21,12 @@ export const getNearbySellers = async (req, res) => {
     const { lat, lng } = req.query;
 
     if (!lat || !lng) {
-      const cacheKey = buildKey("sellers", "all_active");
+      const cacheKey = buildKey("sellers", "all_active_all");
       const sellers = await getOrSet(
         cacheKey,
         async () => {
           return Seller.find({
             isActive: true,
-            isOpen: true,
             isVerified: true
           }).lean();
         },
@@ -29,7 +36,7 @@ export const getNearbySellers = async (req, res) => {
         res,
         200,
         "All active sellers fetched successfully",
-        sellers,
+        sellers.map(withShopStatus),
       );
     }
 
@@ -38,14 +45,13 @@ export const getNearbySellers = async (req, res) => {
 
     const rLat = customerLat.toFixed(4);
     const rLng = customerLng.toFixed(4);
-    const cacheKey = buildKey("sellers", "nearby_full", `${rLat}:${rLng}`);
+    const cacheKey = buildKey("sellers", "nearby_all", `${rLat}:${rLng}`);
 
     const nearbySellers = await getOrSet(
       cacheKey,
       async () => {
         const sellers = await Seller.find({
           isActive: true,
-          isOpen: true,
           isVerified: true,
           location: {
             $near: {
@@ -81,7 +87,7 @@ export const getNearbySellers = async (req, res) => {
       res,
       200,
       "Nearby sellers fetched successfully",
-      nearbySellers,
+      nearbySellers.map(withShopStatus),
     );
   } catch (error) {
     return handleResponse(res, 500, error.message);
@@ -166,7 +172,7 @@ export const getSellerProfile = async (req, res) => {
       res,
       200,
       "Seller profile fetched successfully",
-      seller,
+      { ...seller.toObject(), shopStatus: getShopStatus(seller) },
     );
   } catch (error) {
     return handleResponse(res, 500, error.message);
@@ -209,7 +215,8 @@ export const updateSellerProfile = async (req, res) => {
     if (storeFrontImage !== undefined) seller.storeFrontImage = storeFrontImage;
     if (storeInteriorImages !== undefined) seller.storeInteriorImages = storeInteriorImages;
     if (businessDescription !== undefined) seller.businessDescription = businessDescription;
-    if (storeTimings !== undefined) seller.storeTimings = storeTimings;
+    // storeTimings and open/closed status are controlled by admin and applied
+    // automatically; seller edits to them are ignored.
     if (contactNumber !== undefined) seller.contactNumber = contactNumber;
     if (minimumOrderAmount !== undefined) seller.minimumOrderAmount = Number(minimumOrderAmount);
     // deliveryFee / freeDeliveryAbove are intentionally ignored: delivery
@@ -217,7 +224,7 @@ export const updateSellerProfile = async (req, res) => {
     if (hygieneAssured !== undefined) seller.hygieneAssured = Boolean(hygieneAssured);
     if (rating !== undefined) seller.rating = Number(rating);
     if (reviewCount !== undefined) seller.reviewCount = Number(reviewCount);
-    if (isOpen !== undefined) seller.isOpen = Boolean(isOpen);
+    seller.isOpen = getShopStatus(seller).isOpen;
     if (isActive !== undefined) seller.isActive = Boolean(isActive);
 
     // Validate and update geo data
@@ -247,7 +254,7 @@ export const updateSellerProfile = async (req, res) => {
     });
 
     // Invalidate nearby sellers cache so changes reflect immediately
-    delPattern(buildKey("sellers", "nearby_full", "*")).catch((err) => {
+    delPattern(buildKey("sellers", "nearby_all", "*")).catch((err) => {
       console.warn("[Seller] Cache invalidation failed:", err.message);
     });
 
@@ -255,7 +262,7 @@ export const updateSellerProfile = async (req, res) => {
       res,
       200,
       "Profile updated successfully",
-      updatedSeller,
+      { ...updatedSeller.toObject(), shopStatus: getShopStatus(updatedSeller) },
     );
   } catch (error) {
     // Handle duplicate phone error

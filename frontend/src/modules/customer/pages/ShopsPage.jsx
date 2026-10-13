@@ -264,6 +264,7 @@ const ShopsPage = () => {
                                                 {shop.rating || "4.5"} ★
                                             </span>
                                             <span className="text-slate-300">•</span>
+                                            <span className={`shrink-0 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide ${shop.isOpen === false ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>{shop.isOpen === false ? "Closed" : "Open"}</span>
                                             <span className="shrink-0">{shop.storeTimings || "20-25 mins"}</span>
                                             <span className="text-slate-300">•</span>
                                             <span className="shrink-0">Min. Order ₹{shop.minimumOrderAmount || 0}</span>

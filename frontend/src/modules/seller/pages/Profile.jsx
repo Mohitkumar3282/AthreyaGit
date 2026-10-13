@@ -28,8 +28,28 @@ import Card from "@shared/components/ui/Card";
 import Button from "@shared/components/ui/Button";
 import MapPicker from "../../../shared/components/MapPicker";
 
+const to24 = (t) => {
+  const m = String(t || "").trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
+  if (!m) return "";
+  let h = Number(m[1]);
+  if (m[3] === "pm" && h !== 12) h += 12;
+  if (m[3] === "am" && h === 12) h = 0;
+  return `${String(h % 24).padStart(2, "0")}:${m[2] || "00"}`;
+};
+const to12 = (hhmm) => {
+  const [h, m] = String(hhmm || "").split(":").map(Number);
+  if (!Number.isFinite(h)) return "";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m || 0).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+};
+const splitTimings = (text) => {
+  const parts = String(text || "").split(/\s*(?:-|–|—|to)\s*/i);
+  return parts.length === 2 ? [to24(parts[0]), to24(parts[1])] : ["", ""];
+};
+
 const SellerProfile = () => {
   const [profile, setProfile] = useState(null);
+  const [shopStatus, setShopStatus] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -80,6 +100,7 @@ const SellerProfile = () => {
       const response = await sellerApi.getProfile();
       const data = response.data.result;
       setProfile(data);
+      setShopStatus(data.shopStatus || null);
       setFormData({
         name: data.name || "",
         shopName: data.shopName || "",
@@ -102,7 +123,8 @@ const SellerProfile = () => {
         deliveryFee: data.deliveryFee || 30,
         freeDeliveryAbove: data.freeDeliveryAbove || 499,
         hygieneAssured: data.hygieneAssured || false,
-        isOpen: data.isOpen !== undefined ? data.isOpen : true,
+        // isOpen here means "not paused"; opening/closing follows store timings.
+        isOpen: data.manuallyClosed !== true,
       });
     } catch (error) {
       toast.error("Failed to fetch profile");
@@ -219,8 +241,9 @@ const SellerProfile = () => {
     try {
       const newOpenStatus = !formData.isOpen;
       setFormData((prev) => ({ ...prev, isOpen: newOpenStatus }));
-      await sellerApi.updateProfile({ isOpen: newOpenStatus });
-      toast.success(`Shop is now ${newOpenStatus ? "Open" : "Closed"}`);
+      const res = await sellerApi.updateProfile({ isOpen: newOpenStatus });
+      setShopStatus(res?.data?.result?.shopStatus || null);
+      toast.success(newOpenStatus ? "Shop resumed - it opens and closes automatically" : "Shop paused - customers see it as closed");
     } catch (error) {
       toast.error("Failed to update store opening status");
     }
@@ -457,15 +480,12 @@ const SellerProfile = () => {
                     <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300">
                       <Clock size={18} />
                     </div>
-                    <input
-                      type="text"
-                      name="storeTimings"
-                      placeholder="e.g. 9:00 AM - 10:00 PM"
-                      value={formData.storeTimings}
-                      onChange={handleChange}
-                      disabled={!isEditing}
-                      className="w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-transparent rounded-lg text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-slate-100 transition-all disabled:opacity-70"
-                    />
+                    <div className="w-full pl-14 pr-6 py-4 bg-slate-50 rounded-lg text-sm font-bold text-slate-700">
+                      {formData.storeTimings || "Not set"}
+                    </div>
+                    <p className="mt-2 ml-1 text-[11px] font-semibold text-slate-500">
+                      Set by Athreya admin. Your shop opens and closes automatically - you don't need to change anything.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -758,16 +778,19 @@ const SellerProfile = () => {
                     Shop Display State
                   </span>
                   <span className="text-sm font-bold text-slate-900">
-                    {formData.isOpen ? "Accepting Orders" : "Closed / Pause"}
+                    Opens and closes automatically
                   </span>
+                  {shopStatus && (
+                    <span
+                      className={`mt-1 inline-block text-[11px] font-black px-2 py-0.5 rounded-full ${
+                        shopStatus.isOpen ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+                      }`}
+                    >
+                      {shopStatus.isOpen ? "Open now" : "Closed now"}
+                      {shopStatus.hours ? ` · ${shopStatus.hours}` : ""}
+                    </span>
+                  )}
                 </div>
-                <button
-                  type="button"
-                  onClick={toggleOpenStatus}
-                  className={`w-12 h-6 rounded-full transition-colors relative ${formData.isOpen ? 'bg-emerald-500' : 'bg-slate-300'}`}
-                >
-                  <span className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${formData.isOpen ? 'left-6.5' : 'left-0.5'}`} />
-                </button>
               </div>
             </div>
           </Card>

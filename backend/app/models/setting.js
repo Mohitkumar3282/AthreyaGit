@@ -230,6 +230,7 @@ const settingSchema = new mongoose.Schema(
                 kg3To5: { type: Number, default: 0, min: 0 },
                 kg5To10: { type: Number, default: 0, min: 0 },
                 kg10Plus: { type: Number, default: 0, min: 0 },
+                kg25Plus: { type: Number, default: 0, min: 0 },
             },
             services: {
                 home_to_home: {
