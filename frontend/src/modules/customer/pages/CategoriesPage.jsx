@@ -4,6 +4,18 @@ import MainLocationHeader from '../components/shared/MainLocationHeader';
 import { customerApi } from '../services/customerApi';
 import { applyCloudinaryTransform } from '@/core/utils/imageUtils';
 import { getTeluguCategoryName } from '@shared/utils/categoryTranslations';
+import ShopProductSearch from '../components/shared/ShopProductSearch';
+
+// Main categories, in the order customers should see them.
+const MAIN_CATEGORY_ORDER = [
+    'foods', 'tiffins', 'fruits', 'vegetables', 'milk products',
+    'grocery', 'chicken', 'mutton', 'bakery', 'ice cream', 'water can',
+];
+const mainCategoryRank = (name) => {
+    const n = String(name || '').toLowerCase();
+    const i = MAIN_CATEGORY_ORDER.findIndex((k) => n.includes(k));
+    return i < 0 ? 999 : i;
+};
 
 const COLORS = [
     "#ffffff"
@@ -12,6 +24,7 @@ const COLORS = [
 const CategoriesPage = () => {
     const [categories, setCategories] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [searchText, setSearchText] = useState('');
 
     const fetchCategories = async () => {
         setIsLoading(true);
@@ -25,60 +38,17 @@ const CategoriesPage = () => {
                 ? res.data
                 : [];
             
-            const flatCategories = [];
-            tree
+            // Only the MAIN (header) categories - no sub-categories here.
+            const flatCategories = tree
                 .filter((header) => (header?.name || '').trim().toLowerCase() !== 'all')
-                .forEach((header, idx) => {
-                    const children = header.children || [];
-                    if (children.length > 0) {
-                        children.forEach((cat, cIdx) => {
-                            const catId = cat._id || cat.id;
-                            if (catId && !flatCategories.some(existing => existing.id === catId)) {
-                                flatCategories.push({
-                                    id: catId,
-                                    name: cat.name,
-                                    image: cat.image || "https://cdn.grofers.com/cdn-cgi/image/f=auto,fit=scale-down,q=70,metadata=none,w=270/layout-engine/2022-11/Slice-1_9.png",
-                                    color: COLORS[(idx + cIdx) % COLORS.length]
-                                });
-                            }
-                        });
-                    }
-                    
-                    // Also include header item itself so categories without children are included
-                    const headerId = header._id || header.id;
-                    if (headerId && !flatCategories.some(existing => existing.id === headerId)) {
-                        flatCategories.push({
-                            id: headerId,
-                            name: header.name,
-                            image: header.image || "https://cdn.grofers.com/cdn-cgi/image/f=auto,fit=scale-down,q=70,metadata=none,w=270/layout-engine/2022-11/Slice-1_9.png",
-                            color: COLORS[idx % COLORS.length]
-                        });
-                    }
-                });
-
-            // Fallback: If flatCategories is still empty, call flat getCategories API
-            if (flatCategories.length === 0) {
-                const flatRes = await customerApi.getCategories();
-                const rawFlat = Array.isArray(flatRes.data?.results) 
-                    ? flatRes.data.results 
-                    : Array.isArray(flatRes.data?.result)
-                    ? flatRes.data.result
-                    : Array.isArray(flatRes.data)
-                    ? flatRes.data
-                    : [];
-                
-                rawFlat.forEach((cat, idx) => {
-                    const catId = cat._id || cat.id;
-                    if (catId && (cat.name || '').trim().toLowerCase() !== 'all' && !flatCategories.some(existing => existing.id === catId)) {
-                        flatCategories.push({
-                            id: catId,
-                            name: cat.name,
-                            image: cat.image || "https://cdn.grofers.com/cdn-cgi/image/f=auto,fit=scale-down,q=70,metadata=none,w=270/layout-engine/2022-11/Slice-1_9.png",
-                            color: COLORS[idx % COLORS.length]
-                        });
-                    }
-                });
-            }
+                .map((header, idx) => ({
+                    id: header._id || header.id,
+                    name: header.name,
+                    image: header.image || "https://cdn.grofers.com/cdn-cgi/image/f=auto,fit=scale-down,q=70,metadata=none,w=270/layout-engine/2022-11/Slice-1_9.png",
+                    color: COLORS[idx % COLORS.length],
+                }))
+                .filter((cat) => cat.id)
+                .sort((x, y) => mainCategoryRank(x.name) - mainCategoryRank(y.name));
 
             setCategories(flatCategories);
         } catch (error) {
@@ -94,8 +64,13 @@ const CategoriesPage = () => {
 
     return (
         <div className="min-h-screen bg-[#042A0F] text-white">
-            <MainLocationHeader />
+            <MainLocationHeader searchValue={searchText} onSearchChange={setSearchText} />
             <div className="max-w-[1280px] mx-auto px-4 pt-[110px] md:pt-[140px] pb-20">
+                {searchText.trim() ? (
+                    <div className="bg-slate-50 rounded-3xl p-4 text-slate-900">
+                        <ShopProductSearch query={searchText} />
+                    </div>
+                ) : (
                 <div className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {/* Group Title */}
                     <h2 className="text-[12.5px] md:text-sm font-black text-white tracking-wide uppercase mb-4 px-1 font-sans">
@@ -152,6 +127,7 @@ const CategoriesPage = () => {
                         </div>
                     )}
                 </div>
+                )}
             </div>
         </div>
     );

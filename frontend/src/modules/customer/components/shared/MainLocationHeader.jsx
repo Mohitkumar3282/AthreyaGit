@@ -197,6 +197,10 @@ const MainLocationHeader = ({
   categories = [],
   activeCategory,
   onCategorySelect,
+  // When given, the header search box is a real input (used by the Category
+  // page to search shops) instead of a shortcut to the Search page.
+  searchValue,
+  onSearchChange,
 }) => {
   const { scrollY } = useScroll();
   const [isLocationOpen, setIsLocationOpen] = useState(false);
@@ -220,7 +224,9 @@ const MainLocationHeader = ({
   const navigate = useNavigate();
 
   // Search Logic
+  const inlineSearch = typeof onSearchChange === "function";
   const handleSearchClick = () => {
+    if (inlineSearch) return;
     navigate("/search");
   };
 
@@ -448,8 +454,9 @@ const MainLocationHeader = ({
                 <SearchIcon sx={{ color: "#9ca3af", fontSize: 20 }} />
                 <input
                   type="text"
-                  placeholder={searchPlaceholder || "Search Products..."}
-                  readOnly
+                  placeholder={inlineSearch ? 'Search a product, e.g. "Onion"' : (searchPlaceholder || "Search Products...")}
+                  readOnly={!inlineSearch}
+                  {...(inlineSearch ? { value: searchValue || "", onChange: (e) => onSearchChange(e.target.value) } : {})}
                   className="flex-1 bg-transparent border-none outline-none pl-2 text-white font-semibold placeholder:text-slate-400 text-[15px] cursor-pointer"
                 />
                 <div className="flex items-center gap-2 border-l border-white/10 pl-3">
@@ -592,8 +599,9 @@ const MainLocationHeader = ({
               <SearchIcon sx={{ color: "#9ca3af", fontSize: 18 }} />
               <input
                 type="text"
-                placeholder={searchPlaceholder || `Search ${getAreaName(currentLocation)} stores...`}
-                readOnly
+                placeholder={inlineSearch ? 'Search a product, e.g. "Onion"' : (searchPlaceholder || `Search ${getAreaName(currentLocation)} stores...`)}
+                readOnly={!inlineSearch}
+                {...(inlineSearch ? { value: searchValue || "", onChange: (e) => onSearchChange(e.target.value) } : {})}
                 className="flex-1 bg-transparent border-none outline-none pl-2 text-white font-bold placeholder-slate-400 text-[12.5px] cursor-pointer"
               />
               <button 
