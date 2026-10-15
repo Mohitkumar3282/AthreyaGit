@@ -43,6 +43,7 @@ import { customerApi } from "../services/customerApi";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
 import { getAreaName, getTeluguAreaName } from "../components/shared/MainLocationHeader";
 import { getTeluguCategoryName } from "@shared/utils/categoryTranslations";
+import ProductCard from "../components/shared/ProductCard";
 import { getLegacyStatusFromOrder } from "@shared/utils/orderStatus";
 import LiveBanner from "../components/banner/LiveBanner";
 
@@ -222,6 +223,13 @@ const Home = () => {
     return out.slice(0, 8);
   }, [searchQuery, headerCategories]);
 
+  const visibleCategories = useMemo(
+    () => matchingCategories.filter(
+      (cat) => !allProducts.some((p) => (p.name || "").trim().toLowerCase() === (cat.name || "").trim().toLowerCase()),
+    ),
+    [matchingCategories, allProducts],
+  );
+
   // Server-side product search (debounced): products whose name matches PLUS
   // the products inside any matching category, not just the first page of
   // nearby products.
@@ -247,7 +255,21 @@ const Home = () => {
             customerApi.getProducts({ category: c.id, limit: 40, ...geo }),
           ),
         ];
-        const responses = await Promise.allSettled(requests);
+        let responses = await Promise.allSettled(requests);
+        const hasAny = responses.some(
+          (r) => r.status === "fulfilled" && r.value?.data?.success &&
+            (r.value.data.results?.length || r.value.data.result?.items?.length || r.value.data.result?.length),
+        );
+        // Outside every shop's delivery radius the location-limited search is
+        // empty; search all shops so the product is still found.
+        if (!hasAny) {
+          responses = await Promise.allSettled([
+            customerApi.getProducts({ search: q, limit: 40 }),
+            ...matchingCategories.slice(0, 2).map((cat) =>
+              customerApi.getProducts({ category: cat.id, limit: 40 }),
+            ),
+          ]);
+        }
         const byId = new Map();
         responses.forEach((r) => {
           if (r.status !== "fulfilled" || !r.value?.data?.success) return;
@@ -702,24 +724,14 @@ const Home = () => {
             </div>
           ) : (
             <div className="space-y-6">
-              {/* 0. Categories matching query */}
-              {matchingCategories.length > 0 && (
+              {/* 2. Products matching query */}
+              {filteredProducts.length > 0 && (
                 <div>
-                  <h4 className="text-[12px] font-bold text-slate-300 mb-2.5 uppercase">Matching Categories</h4>
-                  <div className="flex gap-3 overflow-x-auto pb-1">
-                    {matchingCategories.map((cat) => (
-                      <button
-                        key={cat.id}
-                        onClick={() => navigate(`/category/${cat.id}`)}
-                        className="flex flex-col items-center gap-1.5 shrink-0 w-[76px] active:scale-95 transition-transform"
-                      >
-                        <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white shadow-md">
-                          {cat.image && (
-                            <img src={applyCloudinaryTransform(cat.image)} alt={cat.name} className="w-full h-full object-cover" />
-                          )}
-                        </div>
-                        <span className="text-[10px] font-black text-white text-center line-clamp-2 leading-tight">{cat.name}</span>
-                      </button>
+                  <h4 className="text-[12px] font-bold text-slate-300 mb-2.5 uppercase">Matching Products</h4>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {/* Same card as the rest of the app: ADD to cart + opens product details */}
+                    {filteredProducts.map((product) => (
+                      <ProductCard key={product.id || product._id} product={product} compact={true} />
                     ))}
                   </div>
                 </div>
@@ -749,31 +761,24 @@ const Home = () => {
                 </div>
               )}
 
-              {/* 2. Products matching query */}
-              {filteredProducts.length > 0 && (
+              {/* 0. Categories matching query */}
+              {visibleCategories.length > 0 && (
                 <div>
-                  <h4 className="text-[12px] font-bold text-slate-300 mb-2.5 uppercase">Matching Products</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    {filteredProducts.map((product, idx) => (
-                      <div 
-                        key={idx}
-                        onClick={() => navigate(`/products/${product._id || product.id}`)}
-                        className="bg-[#021f0b] border border-[#0d4f1c] rounded-2xl p-2.5 flex flex-col justify-between cursor-pointer active:scale-95 transition-transform"
+                  <h4 className="text-[12px] font-bold text-slate-300 mb-2.5 uppercase">Matching Categories</h4>
+                  <div className="flex gap-3 overflow-x-auto pb-1">
+                    {visibleCategories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        onClick={() => navigate(`/category/${cat.id}`)}
+                        className="flex flex-col items-center gap-1.5 shrink-0 w-[76px] active:scale-95 transition-transform"
                       >
-                        <div className="w-full aspect-square rounded-xl overflow-hidden bg-white mb-2">
-                          <img src={applyCloudinaryTransform(product.image)} alt={product.name} className="w-full h-full object-cover" />
+                        <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white shadow-md">
+                          {cat.image && (
+                            <img src={applyCloudinaryTransform(cat.image)} alt={cat.name} className="w-full h-full object-cover" />
+                          )}
                         </div>
-                        <div className="flex flex-col leading-tight">
-                          <span className="text-[11px] font-black text-white line-clamp-1">{product.name}</span>
-                          <span className="text-[9px] font-bold text-slate-300 mt-0.5">{product.weight}</span>
-                          <div className="flex justify-between items-center mt-2">
-                            <span className="text-[11px] font-black text-[#A3E635]">₹{product.price}</span>
-                            {product.originalPrice > product.price && (
-                              <span className="text-[9px] font-bold text-slate-400 line-through">₹{product.originalPrice}</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                        <span className="text-[10px] font-black text-white text-center line-clamp-2 leading-tight">{cat.name}</span>
+                      </button>
                     ))}
                   </div>
                 </div>

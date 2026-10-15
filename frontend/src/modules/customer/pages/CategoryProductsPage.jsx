@@ -12,6 +12,7 @@ import ProductDetailSheet from '../components/shared/ProductDetailSheet';
 import { useProductDetail } from '../context/ProductDetailContext';
 import { customerApi } from '../services/customerApi';
 import MiniCart from '../components/shared/MiniCart';
+import ShopProductSearch from '../components/shared/ShopProductSearch';
 import { useLocation as useAppLocation } from '../context/LocationContext';
 import { useSettings } from '@core/context/SettingsContext';
 import { useLanguage } from '@core/context/LanguageContext';
@@ -40,6 +41,7 @@ const CategoryProductsPage = () => {
     const [products, setProducts] = useState([]);
     const [allSellers, setAllSellers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [searchText, setSearchText] = useState('');
 
     const fetchData = async () => {
         setIsLoading(true);
@@ -344,10 +346,10 @@ const CategoryProductsPage = () => {
                     <Search className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
                     <input 
                         type="text" 
-                        placeholder={`Search in ${category?.name || catId}...`} 
+                        placeholder={'Search a product, e.g. "Onion"'} 
                         className="bg-transparent border-none outline-none text-white text-[12.5px] font-bold w-full placeholder-slate-400"
-                        onClick={() => navigate('/search')}
-                        readOnly
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
                     />
                     <button className="w-7 h-7 rounded-full bg-[#A3E635] flex items-center justify-center text-[#042A0F] cursor-pointer hover:opacity-90 active:scale-95 transition-transform border-0 shrink-0 ml-1">
                         <span className="text-xs">🎤</span>
@@ -355,6 +357,12 @@ const CategoryProductsPage = () => {
                 </div>
             </div>
 
+            {searchText.trim() ? (
+                <div className="flex-1 px-4 py-4">
+                    <ShopProductSearch query={searchText} />
+                </div>
+            ) : (
+            <>
             {/* Category Title Block */}
             <div className="px-4 pt-4 pb-1">
                 <div className="flex items-center justify-between">
@@ -523,6 +531,9 @@ const CategoryProductsPage = () => {
                     </>
                 )}
             </div>
+
+            </>
+            )}
 
             <MiniCart />
             <ProductDetailSheet />
