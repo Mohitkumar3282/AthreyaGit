@@ -172,7 +172,7 @@ const ShopsPage = () => {
                             <img src={LogoWhiteBike} alt="Athreya Delivery" className="h-8.5 w-auto object-contain rounded-full" />
                             <div className="flex flex-col items-start leading-none font-sans">
                                 <span className="text-[12.5px] font-black text-white tracking-wide uppercase">ATHREYA</span>
-                                <span className="text-[8.5px] font-bold text-white tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
+                                <span className="text-[11px] font-bold text-white tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
                             </div>
                         </div>
                     </div>
@@ -194,7 +194,7 @@ const ShopsPage = () => {
                     >
                         <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/20 relative">
                             <ShoppingCart size={16} />
-                            <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[8px] font-black rounded-full h-3.5 w-3.5 flex items-center justify-center border border-[#042A0F]">
+                            <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10.5px] font-black rounded-full h-3.5 w-3.5 flex items-center justify-center border border-[#042A0F]">
                                 {cartCount > 0 ? cartCount : 3}
                             </span>
                         </div>
@@ -222,7 +222,7 @@ const ShopsPage = () => {
                 <h1 className="text-[18px] font-black text-slate-800 tracking-tight leading-none">
                     SHOPS AVAILABLE
                 </h1>
-                <p className="text-[11px] font-bold text-[#1a6e2e] mt-1">
+                <p className="text-[12.5px] font-bold text-[#1a6e2e] mt-1">
                     అందుబాటులో ఉన్న దుకాణాలు ({filteredShops.length})
                 </p>
             </div>
@@ -257,14 +257,14 @@ const ShopsPage = () => {
                                     <div className="min-w-0">
                                         <h4 className="text-[14.5px] font-black text-slate-900 flex items-center gap-1 leading-snug">
                                             {shop.shopName}
-                                            <span className="w-4 h-4 rounded-full bg-green-500 text-white flex items-center justify-center text-[9px] font-bold shrink-0">✓</span>
+                                            <span className="w-4 h-4 rounded-full bg-green-500 text-white flex items-center justify-center text-[11px] font-bold shrink-0">✓</span>
                                         </h4>
-                                        <div className="flex items-center gap-1.5 mt-0.5 text-[10.5px] text-slate-500 font-bold flex-wrap">
+                                        <div className="flex items-center gap-1.5 mt-0.5 text-[12px] text-slate-500 font-bold flex-wrap">
                                             <span className="text-amber-500 flex items-center gap-0.5 shrink-0">
                                                 {shop.rating || "4.5"} ★
                                             </span>
                                             <span className="text-slate-300">•</span>
-                                            <span className={`shrink-0 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide ${shop.isOpen === false ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>{shop.isOpen === false ? "Closed" : "Open"}</span>
+                                            <span className={`shrink-0 px-1.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wide ${shop.isOpen === false ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>{shop.isOpen === false ? "Closed" : "Open"}</span>
                                             <span className="shrink-0">{shop.storeTimings || "20-25 mins"}</span>
                                             <span className="text-slate-300">•</span>
                                             <span className="shrink-0">Min. Order ₹{shop.minimumOrderAmount || 0}</span>
@@ -303,10 +303,10 @@ const ShopsPage = () => {
                                                 </div>
                                                 {/* Product details */}
                                                 <div className="text-center w-full leading-none flex flex-col items-center">
-                                                    <span className="text-[9.5px] font-extrabold text-slate-800 truncate max-w-full block">
+                                                    <span className="text-[11.5px] font-extrabold text-slate-800 truncate max-w-full block">
                                                         {product.name}
                                                     </span>
-                                                    <span className="text-[8.5px] font-bold text-slate-500 mt-1 block">
+                                                    <span className="text-[11px] font-bold text-slate-500 mt-1 block">
                                                         ₹{product.price}
                                                     </span>
                                                 </div>

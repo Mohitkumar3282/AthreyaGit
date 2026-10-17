@@ -36,7 +36,7 @@ const CheckoutCartSummary = React.memo(function CheckoutCartSummary({
       </div>
 
       {/* Table Column Headers */}
-      <div className="grid grid-cols-12 gap-1.5 sm:gap-2 text-[10px] md:text-[11px] font-[1000] uppercase tracking-wider text-slate-500 px-1 sm:px-2 border-b border-slate-100 pb-2">
+      <div className="grid grid-cols-12 gap-1.5 sm:gap-2 text-[12px] md:text-[12.5px] font-[1000] uppercase tracking-wider text-slate-500 px-1 sm:px-2 border-b border-slate-100 pb-2">
         <div className="col-span-5 md:col-span-6">Item</div>
         <div className="col-span-2 text-right">M.R.P.</div>
         <div className="col-span-3 md:col-span-2 text-right">Our Price</div>
@@ -78,7 +78,7 @@ const CheckoutCartSummary = React.memo(function CheckoutCartSummary({
                     {item.name}
                   </h4>
                   {(item.unit || item.variantName || item.variantSku) && (
-                    <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 truncate">
+                    <p className="text-[12px] sm:text-[12.5px] font-semibold text-slate-400 truncate">
                       {item.unit || item.variantName || item.variantSku}
                     </p>
                   )}
@@ -97,7 +97,7 @@ const CheckoutCartSummary = React.memo(function CheckoutCartSummary({
                         aria-label="Decrease quantity">
                         <Minus size={11} strokeWidth={3} />
                       </button>
-                      <span className="text-[11px] font-black text-slate-800 min-w-[14px] text-center">
+                      <span className="text-[12.5px] font-black text-slate-800 min-w-[14px] text-center">
                         {item.quantity}
                       </span>
                       <button
@@ -113,7 +113,7 @@ const CheckoutCartSummary = React.memo(function CheckoutCartSummary({
                       <button
                         type="button"
                         onClick={() => onMoveToWishlist(item)}
-                        className="text-[10px] text-slate-400 hover:text-rose-500 font-semibold transition-colors hidden sm:inline"
+                        className="text-[12px] text-slate-400 hover:text-rose-500 font-semibold transition-colors hidden sm:inline"
                         title="Move to wishlist">
                         <Heart size={12} />
                       </button>
@@ -124,7 +124,7 @@ const CheckoutCartSummary = React.memo(function CheckoutCartSummary({
 
               {/* M.R.P. Column */}
               <div className="col-span-2 text-right">
-                <span className="text-[11px] sm:text-sm font-semibold text-slate-400 line-through">
+                <span className="text-[12.5px] sm:text-sm font-semibold text-slate-400 line-through">
                   ₹{totalMrp}
                 </span>
               </div>
@@ -138,7 +138,7 @@ const CheckoutCartSummary = React.memo(function CheckoutCartSummary({
 
               {/* You Save Column */}
               <div className="col-span-2 text-right">
-                <span className="text-[11px] sm:text-sm font-[1000] text-[#0d4d29]">
+                <span className="text-[12.5px] sm:text-sm font-[1000] text-[#0d4d29]">
                   {Number(totalSaving) > 0 ? `₹${totalSaving}` : "—"}
                 </span>
               </div>

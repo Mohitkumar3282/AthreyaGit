@@ -17,14 +17,14 @@ const LowestPriceSection = ({ products, onSeeAll }) => {
               </h3>
               <div className="flex items-center gap-1.5 md:gap-2 mt-1.5 md:mt-3">
                 <div className="h-1 w-1 md:h-2 md:w-2 bg-[#1a6e2e] rounded-full animate-pulse" />
-                <span className="text-[10px] md:text-xs font-bold text-[#1a6e2e] uppercase tracking-wide opacity-80">
+                <span className="text-[12px] md:text-xs font-bold text-[#1a6e2e] uppercase tracking-wide opacity-80">
                   Unbeatable Savings • Updated hourly
                 </span>
               </div>
             </div>
             <button
               onClick={onSeeAll}
-              className="flex items-center gap-1 bg-white px-2.5 py-1 md:px-4 md:py-2 rounded-full text-[#1a6e2e] font-bold text-[11px] md:text-sm cursor-pointer border border-[#1a6e2e]/20 transition-all whitespace-nowrap active:scale-95">
+              className="flex items-center gap-1 bg-white px-2.5 py-1 md:px-4 md:py-2 rounded-full text-[#1a6e2e] font-bold text-[12.5px] md:text-sm cursor-pointer border border-[#1a6e2e]/20 transition-all whitespace-nowrap active:scale-95">
               See all
               <ChevronRight size={12} className="ml-0.5" strokeWidth={3} />
             </button>

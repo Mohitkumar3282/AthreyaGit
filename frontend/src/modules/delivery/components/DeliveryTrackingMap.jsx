@@ -507,7 +507,7 @@ const DeliveryTrackingMapComponent = ({
   if (!apiKey) {
     return (
       <div className="relative w-full h-48 bg-slate-100 rounded-2xl flex items-center justify-center text-center px-4">
-        <p className="text-xs text-slate-500">
+        <p className="text-[14px] text-slate-700">
           Set <code className="font-mono">VITE_GOOGLE_MAPS_API_KEY</code> to show live
           tracking.
         </p>
@@ -517,7 +517,7 @@ const DeliveryTrackingMapComponent = ({
 
   if (loadError) {
     return (
-      <div className="relative w-full h-48 bg-rose-50 rounded-2xl flex items-center justify-center text-xs text-rose-700 px-4">
+      <div className="relative w-full h-48 bg-rose-50 rounded-2xl flex items-center justify-center text-[14px] text-rose-700 px-4">
         Map failed to load. Check the API key and billing.
       </div>
     );
@@ -579,11 +579,11 @@ const DeliveryTrackingMapComponent = ({
           />
         )}
       </GoogleMap>
-      <div className="absolute bottom-2 right-2 bg-white/95 backdrop-blur px-2 py-1 rounded-md text-[10px] text-slate-600 font-bold border border-slate-200 shadow-sm">
+      <div className="absolute bottom-2 right-2 bg-white/95 backdrop-blur px-2 py-1 rounded-md text-[13.5px] text-slate-600 font-bold border border-slate-200 shadow-sm">
         {routeLoading ? "Updating route…" : "Tracking View"}
       </div>
       {routeData?.degraded && (
-        <div className="absolute top-2 left-2 bg-amber-50/95 text-amber-900 text-[10px] px-2 py-1 rounded border border-amber-200 max-w-[85%] leading-snug">
+        <div className="absolute top-2 left-2 bg-amber-50/95 text-amber-900 text-[13.5px] px-2 py-1 rounded border border-amber-200 max-w-[85%] leading-snug">
           Route unavailable. Add{" "}
           <span className="font-mono">GOOGLE_MAPS_API_KEY</span> to the{" "}
           <strong>backend</strong> <span className="font-mono">.env</span>, enable

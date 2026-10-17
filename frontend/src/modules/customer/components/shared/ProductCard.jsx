@@ -179,7 +179,7 @@ const ProductCard = React.memo(
                   "absolute z-10 bg-[#1a6e2e] text-white font-[900] rounded-md uppercase tracking-wider flex items-center justify-center border border-[#1a6e2e]/20",
                   compact
                     ? "top-2 left-2 px-1.5 py-0.5 text-[7px]"
-                    : "top-2 left-2 px-1 py-0.5 text-[7px] sm:top-3 sm:left-3 sm:px-2 sm:py-1 sm:text-[9px]",
+                    : "top-2 left-2 px-1 py-0.5 text-[7px] sm:top-3 sm:left-3 sm:px-2 sm:py-1 sm:text-[11px]",
                 )}>
                 {badge ||
                   product.discount ||
@@ -261,7 +261,7 @@ const ProductCard = React.memo(
             <div
               className={cn(
                 "bg-[#1a6e2e]/10 text-[#1a6e2e] font-bold rounded px-1.5 py-0 tracking-wide",
-                compact ? "text-[8px]" : "text-[8px] sm:text-[9px]",
+                compact ? "text-[10.5px]" : "text-[10.5px] sm:text-[11px]",
               )}>
               {product.weight || "1 unit"}
             </div>
@@ -273,7 +273,7 @@ const ProductCard = React.memo(
               text={product.name}
               className={cn(
                 "font-[600] text-[#1A1A1A] leading-tight line-clamp-2",
-                compact ? "text-[10.5px]" : "text-[12px] sm:text-[13px]",
+                compact ? "text-[12px]" : "text-[12px] sm:text-[13px]",
               )}
             />
           </div>
@@ -286,7 +286,7 @@ const ProductCard = React.memo(
               <span
                 className={cn(
                   "font-[1000] text-[#1A1A1A]",
-                  compact ? "text-[11px]" : "text-[13px] sm:text-sm",
+                  compact ? "text-[12.5px]" : "text-[13px] sm:text-sm",
                 )}>
                 ₹{product.price}
               </span>
@@ -294,7 +294,7 @@ const ProductCard = React.memo(
                 <span
                   className={cn(
                     "font-medium text-gray-400 line-through leading-none",
-                    compact ? "text-[8px]" : "text-[9px] sm:text-[10px]",
+                    compact ? "text-[10.5px]" : "text-[11px] sm:text-[12px]",
                   )}>
                   ₹{product.originalPrice}
                 </span>
@@ -317,7 +317,7 @@ const ProductCard = React.memo(
                   <span
                     className={cn(
                       "font-black text-[#1a6e2e]",
-                      compact ? "text-[10px]" : "text-[11px] sm:text-[13px] md:text-sm",
+                      compact ? "text-[12px]" : "text-[12.5px] sm:text-[13px] md:text-sm",
                     )}>
                     {quantity}
                   </span>
@@ -333,8 +333,8 @@ const ProductCard = React.memo(
                   className={cn(
                     "bg-white border-[1.5px] border-[#1a6e2e] text-[#1a6e2e] rounded-lg font-black hover:bg-[#1a6e2e]/5 mb-0 transition-all uppercase tracking-wide leading-none active:scale-95",
                     compact
-                      ? "px-2.5 py-1 text-[10px]"
-                      : "px-3.5 py-1.5 text-[11px] sm:px-7 sm:py-2 sm:text-[13px] md:text-sm md:px-8 md:py-2.5",
+                      ? "px-2.5 py-1 text-[12px]"
+                      : "px-3.5 py-1.5 text-[12.5px] sm:px-7 sm:py-2 sm:text-[13px] md:text-sm md:px-8 md:py-2.5",
                   )}>
                   ADD
                 </button>

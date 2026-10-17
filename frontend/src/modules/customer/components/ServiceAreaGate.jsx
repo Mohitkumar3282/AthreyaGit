@@ -110,7 +110,7 @@ const ServiceAreaGate = ({ children }) => {
 
                 {/* Main Message */}
                 <div className="space-y-3">
-                    <p className="text-[#A3E635] text-[10px] font-black uppercase tracking-widest">
+                    <p className="text-[#A3E635] text-[12px] font-black uppercase tracking-widest">
                         Service Unavailable
                     </p>
                     <h1 className="text-white text-xl font-black leading-tight">
@@ -128,7 +128,7 @@ const ServiceAreaGate = ({ children }) => {
                 {/* Detected Location */}
                 {detectedLocation && (
                     <div className="bg-white/10 border border-white/20 rounded-2xl px-5 py-4 text-left space-y-1">
-                        <p className="text-white/50 text-[10px] font-black uppercase tracking-widest">
+                        <p className="text-white/50 text-[12px] font-black uppercase tracking-widest">
                             Your detected location
                         </p>
                         <p className="text-white text-sm font-bold">{detectedLocation}</p>

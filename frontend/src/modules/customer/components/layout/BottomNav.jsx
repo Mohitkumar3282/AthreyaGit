@@ -69,7 +69,7 @@ const BottomNav = () => {
                             <div className="flex flex-col items-center mt-1">
                                 <span
                                     className={cn(
-                                        "text-[10px] font-bold tracking-tight transition-all duration-300 leading-none",
+                                        "text-[12px] font-bold tracking-tight transition-all duration-300 leading-none",
                                         isGreenTheme
                                             ? (isActive ? "text-white" : "text-slate-400")
                                             : (isActive ? "text-[#1a6e2e]" : "text-gray-400")
@@ -80,7 +80,7 @@ const BottomNav = () => {
                                 {isGreenTheme && isEnglish && (
                                     <span
                                         className={cn(
-                                            "text-[9px] font-medium tracking-tight mt-0.5 leading-none transition-all duration-300",
+                                            "text-[11px] font-medium tracking-tight mt-0.5 leading-none transition-all duration-300",
                                             isActive ? "text-white" : "text-slate-400"
                                         )}
                                     >

@@ -59,6 +59,7 @@ const ALLOWED_KEYS = [
   "athreyaCoins",
   "riderIncentives",
   "parcelCategories",
+  "cargoPoints",
   "riderTaskTypes",
   "serviceAreas",
 ];
@@ -210,6 +211,14 @@ const updateSettingsSchema = Joi.object({
       durations: Joi.array().items(Joi.number().integer().min(1).max(240)).max(8),
     }).unknown(false),
   }).unknown(false),
+  cargoPoints: Joi.array().items(
+    Joi.object({
+      id: Joi.string().required(),
+      name: Joi.string().required(),
+      loc: Joi.string().allow("").optional(),
+      enabled: Joi.boolean().default(true),
+    })
+  ).max(100).optional(),
   parcelCategories: Joi.array().items(
     Joi.object({
       id: Joi.string().required(),
@@ -260,7 +269,7 @@ export const getPublicSettings = async (req, res) => {
       async () => {
         const existing = await Setting.findOne(filter)
           .select(
-            "appName supportEmail supportPhone whatsappNumber currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor returnDeliveryCommission deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge multiShopPickupFee deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy codEnabled onlineEnabled lowStockAlertsEnabled productApproval dailyNeeds dailyNeedsCategoryIds deliveryEta walletCashback athreyaCoins riderIncentives parcelCategories riderTaskTypes serviceAreas createdAt",
+            "appName supportEmail supportPhone whatsappNumber currencySymbol currencyCode timezone logoUrl faviconUrl primaryColor secondaryColor returnDeliveryCommission deliveryPricingMode pricingMode customerBaseDeliveryFee riderBasePayout baseDeliveryCharge baseDistanceCapacityKm incrementalKmSurcharge multiShopPickupFee deliveryPartnerRatePerKm fleetCommissionRatePerKm fixedDeliveryFee handlingFeeStrategy codEnabled onlineEnabled lowStockAlertsEnabled productApproval dailyNeeds dailyNeedsCategoryIds deliveryEta walletCashback athreyaCoins riderIncentives parcelCategories cargoPoints riderTaskTypes serviceAreas createdAt",
           )
           .lean();
         return existing || null;

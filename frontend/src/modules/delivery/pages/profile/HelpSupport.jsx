@@ -66,14 +66,14 @@ const HelpSupport = () => {
               <MessageCircle size={24} />
             </div>
             <h4 className="font-bold text-gray-800">Chat Support</h4>
-            <p className="text-xs text-gray-500 mt-1">Wait time: ~2 mins</p>
+            <p className="text-[14px] text-gray-700 mt-1">Wait time: ~2 mins</p>
           </Card>
           <Card className="p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:shadow-md transition-shadow">
             <div className="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center text-brand-600 mb-3">
               <Phone size={24} />
             </div>
             <h4 className="font-bold text-gray-800">Call Support</h4>
-            <p className="text-xs text-gray-500 mt-1">Available 24/7</p>
+            <p className="text-[14px] text-gray-700 mt-1">Available 24/7</p>
           </Card>
         </section>
 
@@ -90,13 +90,13 @@ const HelpSupport = () => {
                 className="overflow-hidden cursor-pointer"
                 onClick={() => toggleAccordion(index)}>
                 <div className="p-4 flex justify-between items-center bg-white">
-                  <h4 className="font-medium text-gray-800 text-sm pr-4">
+                  <h4 className="font-medium text-gray-800 text-[16px] pr-4">
                     {faq.question}
                   </h4>
                   {openIndex === index ? (
-                    <ChevronUp size={18} className="text-gray-400" />
+                    <ChevronUp size={18} className="text-gray-600" />
                   ) : (
-                    <ChevronDown size={18} className="text-gray-400" />
+                    <ChevronDown size={18} className="text-gray-600" />
                   )}
                 </div>
                 <AnimatePresence>
@@ -106,7 +106,7 @@ const HelpSupport = () => {
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       className="bg-gray-50">
-                      <div className="p-4 text-sm text-gray-600 border-t border-gray-100 leading-relaxed">
+                      <div className="p-4 text-[16px] text-gray-600 border-t border-gray-100 leading-relaxed">
                         {faq.answer}
                       </div>
                     </motion.div>
@@ -118,7 +118,7 @@ const HelpSupport = () => {
         </section>
 
         <div className="text-center pt-8">
-          <p className="text-gray-500 text-sm">Still need help?</p>
+          <p className="text-gray-700 text-[16px]">Still need help?</p>
           <Button variant="link" className="text-primary font-bold">
             View All FAQs
           </Button>

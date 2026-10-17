@@ -157,7 +157,7 @@ const OrderHistory = () => {
         <div className="mb-4">
           <div className="relative flex-1 min-w-0">
             <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600"
               size={18}
             />
             <input
@@ -165,7 +165,7 @@ const OrderHistory = () => {
               placeholder="Search Order ID, Customer..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all border border-transparent focus:border-primary/20"
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-100 rounded-xl text-[16px] focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all border border-transparent focus:border-primary/20"
             />
           </div>
         </div>
@@ -176,7 +176,7 @@ const OrderHistory = () => {
             <button
               key={status}
               onClick={() => setFilter(status.toLowerCase())}
-              className={`snap-start h-9 px-4 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${filter === status.toLowerCase()
+              className={`snap-start h-9 px-4 rounded-full text-[14px] font-bold whitespace-nowrap transition-all border ${filter === status.toLowerCase()
                 ? "bg-primary text-primary-foreground border-transparent shadow-lg shadow-primary/25"
                 : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
                 }`}
@@ -190,7 +190,7 @@ const OrderHistory = () => {
       {/* Orders List */}
       <div className="p-4 space-y-4 max-w-lg mx-auto">
         {refreshing && (
-          <div className="flex items-center justify-center gap-2 py-1 text-xs font-medium text-primary">
+          <div className="flex items-center justify-center gap-2 py-1 text-[14px] font-medium text-primary">
             <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             <span>Updating…</span>
           </div>
@@ -224,11 +224,11 @@ const OrderHistory = () => {
                     <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-start mb-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-1 min-w-0 flex-wrap">
-                          <span className="font-bold text-gray-900 text-sm group-hover:text-primary transition-colors break-all">
+                          <span className="font-bold text-gray-900 text-[16px] group-hover:text-primary transition-colors break-all">
                             #{order.orderId}
                           </span>
                           <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${displayOrderStatus(order) === "delivered"
+                            className={`text-[13.5px] font-bold px-2 py-0.5 rounded uppercase ${displayOrderStatus(order) === "delivered"
                               ? "bg-brand-100 text-brand-700"
                               : displayOrderStatus(order) === "cancelled"
                                 ? "bg-red-100 text-red-700"
@@ -237,7 +237,7 @@ const OrderHistory = () => {
                             {displayOrderStatus(order)}
                           </span>
                         </div>
-                        <div className="flex items-center text-gray-400 text-xs">
+                        <div className="flex items-center text-gray-600 text-[14px]">
                           <Calendar size={12} className="mr-1" />
                           {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
@@ -246,7 +246,7 @@ const OrderHistory = () => {
                         <span className="block font-bold text-lg text-brand-600 whitespace-nowrap">
                           ₹{Math.round((order.pricing?.total || 0) * 0.1)}
                         </span>
-                        <span className="ds-caption text-gray-400">Earnings</span>
+                        <span className="ds-caption text-gray-600">Earnings</span>
                       </div>
                     </div>
 
@@ -254,8 +254,8 @@ const OrderHistory = () => {
                       <div className="flex items-start">
                         <div className="w-2 h-2 rounded-full bg-brand-500 mt-1.5 mr-2 flex-shrink-0 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
                         <div>
-                          <p className="ds-caption text-gray-500 mb-0.5">Store</p>
-                          <p className="text-sm font-medium text-gray-800 line-clamp-1">
+                          <p className="ds-caption text-gray-700 mb-0.5">Store</p>
+                          <p className="text-[16px] font-medium text-gray-800 line-clamp-1">
                             {order.seller?.shopName || "Unknown Store"}
                           </p>
                         </div>
@@ -263,24 +263,24 @@ const OrderHistory = () => {
                       <div className="flex items-start">
                         <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5 mr-2 flex-shrink-0 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
                         <div>
-                          <p className="ds-caption text-gray-500 mb-0.5">
+                          <p className="ds-caption text-gray-700 mb-0.5">
                             Customer
                           </p>
-                          <p className="text-sm font-medium text-gray-800 line-clamp-1">
+                          <p className="text-[16px] font-medium text-gray-800 line-clamp-1">
                             {order.customer?.name || "Customer"}
                           </p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center text-xs text-gray-500">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center text-[14px] text-gray-700">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="flex items-center bg-gray-50 px-2 py-1 rounded border border-gray-100">
-                          <MapPin size={12} className="mr-1 text-gray-400" />{" "}
+                          <MapPin size={12} className="mr-1 text-gray-600" />{" "}
                           2.4 km {/* Mock for now */}
                         </span>
                         <span className="flex items-center bg-gray-50 px-2 py-1 rounded border border-gray-100">
-                          <Clock size={12} className="mr-1 text-gray-400" /> 15
+                          <Clock size={12} className="mr-1 text-gray-600" /> 15
                           min
                         </span>
                       </div>
@@ -297,10 +297,10 @@ const OrderHistory = () => {
                 animate={{ opacity: 1 }}
                 className="text-center py-12">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Filter size={32} className="text-gray-400" />
+                  <Filter size={32} className="text-gray-600" />
                 </div>
                 <h3 className="ds-h3 text-gray-900">No Orders Found</h3>
-                <p className="text-gray-500 text-sm">Try changing your filters.</p>
+                <p className="text-gray-700 text-[16px]">Try changing your filters.</p>
               </motion.div>
             )}
           </AnimatePresence>

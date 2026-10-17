@@ -23,11 +23,27 @@ const DialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
-const DialogContent = React.forwardRef(({ className, children, ...props }, ref) => (
+// Google Places suggestions (.pac-container) live on <body>, outside the dialog.
+// Radix would treat a tap on them as "outside" and swallow it, so the place the
+// user picked was never selected. Let those taps through.
+const isPlacesSuggestion = (event) => {
+  const target = event?.detail?.originalEvent?.target ?? event?.target;
+  return !!(target && target.closest && target.closest(".pac-container"));
+};
+
+const DialogContent = React.forwardRef(({ className, children, onInteractOutside, onPointerDownOutside, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      onPointerDownOutside={(event) => {
+        if (isPlacesSuggestion(event)) event.preventDefault();
+        onPointerDownOutside?.(event);
+      }}
+      onInteractOutside={(event) => {
+        if (isPlacesSuggestion(event)) event.preventDefault();
+        onInteractOutside?.(event);
+      }}
       className={cn(
         "fixed left-[50%] top-[50%] z-[600] grid w-[calc(100%-2rem)] max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-slate-100 bg-white p-6 shadow-2xl duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] rounded-3xl",
         className

@@ -337,6 +337,19 @@ const settingSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Category"
         }],
+        // Cargo / bus-stand pickup points customers choose from (Express > Cargo).
+        // Empty = the app's built-in list.
+        cargoPoints: {
+            type: [
+                {
+                    id: { type: String },
+                    name: { type: String },
+                    loc: { type: String, default: "" },
+                    enabled: { type: Boolean, default: true },
+                }
+            ],
+            default: [],
+        },
         parcelCategories: {
             type: [
                 {

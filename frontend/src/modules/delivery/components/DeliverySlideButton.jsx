@@ -123,7 +123,7 @@ const DeliverySlideButton = ({
     <div className="relative h-16 bg-gray-100 rounded-full overflow-hidden select-none">
       {/* Label text */}
       <motion.div
-        className={`absolute inset-0 flex items-center justify-center text-gray-400 font-bold text-sm pointer-events-none transition-opacity duration-300 ${dragX > 50 || isLoading ? "opacity-0" : "opacity-100"
+        className={`absolute inset-0 flex items-center justify-center text-gray-400 font-bold text-[16px] pointer-events-none transition-opacity duration-300 ${dragX > 50 || isLoading ? "opacity-0" : "opacity-100"
           }`}
         animate={{ x: [0, 5, 0] }}
         transition={{ repeat: Infinity, duration: 1.5 }}>
@@ -134,7 +134,7 @@ const DeliverySlideButton = ({
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center">
           <Loader2 className="animate-spin text-primary" size={24} />
-          <span className="ml-2 text-sm font-medium text-gray-600">
+          <span className="ml-2 text-[16px] font-medium text-gray-600">
             {isReturn || isPickup ? "Requesting OTP..." : "Generating OTP..."}
           </span>
         </div>

@@ -116,7 +116,7 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
                   </h3>
                   <div className="flex items-center gap-1.5 mt-1.5">
                     <div className="h-1 w-1 bg-[#1a6e2e] rounded-full animate-pulse" />
-                    <span className="text-[9px] md:text-xs font-bold text-[#1a6e2e] uppercase tracking-wide opacity-80">
+                    <span className="text-[11px] md:text-xs font-bold text-[#1a6e2e] uppercase tracking-wide opacity-80">
                       {allItems.length} categories available
                     </span>
                   </div>
@@ -144,7 +144,7 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
                           <div className="h-6 w-6 rounded-full bg-slate-100" />
                         )}
                       </div>
-                      <div className="text-[11px] font-semibold text-slate-700 text-center leading-snug line-clamp-2 group-hover:text-[#1a6e2e]">
+                      <div className="text-[12.5px] font-semibold text-slate-700 text-center leading-snug line-clamp-2 group-hover:text-[#1a6e2e]">
                         {cat.name}
                       </div>
                     </button>
@@ -187,7 +187,7 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
                   </h3>
                   <div className="flex items-center gap-1.5 mt-1.5">
                     <div className="h-1.5 w-1.5 bg-[#1a6e2e] rounded-full animate-pulse" />
-                    <span className="text-[9px] md:text-xs font-bold text-[#1a6e2e] uppercase tracking-wide opacity-80">
+                    <span className="text-[11px] md:text-xs font-bold text-[#1a6e2e] uppercase tracking-wide opacity-80">
                       {allItems.length} subcategories available
                     </span>
                   </div>
@@ -228,7 +228,7 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
                           <div className="h-6 w-6 rounded-full bg-slate-100" />
                         )}
                       </div>
-                      <div className="text-[11px] font-semibold text-slate-700 text-center leading-snug line-clamp-2 group-hover:text-[#1a6e2e]">
+                      <div className="text-[12.5px] font-semibold text-slate-700 text-center leading-snug line-clamp-2 group-hover:text-[#1a6e2e]">
                         {cat.name}
                       </div>
                     </button>
@@ -296,7 +296,7 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
                     </h3>
                     <div className="flex items-center gap-1.5 md:gap-2 mt-1.5 mb-2">
                       <div className="h-1.5 w-1.5 bg-[#1a6e2e] rounded-full animate-pulse" />
-                      <span className="text-[10px] md:text-xs font-bold text-[#1a6e2e] uppercase tracking-wide opacity-80">
+                      <span className="text-[12px] md:text-xs font-bold text-[#1a6e2e] uppercase tracking-wide opacity-80">
                         {allProducts.length} items available
                       </span>
                     </div>
@@ -354,7 +354,7 @@ const SectionRenderer = ({ sections = [], productsById = {}, categoriesById = {}
                   </h3>
                   <div className="flex items-center gap-1.5 md:gap-2 mt-1.5 mb-2">
                     <div className="h-1.5 w-1.5 bg-[#1a6e2e] rounded-full animate-pulse" />
-                    <span className="text-[10px] md:text-xs font-bold text-[#1a6e2e] uppercase tracking-wide opacity-80">
+                    <span className="text-[12px] md:text-xs font-bold text-[#1a6e2e] uppercase tracking-wide opacity-80">
                       {cappedItems.length} items available
                     </span>
                   </div>

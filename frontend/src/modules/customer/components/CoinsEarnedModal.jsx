@@ -82,7 +82,7 @@ export const CoinsEarnedModal = ({
               <span className="text-xs font-[1000] text-[#78350f] leading-none">
                 {formattedCoins > 99999 ? `${Math.round(formattedCoins / 1000)}k` : formattedCoins.toLocaleString("en-IN")}
               </span>
-              <span className="text-[8px] font-black text-[#92400e] tracking-tight uppercase mt-0.5">
+              <span className="text-[10.5px] font-black text-[#92400e] tracking-tight uppercase mt-0.5">
                 COINS
               </span>
             </div>
@@ -95,7 +95,7 @@ export const CoinsEarnedModal = ({
               <span className="text-xs font-[1000] text-[#14532d] leading-none">
                 ₹{calculatedRupee}
               </span>
-              <span className="text-[8px] font-black text-[#166534] tracking-tight uppercase mt-0.5">
+              <span className="text-[10.5px] font-black text-[#166534] tracking-tight uppercase mt-0.5">
                 VALUE
               </span>
             </div>

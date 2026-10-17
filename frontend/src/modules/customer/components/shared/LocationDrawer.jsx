@@ -446,7 +446,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
                   className="w-full bg-white text-[#1A1A1A] rounded-2xl py-4 pl-12 pr-4 text-sm font-semibold placeholder:text-[#1A1A1A]/40 border border-[#1a6e2e]/20 focus:ring-2 focus:ring-[#1a6e2e]/20 transition-all outline-none"
                 />
               </div>
-              <p className="text-[11px] font-semibold text-slate-400 px-1">
+              <p className="text-[12.5px] font-semibold text-slate-400 px-1">
                 Type at least 4 characters
               </p>
             </div>
@@ -582,7 +582,7 @@ const LocationDrawer = ({ isOpen, onClose }) => {
                             </h3>
                             {(addr.address === currentLocation.name ||
                               addr.isCurrent) && (
-                              <span className="text-[10px] bg-teal-50 text-teal-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-tight border border-teal-100">
+                              <span className="text-[12px] bg-teal-50 text-teal-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-tight border border-teal-100">
                                 You are here
                               </span>
                             )}

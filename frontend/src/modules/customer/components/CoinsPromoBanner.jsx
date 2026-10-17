@@ -13,7 +13,7 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
     return (
       <div className={`w-full rounded-2xl bg-[#0a3f22] text-white p-3 md:p-4 flex flex-col md:flex-row items-center justify-between gap-3 shadow-md ${className}`}>
         <div className="flex items-center gap-2.5 shrink-0">
-          <span className="bg-[#12401f] text-[#f7d154] text-[11px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl border border-[#f7d154]/30 shadow-sm">
+          <span className="bg-[#12401f] text-[#f7d154] text-[12.5px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl border border-[#f7d154]/30 shadow-sm">
             HOW IT WORKS
           </span>
         </div>
@@ -43,7 +43,7 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
             <span className="h-5 w-5 rounded-full bg-[#f7d154] text-[#0a3f22] flex items-center justify-center text-xs font-black">
               ★
             </span>
-            <span className="text-[11px] font-black uppercase tracking-wider text-white">
+            <span className="text-[12.5px] font-black uppercase tracking-wider text-white">
               EARN COINS & SAVE MONEY!
             </span>
           </div>
@@ -72,16 +72,16 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
                 <h4 className="text-xs md:text-sm font-[1000] text-white tracking-wide uppercase">
                   EARN ATHREYA COINS!
                 </h4>
-                <span className="bg-[#fcd34d] text-[#0d4d29] text-[9px] md:text-[10px] font-[1000] px-1.5 py-0.5 rounded shadow-2xs">
+                <span className="bg-[#fcd34d] text-[#0d4d29] text-[11px] md:text-[12px] font-[1000] px-1.5 py-0.5 rounded shadow-2xs">
                   1,000 Coins = ₹1.00
                 </span>
               </div>
-              <p className="text-[11px] font-semibold text-emerald-100 mt-0.5 leading-snug">
+              <p className="text-[12.5px] font-semibold text-emerald-100 mt-0.5 leading-snug">
                 Earn Athreya Coins on your order and redeem directly in your wallet on future purchases.
               </p>
             </div>
           </div>
-          <div className="hidden md:flex items-center gap-1 text-[11px] font-[1000] uppercase tracking-wider text-[#fcd34d] shrink-0 bg-white/10 px-3 py-1.5 rounded-xl border border-white/15">
+          <div className="hidden md:flex items-center gap-1 text-[12.5px] font-[1000] uppercase tracking-wider text-[#fcd34d] shrink-0 bg-white/10 px-3 py-1.5 rounded-xl border border-white/15">
             <span>Use on next order</span>
             <ArrowRight size={12} />
           </div>
@@ -133,7 +133,7 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-stretch">
           {/* Step 1 */}
           <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-col items-center text-center relative group hover:border-emerald-200 transition-all">
-            <span className="text-[11px] font-black uppercase text-slate-700 tracking-wider mb-2">
+            <span className="text-[12.5px] font-black uppercase text-slate-700 tracking-wider mb-2">
               1. ORDER ITEMS
             </span>
             <div className="h-14 w-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-3 relative">
@@ -149,7 +149,7 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
 
           {/* Step 2 */}
           <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-col items-center text-center relative group hover:border-emerald-200 transition-all">
-            <span className="text-[11px] font-black uppercase text-slate-700 tracking-wider mb-2">
+            <span className="text-[12.5px] font-black uppercase text-slate-700 tracking-wider mb-2">
               2. YOU WIN COINS
             </span>
             <div className="h-14 w-14 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center mb-3">
@@ -164,15 +164,15 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
 
           {/* Step 3 */}
           <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-col items-center text-center relative group hover:border-emerald-200 transition-all">
-            <span className="text-[11px] font-black uppercase text-slate-700 tracking-wider mb-2">
+            <span className="text-[12.5px] font-black uppercase text-slate-700 tracking-wider mb-2">
               3. WALLET VALUE
             </span>
             <div className="h-14 w-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-3 gap-1">
-              <span className="h-8 px-1.5 rounded-full bg-[#f7d154] text-[#7a5200] text-[9px] font-black flex items-center justify-center shadow-sm">
+              <span className="h-8 px-1.5 rounded-full bg-[#f7d154] text-[#7a5200] text-[11px] font-black flex items-center justify-center shadow-sm">
                 1,000
               </span>
               <span className="text-xs font-black text-slate-400">=</span>
-              <span className="h-8 w-8 rounded-full bg-[#0d592e] text-white text-[11px] font-black flex items-center justify-center shadow-sm">
+              <span className="h-8 w-8 rounded-full bg-[#0d592e] text-white text-[12.5px] font-black flex items-center justify-center shadow-sm">
                 ₹1
               </span>
             </div>
@@ -183,7 +183,7 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
 
           {/* Step 4 */}
           <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-col items-center text-center relative group hover:border-emerald-200 transition-all">
-            <span className="text-[11px] font-black uppercase text-slate-700 tracking-wider mb-2">
+            <span className="text-[12.5px] font-black uppercase text-slate-700 tracking-wider mb-2">
               4. USE ON NEXT ORDER
             </span>
             <div className="h-14 w-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-3 relative">

@@ -70,10 +70,10 @@ const CheckoutOrderSuccess = React.memo(function CheckoutOrderSuccess({
                     <h3 className="font-[1000] text-slate-800 text-sm md:text-base leading-tight">
                       Order Placed Successfully!
                     </h3>
-                    <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
+                    <p className="text-[12.5px] font-semibold text-slate-500 mt-0.5">
                       Thank you for choosing Athreya Delivery
                     </p>
-                    <p className="text-[10px] font-bold text-[#0d4d29] mt-0.5">
+                    <p className="text-[12px] font-bold text-[#0d4d29] mt-0.5">
                       Order #{orderId?.slice(-6)}
                     </p>
                   </div>
@@ -125,14 +125,14 @@ const CheckoutOrderSuccess = React.memo(function CheckoutOrderSuccess({
                         <p className="text-xs font-[1000] text-slate-800 leading-tight">
                           🪙 {earnedCoins.toLocaleString("en-IN")} Athreya Coins Won
                         </p>
-                        <p className="text-[11px] font-black text-[#0d592e] mt-0.5">
+                        <p className="text-[12.5px] font-black text-[#0d592e] mt-0.5">
                           Added to Your Wallet <span className="text-slate-600 font-bold">(Value: ₹{rupeeEarned})</span>
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  <p className="text-[10px] font-bold text-slate-500">
+                  <p className="text-[12px] font-bold text-slate-500">
                     Use your coins on your next order for instant discounts.
                   </p>
 

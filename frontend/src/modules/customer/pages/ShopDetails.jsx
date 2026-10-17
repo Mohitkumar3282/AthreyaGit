@@ -68,7 +68,7 @@ const ShopDetails = () => {
       try {
         const [shopRes, prodRes, reviewRes, galleryRes, similarRes] = await Promise.all([
           customerApi.getShopById(id).catch(() => null),
-          customerApi.getShopProducts(id).catch(() => ({ data: { result: { items: [] } } })),
+          customerApi.getShopProducts(id, { limit: 100, page: 1 }).catch(() => ({ data: { result: { items: [] } } })),
           customerApi.getShopReviews(id).catch(() => ({ data: { result: [] } })),
           customerApi.getShopGallery(id).catch(() => ({ data: { result: { shopGallery: [], storeFrontImage: "", storeInteriorImages: [] } } })),
           customerApi.getSimilarShops(id).catch(() => ({ data: { result: [] } }))
@@ -80,7 +80,21 @@ const ShopDetails = () => {
           setShop(null);
         }
 
-        setProducts(prodRes?.data?.result?.items || prodRes?.data?.results || []);
+        // The shop endpoint is paginated; a shop with more than one page of
+        // products (e.g. 107) used to show only the first page.
+        let allProducts = prodRes?.data?.result?.items || prodRes?.data?.results || [];
+        const totalPages = Number(prodRes?.data?.result?.totalPages || 1);
+        if (totalPages > 1) {
+          const rest = await Promise.all(
+            Array.from({ length: totalPages - 1 }, (_, i) =>
+              customerApi.getShopProducts(id, { limit: 100, page: i + 2 }).catch(() => null),
+            ),
+          );
+          rest.forEach((r) => {
+            allProducts = allProducts.concat(r?.data?.result?.items || []);
+          });
+        }
+        setProducts(allProducts);
         setReviews(reviewRes?.data?.result || reviewRes?.data?.results || []);
         setGallery(galleryRes?.data?.result || { shopGallery: [], storeFrontImage: "", storeInteriorImages: [] });
         setSimilarShops(similarRes?.data?.result || similarRes?.data?.results || []);
@@ -274,7 +288,7 @@ const ShopDetails = () => {
       {shop.isOpen === false && (
         <div role="alert" className="sticky top-0 z-50 bg-red-600 text-white px-4 py-3 text-center shadow-lg">
           <p className="text-sm font-black uppercase tracking-wide">Shop Closed</p>
-          <p className="text-[11px] font-semibold opacity-90">
+          <p className="text-[12.5px] font-semibold opacity-90">
             {shop.closedMessage || "This shop is currently closed."} You can browse, but ordering is unavailable.
           </p>
         </div>
@@ -317,12 +331,12 @@ const ShopDetails = () => {
                     className="text-xl md:text-3xl font-black text-slate-900 tracking-tight leading-tight"
                   />
                   {shop.isVerified && (
-                    <span className="inline-flex items-center gap-0.5 bg-blue-50 text-blue-600 font-extrabold text-[9px] px-1.5 py-0.5 rounded-full border border-blue-100 uppercase tracking-wider">
+                    <span className="inline-flex items-center gap-0.5 bg-blue-50 text-blue-600 font-extrabold text-[11px] px-1.5 py-0.5 rounded-full border border-blue-100 uppercase tracking-wider">
                       <ShieldCheck size={10} /> Verified
                     </span>
                   )}
                   {shop.hygieneAssured && (
-                    <span className="inline-flex items-center gap-0.5 bg-emerald-50 text-emerald-600 font-extrabold text-[9px] px-1.5 py-0.5 rounded-full border border-emerald-100 uppercase tracking-wider">
+                    <span className="inline-flex items-center gap-0.5 bg-emerald-50 text-emerald-600 font-extrabold text-[11px] px-1.5 py-0.5 rounded-full border border-emerald-100 uppercase tracking-wider">
                       <CheckCircle size={10} /> Hygiene Assured
                     </span>
                   )}
@@ -340,25 +354,25 @@ const ShopDetails = () => {
                 <div className="flex items-center gap-1 justify-center text-amber-500 font-black text-sm md:text-base">
                   ⭐ {shop.rating || "4.5"}
                 </div>
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Rating</div>
+                <div className="text-[12px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Rating</div>
               </div>
               <div className="text-center border-r border-slate-200 pr-4">
                 <div className="font-black text-slate-800 text-sm md:text-base">
                   {shop.deliveryTime || "15-25 min"}
                 </div>
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Delivery</div>
+                <div className="text-[12px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Delivery</div>
               </div>
               <div className="text-center">
                 <div className={`font-black text-xs px-2 py-0.5 rounded-full uppercase ${shop.isOpen === false ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
                   {shop.isOpen === false ? 'Shop Closed' : 'Open'}
                 </div>
-                <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1">{shop.storeTimings || "9am - 10pm"}</div>
+                <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">{shop.storeTimings || "9am - 10pm"}</div>
               </div>
             </div>
           </div>
 
           {/* Dynamic Badges & Specs Bar */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 border-t border-slate-100 pt-5 mt-5 text-[11px] md:text-xs font-semibold text-slate-600">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 border-t border-slate-100 pt-5 mt-5 text-[12.5px] md:text-xs font-semibold text-slate-600">
             <div className="flex items-center gap-2">
               <span className="p-1.5 bg-[#1a6e2e]/10 text-[#1a6e2e] rounded-lg"><Clock size={14} /></span>
               <span>Radius: {shop.deliveryRadius || shop.serviceRadius || 5} km</span>
@@ -504,7 +518,7 @@ const ShopDetails = () => {
               <div className="text-center py-16 bg-white rounded-3xl border border-slate-100 p-6 flex flex-col items-center">
                 <AlertCircle size={40} className="text-slate-400 mb-3" />
                 <p className="font-bold text-slate-700 text-sm">No products found</p>
-                <p className="text-[11px] text-slate-400 mt-1 max-w-[200px]">Try resetting filters or changing the search keyword.</p>
+                <p className="text-[12.5px] text-slate-400 mt-1 max-w-[200px]">Try resetting filters or changing the search keyword.</p>
               </div>
             ) : (
               <div className={`grid grid-cols-3 md:grid-cols-4 gap-2.5 md:gap-4 ${shop.isOpen === false ? "pointer-events-none opacity-50 grayscale" : ""}`}>
@@ -598,7 +612,7 @@ const ShopDetails = () => {
                   </div>
                 </div>
                 <p className="text-slate-600 text-xs md:text-sm font-medium leading-relaxed mb-1">{r.comment}</p>
-                <span className="text-[10px] text-slate-400 font-semibold">
+                <span className="text-[12px] text-slate-400 font-semibold">
                   {new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </span>
               </div>
@@ -627,15 +641,15 @@ const ShopDetails = () => {
                         {getInitials(s.shopName)}
                       </div>
                     )}
-                    <span className="absolute top-2 right-2 bg-white/95 px-2 py-0.5 rounded-full text-[9px] font-black text-slate-800 border border-[#1a6e2e]/20">
+                    <span className="absolute top-2 right-2 bg-white/95 px-2 py-0.5 rounded-full text-[11px] font-black text-slate-800 border border-[#1a6e2e]/20">
                       ⭐ {s.rating || "4.5"}
                     </span>
                   </div>
                   <div>
                     <h4 className="font-extrabold text-slate-800 text-sm line-clamp-1 group-hover:text-[#1a6e2e] transition-colors">{s.shopName}</h4>
-                    <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wide">{s.category || "General Store"}</p>
+                    <p className="text-[12px] font-bold text-slate-400 mt-0.5 uppercase tracking-wide">{s.category || "General Store"}</p>
                     {s.distance !== undefined && (
-                      <p className="text-[10px] text-slate-400 font-semibold mt-1">
+                      <p className="text-[12px] text-slate-400 font-semibold mt-1">
                         {typeof s.distance === 'number' ? `${s.distance.toFixed(1)} km away` : s.distance}
                       </p>
                     )}
@@ -677,7 +691,7 @@ const ShopDetails = () => {
                   <ShoppingCart size={20} className="fill-current" />
                 </div>
                 <div className="flex flex-col leading-none min-w-0">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">
+                  <span className="text-[12px] font-black text-slate-400 uppercase tracking-widest truncate">
                     {cartCount} {cartCount === 1 ? "item" : "items"} added
                   </span>
                   <span className="text-base font-black text-slate-800 mt-1">
@@ -726,7 +740,7 @@ const ShopDetails = () => {
               <div className="relative p-5 border-b border-slate-100 flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-black text-slate-800">Filters</h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Customize your search</p>
+                  <p className="text-[12px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Customize your search</p>
                 </div>
                 <button
                   onClick={() => setIsFilterModalOpen(false)}
@@ -756,7 +770,7 @@ const ShopDetails = () => {
                     >
                       <span>{tab.label}</span>
                       {tab.count > 0 && (
-                        <span className="bg-[#1a6e2e] text-white text-[9px] font-black h-4 px-1.5 rounded-full flex items-center justify-center">
+                        <span className="bg-[#1a6e2e] text-white text-[11px] font-black h-4 px-1.5 rounded-full flex items-center justify-center">
                           {tab.count}
                         </span>
                       )}

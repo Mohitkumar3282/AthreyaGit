@@ -96,10 +96,10 @@ const EarningsPage = () => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all capitalize ${
+              className={`flex-1 py-2 text-[16px] font-bold rounded-lg transition-all capitalize ${
                 activeTab === tab
                   ? "bg-white text-primary shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  : "text-gray-700 hover:text-gray-700"
               }`}
             >
               {tab}
@@ -119,7 +119,7 @@ const EarningsPage = () => {
             <div className="absolute top-0 right-0 w-36 h-36 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-28 h-28 bg-black/10 rounded-full -ml-12 -mb-12 blur-xl pointer-events-none" />
 
-            <p className="text-white/85 font-black text-xs uppercase tracking-widest mb-1.5 relative z-10">
+            <p className="text-white/85 font-black text-[14px] uppercase tracking-widest mb-1.5 relative z-10">
               Total Earnings
             </p>
             <div className="flex items-baseline mb-6 relative z-10">
@@ -131,14 +131,14 @@ const EarningsPage = () => {
 
             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/20 relative z-10">
               <div>
-                <p className="text-white/80 text-xs font-bold uppercase tracking-wider mb-1">Incentives</p>
+                <p className="text-white/80 text-[14px] font-bold uppercase tracking-wider mb-1">Incentives</p>
                 <p className="font-black text-xl text-white">
                   +{RUPEE}
                   {Number(earningsData.incentives || 0).toLocaleString()}
                 </p>
               </div>
               <div>
-                <p className="text-white/80 text-xs font-bold uppercase tracking-wider mb-1">Tips</p>
+                <p className="text-white/80 text-[14px] font-bold uppercase tracking-wider mb-1">Tips</p>
                 <p className="font-black text-xl text-white">
                   +{RUPEE}
                   {Number(earningsData.tipsReceived || 0).toLocaleString()}
@@ -155,7 +155,7 @@ const EarningsPage = () => {
                 <TrendingUp size={20} className="mr-2 text-primary" />
                 Earnings Trend
               </h3>
-              <span className="bg-slate-100 text-slate-700 font-bold px-3 py-1 rounded-full text-[11px] uppercase tracking-wider">
+              <span className="bg-slate-100 text-slate-700 font-bold px-3 py-1 rounded-full text-[14px] uppercase tracking-wider">
                 Last {activeTab === "monthly" ? 30 : 7} Days
               </span>
             </div>
@@ -191,8 +191,8 @@ const EarningsPage = () => {
         <motion.div variants={itemVariants}>
           <Card className="overflow-hidden bg-white border border-gray-100 shadow-sm rounded-3xl">
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/60">
-              <h3 className="font-black text-slate-900 text-sm uppercase tracking-wider">Recent Earnings</h3>
-              <Button variant="link" className="text-primary text-xs font-bold h-auto p-0">
+              <h3 className="font-black text-slate-900 text-[16px] uppercase tracking-wider">Recent Earnings</h3>
+              <Button variant="link" className="text-primary text-[14px] font-bold h-auto p-0">
                 View All
               </Button>
             </div>
@@ -215,7 +215,7 @@ const EarningsPage = () => {
                       </div>
                       <div>
                         <p className="font-bold text-gray-900">{txn.type}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-[14px] text-gray-700">
                           {txn.date ||
                             new Date(txn.createdAt).toLocaleDateString("en-IN", {
                               day: "numeric",
@@ -226,7 +226,7 @@ const EarningsPage = () => {
                             (txn._id ? txn._id.toString().slice(-6).toUpperCase() : "N/A")}
                         </p>
                         {resolveTipAmount(txn) > 0 && (
-                          <p className="text-[11px] font-bold text-pink-600">
+                          <p className="text-[14px] font-bold text-pink-600">
                             Includes tip: {RUPEE}{resolveTipAmount(txn).toLocaleString()}
                           </p>
                         )}
@@ -239,7 +239,7 @@ const EarningsPage = () => {
                         {Number(txn.amount || 0).toLocaleString()}
                       </p>
                       <p
-                        className={`text-xs font-bold ${
+                        className={`text-[14px] font-bold ${
                           txn.status === "Settled" || txn.status === "Completed"
                             ? "text-brand-500"
                             : "text-yellow-500"
@@ -251,7 +251,7 @@ const EarningsPage = () => {
                   </div>
                 ))
               ) : (
-                <div className="p-12 text-center text-gray-400 text-sm italic">
+                <div className="p-12 text-center text-gray-600 text-[16px] italic">
                   No recent earnings or withdrawals.
                 </div>
               )}

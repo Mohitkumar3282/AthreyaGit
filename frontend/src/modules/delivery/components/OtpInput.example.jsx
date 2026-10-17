@@ -37,10 +37,10 @@ const OtpInputExample = () => {
           {!showOtpInput ? (
             <div className="space-y-4">
               <div className="bg-brand-50 border border-brand-200 rounded-xl p-4">
-                <p className="text-sm text-brand-800 mb-2">
+                <p className="text-[16px] text-brand-800 mb-2">
                   <strong>Order ID:</strong> {orderId}
                 </p>
-                <p className="text-sm text-brand-800">
+                <p className="text-[16px] text-brand-800">
                   After generating the OTP (via DeliverySlideButton), show the OTP input component.
                 </p>
               </div>
@@ -67,7 +67,7 @@ const OtpInputExample = () => {
           <h2 className="text-lg font-bold text-gray-900 mb-3">
             Integration Notes
           </h2>
-          <div className="space-y-3 text-sm text-gray-700">
+          <div className="space-y-3 text-[16px] text-gray-700">
             <div>
               <strong className="text-gray-900">1. After OTP Generation:</strong>
               <p className="mt-1">
@@ -106,7 +106,7 @@ const OtpInputExample = () => {
             API Response Examples
           </h2>
 
-          <div className="space-y-4 text-xs">
+          <div className="space-y-4 text-[14px]">
             <div>
               <strong className="text-brand-700">Success (200):</strong>
               <pre className="mt-1 bg-brand-50 border border-brand-200 rounded p-2 overflow-x-auto">

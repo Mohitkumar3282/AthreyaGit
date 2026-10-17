@@ -47,7 +47,8 @@ const CategoryProductsPage = () => {
         setIsLoading(true);
         try {
             const cleanCatParam = decodeURIComponent(catId || '').trim();
-            const prodParams = { categoryId: cleanCatParam };
+            // The products API is paginated (default 24 per page); ask for the max and load every page.
+            const prodParams = { categoryId: cleanCatParam, limit: 100, page: 1 };
             const sellerParams = {};
 
             if (currentLocation?.latitude && currentLocation?.longitude) {
@@ -69,7 +70,7 @@ const CategoryProductsPage = () => {
                 const initialItems = prodRes.data.results || prodRes.data.result?.items || prodRes.data.result || [];
                 if (!Array.isArray(initialItems) || initialItems.length === 0) {
                     try {
-                        const fallbackProdRes = await customerApi.getProducts({ categoryId: cleanCatParam });
+                        const fallbackProdRes = await customerApi.getProducts({ categoryId: cleanCatParam, limit: 100, page: 1 });
                         if (fallbackProdRes.data?.success) {
                             const fallbackItems = fallbackProdRes.data.results || fallbackProdRes.data.result?.items || fallbackProdRes.data.result || [];
                             if (Array.isArray(fallbackItems) && fallbackItems.length > 0) {
@@ -103,13 +104,31 @@ const CategoryProductsPage = () => {
 
             if (prodRes.data?.success) {
                 const rawResult = prodRes.data.result;
-                const dbProds = Array.isArray(prodRes.data.results)
+                let dbProds = Array.isArray(prodRes.data.results)
                     ? prodRes.data.results
                     : Array.isArray(rawResult?.items)
                     ? rawResult.items
                     : Array.isArray(rawResult)
                     ? rawResult
                     : [];
+
+                // Load the remaining pages so categories with more than 100 products are complete.
+                const totalPages = Number(rawResult?.totalPages || 1);
+                if (totalPages > 1) {
+                    const usedGeo = prodParams.lat && prodParams.lng
+                        ? { lat: prodParams.lat, lng: prodParams.lng }
+                        : {};
+                    const rest = await Promise.all(
+                        Array.from({ length: totalPages - 1 }, (_, i) =>
+                            customerApi
+                                .getProducts({ categoryId: cleanCatParam, limit: 100, page: i + 2, ...usedGeo })
+                                .catch(() => null),
+                        ),
+                    );
+                    rest.forEach((r) => {
+                        dbProds = dbProds.concat(r?.data?.result?.items || []);
+                    });
+                }
 
                 const formattedProds = dbProds.map(p => ({
                     ...p,
@@ -280,7 +299,7 @@ const CategoryProductsPage = () => {
                             <img src={LogoWhiteBike} alt="Athreya Delivery" className="h-8.5 w-auto object-contain" />
                             <div className="flex flex-col items-start leading-none font-sans">
                                 <span className="text-[12.5px] font-black text-white tracking-wide uppercase">ATHREYA</span>
-                                <span className="text-[8.5px] font-bold text-white tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
+                                <span className="text-[11px] font-bold text-white tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
                             </div>
                         </div>
 
@@ -296,7 +315,7 @@ const CategoryProductsPage = () => {
                                       : (currentLocation?.name || "Aswapuram (507116)")}
                                 </span>
                             </div>
-                            <span className="block text-[10px] font-semibold text-slate-300 ml-4 leading-tight mt-0.5 truncate max-w-full">
+                            <span className="block text-[12px] font-semibold text-slate-300 ml-4 leading-tight mt-0.5 truncate max-w-full">
                                 అశ్వాపురం
                             </span>
                         </div>
@@ -318,7 +337,7 @@ const CategoryProductsPage = () => {
                                     )}>
                                         <span className="text-xs">🌐</span>
                                     </div>
-                                    <span className="text-[9px] font-black text-slate-300 mt-1">
+                                    <span className="text-[11px] font-black text-slate-300 mt-1">
                                         {LANGUAGES.find((l) => l.code === language)?.code.toUpperCase() || "EN"}
                                     </span>
                                 </button>
@@ -332,11 +351,11 @@ const CategoryProductsPage = () => {
                         >
                             <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/20 relative">
                                 <ShoppingCart size={16} />
-                                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[8px] font-black rounded-full h-3.5 w-3.5 flex items-center justify-center border border-[#042A0F]">
+                                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10.5px] font-black rounded-full h-3.5 w-3.5 flex items-center justify-center border border-[#042A0F]">
                                     {cartCount > 0 ? cartCount : 3}
                                 </span>
                             </div>
-                            <span className="text-[9px] font-black text-slate-300 mt-1">కార్ట్</span>
+                            <span className="text-[11px] font-black text-slate-300 mt-1">కార్ట్</span>
                         </button>
                     </div>
                 </div>
@@ -457,14 +476,14 @@ const CategoryProductsPage = () => {
                                             <div className="min-w-0">
                                                 <h4 className="text-[14.5px] font-black text-slate-950 flex items-center gap-1 leading-snug">
                                                     {shop.shopName}
-                                                    <span className="w-4 h-4 rounded-full bg-green-500 text-white flex items-center justify-center text-[9px] font-bold shrink-0">✓</span>
+                                                    <span className="w-4 h-4 rounded-full bg-green-500 text-white flex items-center justify-center text-[11px] font-bold shrink-0">✓</span>
                                                 </h4>
-                                                <div className="flex items-center gap-1.5 mt-0.5 text-[10.5px] text-slate-500 font-bold flex-wrap">
+                                                <div className="flex items-center gap-1.5 mt-0.5 text-[12px] text-slate-500 font-bold flex-wrap">
                                                     <span className="text-amber-500 flex items-center gap-0.5 shrink-0">
                                                         {shop.rating} ★
                                                     </span>
                                                     <span className="text-slate-300">•</span>
-                                                    <span className={`shrink-0 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide ${shop.isOpen === false ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>{shop.isOpen === false ? "Closed" : "Open"}</span>
+                                                    <span className={`shrink-0 px-1.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wide ${shop.isOpen === false ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>{shop.isOpen === false ? "Closed" : "Open"}</span>
                                                     <span className="shrink-0">{shop.storeTimings}</span>
                                                     <span className="text-slate-300">•</span>
                                                     <span className="shrink-0">Min. Order ₹{shop.minimumOrderAmount}</span>
@@ -498,10 +517,10 @@ const CategoryProductsPage = () => {
                                                     </div>
                                                     {/* Product Details */}
                                                     <div className="text-center w-full leading-none flex flex-col items-center">
-                                                        <span className="text-[9.5px] font-extrabold text-slate-800 truncate max-w-full block">
+                                                        <span className="text-[11.5px] font-extrabold text-slate-800 truncate max-w-full block">
                                                             {product.name}
                                                         </span>
-                                                        <span className="text-[8.5px] font-bold text-slate-500 mt-1 block">
+                                                        <span className="text-[11px] font-bold text-slate-500 mt-1 block">
                                                             ₹{product.price}
                                                         </span>
                                                     </div>

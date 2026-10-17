@@ -121,7 +121,7 @@ const ExperienceBannerCarousel = ({ section, items, fullWidth = false, slideGap 
                     playsInline
                   />
                   {/* Bottom Scrolling Marquee Overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-[#3a2a83]/90 text-white py-1 md:py-1.5 overflow-hidden whitespace-nowrap z-30 font-black border-t border-white/10 uppercase tracking-widest text-[9px] md:text-[11px]">
+                  <div className="absolute bottom-0 left-0 right-0 bg-[#3a2a83]/90 text-white py-1 md:py-1.5 overflow-hidden whitespace-nowrap z-30 font-black border-t border-white/10 uppercase tracking-widest text-[11px] md:text-[12.5px]">
                       <div className="classic-marquee-track flex w-max items-center gap-8">
                           <span>One App. Every Shop. Every Need. Delivered Fast & Safe</span>
                           <span className="text-yellow-400">&bull;</span>
@@ -169,7 +169,7 @@ const ExperienceBannerCarousel = ({ section, items, fullWidth = false, slideGap 
                       playsInline
                     />
                     {/* Bottom Scrolling Marquee Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-[#3a2a83]/90 text-white py-1 md:py-1.5 overflow-hidden whitespace-nowrap z-30 font-black border-t border-white/10 uppercase tracking-widest text-[9px] md:text-[11px]">
+                    <div className="absolute bottom-0 left-0 right-0 bg-[#3a2a83]/90 text-white py-1 md:py-1.5 overflow-hidden whitespace-nowrap z-30 font-black border-t border-white/10 uppercase tracking-widest text-[11px] md:text-[12.5px]">
                         <div className="classic-marquee-track flex w-max items-center gap-8">
                             <span>One App. Every Shop. Every Need. Delivered Fast & Safe</span>
                             <span className="text-yellow-400">&bull;</span>

@@ -76,7 +76,7 @@ const CheckoutCouponSection = React.memo(function CheckoutCouponSection({
                       {coupon.code}
                     </span>
                     {isApplied && (
-                      <span className="text-[10px] font-black text-[#1a6e2e] uppercase tracking-wide">
+                      <span className="text-[12px] font-black text-[#1a6e2e] uppercase tracking-wide">
                         ✓ Applied
                       </span>
                     )}
@@ -86,13 +86,13 @@ const CheckoutCouponSection = React.memo(function CheckoutCouponSection({
                       ? `${coupon.discountValue}% OFF`
                       : `₹${coupon.discountValue} OFF`}
                     {coupon.minOrderValue > 0 && (
-                      <span className="block text-[10px] font-medium text-slate-500">
+                      <span className="block text-[12px] font-medium text-slate-500">
                         on orders above ₹{coupon.minOrderValue}
                       </span>
                     )}
                   </p>
                   {coupon.description && (
-                    <p className="text-[10px] text-slate-500 leading-snug line-clamp-2">
+                    <p className="text-[12px] text-slate-500 leading-snug line-clamp-2">
                       {coupon.description}
                     </p>
                   )}

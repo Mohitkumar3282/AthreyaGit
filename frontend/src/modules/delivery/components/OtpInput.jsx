@@ -252,7 +252,7 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isPickup = 
                 ? "Enter Pickup OTP"
                 : "Enter Delivery OTP"}
         </h3>
-        <p className="text-sm text-gray-600">
+        <p className="text-[16px] text-gray-600">
           {isReturnDrop
             ? "Ask the seller for the 4-digit return confirmation code"
             : isPickup
@@ -291,7 +291,7 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isPickup = 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-start gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
           <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-red-800 font-medium">{error}</p>
+          <p className="text-[16px] text-red-800 font-medium">{error}</p>
         </div>
       )}
 
@@ -299,7 +299,7 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isPickup = 
       {/* Requirement 6.5: Show attempts remaining counter */}
       {attemptsRemaining < 3 && attemptsRemaining > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
-          <p className="text-sm text-amber-800 font-medium">
+          <p className="text-[16px] text-amber-800 font-medium">
             {attemptsRemaining} attempt{attemptsRemaining !== 1 ? "s" : ""} remaining
           </p>
         </div>
@@ -367,7 +367,7 @@ const OtpInput = ({ orderId, isReturn = false, isReturnDrop = false, isPickup = 
 
       {/* Help Text */}
       <div className="bg-brand-50 border border-brand-200 rounded-xl p-3">
-        <p className="text-xs text-brand-800 text-center">
+        <p className="text-[14px] text-brand-800 text-center">
           💡 The customer will see this OTP on their app when you're nearby
         </p>
       </div>

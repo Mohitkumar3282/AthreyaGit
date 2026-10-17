@@ -157,7 +157,7 @@ function CategoryNavColumn({
         <span
           ref={labelRef}
           className={cn(
-            "relative z-10 mx-auto block max-w-none px-1 pb-0.5 text-center text-[10px] font-sans tracking-tight md:text-[12px]",
+            "relative z-10 mx-auto block max-w-none px-1 pb-0.5 text-center text-[12px] font-sans tracking-tight md:text-[12px]",
             isActive ? "font-bold" : "font-medium",
           )}
           style={{
@@ -412,7 +412,7 @@ const MainLocationHeader = ({
                 />
                 <div className="flex flex-col items-start leading-none font-sans">
                   <span className="text-[17px] font-black text-white tracking-wide uppercase">ATHREYA</span>
-                  <span className="text-[11px] font-bold text-white tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
+                  <span className="text-[12.5px] font-bold text-white tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
                 </div>
               </div>
 
@@ -486,7 +486,7 @@ const MainLocationHeader = ({
               >
                 <ShoppingCartOutlinedIcon sx={{ fontSize: 24 }} />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-[#042A0F] transition-transform group-hover:-translate-y-0.5 animate-in zoom-in duration-300">
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[11px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-[#042A0F] transition-transform group-hover:-translate-y-0.5 animate-in zoom-in duration-300">
                     {cartCount}
                   </span>
                 )}
@@ -521,8 +521,8 @@ const MainLocationHeader = ({
                   <div onClick={() => navigate("/")} className="cursor-pointer shrink-0 flex items-center gap-1.5">
                     <img src={logoUrlGreen} alt="Athreya Delivery" className="h-8 sm:h-8.5 w-auto object-contain rounded-full" />
                     <div className="flex flex-col items-start leading-none font-sans">
-                      <span className="text-[10.5px] sm:text-[12.5px] font-black text-white tracking-wide uppercase">ATHREYA</span>
-                      <span className="text-[7.5px] sm:text-[8.5px] font-extrabold text-amber-400 tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
+                      <span className="text-[12px] sm:text-[12.5px] font-black text-white tracking-wide uppercase">ATHREYA</span>
+                      <span className="text-[10px] sm:text-[11px] font-extrabold text-amber-400 tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
                     </div>
                   </div>
 
@@ -541,7 +541,7 @@ const MainLocationHeader = ({
                       <ChevronDownIcon sx={{ fontSize: 13, opacity: 0.8, color: "#ffffff" }} className="shrink-0" />
                     </div>
                     {getTeluguAreaName(currentLocation) && (
-                      <span className="block text-[9px] font-semibold text-slate-300 ml-3.5 leading-tight mt-0.5 truncate max-w-full">
+                      <span className="block text-[11px] font-semibold text-slate-300 ml-3.5 leading-tight mt-0.5 truncate max-w-full">
                         {getTeluguAreaName(currentLocation)}
                       </span>
                     )}
@@ -564,7 +564,7 @@ const MainLocationHeader = ({
                         )}>
                           <Languages size={15} />
                         </div>
-                        <span className="text-[8px] font-black text-slate-300 mt-0.5">
+                        <span className="text-[10.5px] font-black text-slate-300 mt-0.5">
                           {LANGUAGES.find((l) => l.code === language)?.code.toUpperCase() || "EN"}
                         </span>
                       </button>
@@ -578,11 +578,11 @@ const MainLocationHeader = ({
                   >
                     <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center border border-white/25 relative">
                       <ShoppingCart size={15} />
-                      <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[8px] font-black rounded-full h-3.5 w-3.5 flex items-center justify-center border border-[#042A0F]">
+                      <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10.5px] font-black rounded-full h-3.5 w-3.5 flex items-center justify-center border border-[#042A0F]">
                         {cartCount > 0 ? cartCount : 3}
                       </span>
                     </div>
-                    <span className="text-[8px] font-black text-slate-300 mt-0.5">కార్ట్</span>
+                    <span className="text-[10.5px] font-black text-slate-300 mt-0.5">కార్ట్</span>
                   </button>
                 </div>
               </div>

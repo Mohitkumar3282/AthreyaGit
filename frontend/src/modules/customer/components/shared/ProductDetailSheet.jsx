@@ -318,7 +318,7 @@ const ProductDetailSheet = () => {
                                                 initial={{ scale: 0, rotate: -10 }}
                                                 animate={{ scale: 1, rotate: 0 }}
                                                 transition={{ type: 'spring', delay: 0.2 }}
-                                                className="bg-[#1a6e2e] text-white text-[10px] font-[800] px-3 py-1.5 rounded-xl uppercase tracking-wider border border-[#1a6e2e]/20"
+                                                className="bg-[#1a6e2e] text-white text-[12px] font-[800] px-3 py-1.5 rounded-xl uppercase tracking-wider border border-[#1a6e2e]/20"
                                             >
                                                 {Math.round(((selectedProduct.originalPrice - selectedProduct.price) / selectedProduct.originalPrice) * 100)}% OFF
                                             </motion.div>
@@ -408,7 +408,7 @@ const ProductDetailSheet = () => {
                                                 initial={{ opacity: 0, x: -10 }}
                                                 animate={{ opacity: 1, x: 0 }}
                                                 transition={{ delay: 0.1 }}
-                                                className="inline-flex items-center gap-1.5 bg-[#1a6e2e]/10 border border-[#1a6e2e]/20 text-[#1a6e2e] px-3 py-1.5 rounded-lg text-[10px] font-[700] uppercase tracking-wider"
+                                                className="inline-flex items-center gap-1.5 bg-[#1a6e2e]/10 border border-[#1a6e2e]/20 text-[#1a6e2e] px-3 py-1.5 rounded-lg text-[12px] font-[700] uppercase tracking-wider"
                                             >
                                                 <Clock size={12} strokeWidth={2.5} className="text-[#1a6e2e]" />
                                                 {selectedProduct.deliveryTime || '8-15 MINS'}
@@ -418,7 +418,7 @@ const ProductDetailSheet = () => {
                                                     initial={{ opacity: 0, x: -10 }}
                                                     animate={{ opacity: 1, x: 0 }}
                                                     transition={{ delay: 0.15 }}
-                                                    className="text-[10px] font-[700] text-[#1a6e2e] bg-[#1a6e2e]/10 px-3 py-1.5 rounded-lg border border-[#1a6e2e]/20 uppercase tracking-wider"
+                                                    className="text-[12px] font-[700] text-[#1a6e2e] bg-[#1a6e2e]/10 px-3 py-1.5 rounded-lg border border-[#1a6e2e]/20 uppercase tracking-wider"
                                                 >
                                                     💰 Save ₹{selectedProduct.originalPrice - selectedProduct.price}
                                                 </motion.div>
@@ -427,7 +427,7 @@ const ProductDetailSheet = () => {
                                                 initial={{ opacity: 0, x: -10 }}
                                                 animate={{ opacity: 1, x: 0 }}
                                                 transition={{ delay: 0.2 }}
-                                                className="flex items-center gap-1 px-2.5 py-1.5 bg-[#1a6e2e]/10 text-[#1a6e2e] rounded-lg text-[10px] font-[700] border border-[#1a6e2e]/20"
+                                                className="flex items-center gap-1 px-2.5 py-1.5 bg-[#1a6e2e]/10 text-[#1a6e2e] rounded-lg text-[12px] font-[700] border border-[#1a6e2e]/20"
                                             >
                                                 <Star size={10} fill="currentColor" />
                                                 {reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : '4.8'}
@@ -468,7 +468,7 @@ const ProductDetailSheet = () => {
                                                         )}
                                                     </div>
                                                     {selectedProduct.originalPrice > selectedProduct.price && (
-                                                        <span className="inline-flex w-fit items-center text-[10px] font-[800] text-red-600 bg-red-50 border border-red-100 px-2 py-0.5 rounded-md uppercase tracking-wide">
+                                                        <span className="inline-flex w-fit items-center text-[12px] font-[800] text-red-600 bg-red-50 border border-red-100 px-2 py-0.5 rounded-md uppercase tracking-wide">
                                                             {Math.round(((selectedProduct.originalPrice - selectedProduct.price) / selectedProduct.originalPrice) * 100)}% off
                                                         </span>
                                                     )}
@@ -536,7 +536,7 @@ const ProductDetailSheet = () => {
                                                 transition={{ delay: 0.25 }}
                                                 className="bg-white rounded-xl p-3 border border-[#1a6e2e]/20"
                                             >
-                                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2.5">Select Variant</h4>
+                                                <h4 className="text-[12px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2.5">Select Variant</h4>
                                                 <div className="flex gap-3 flex-wrap">
                                                     {selectedProduct.variants.map((v, idx) => (
                                                         <motion.button
@@ -567,7 +567,7 @@ const ProductDetailSheet = () => {
                                         {/* Variants Selection (Desktop) */}
                                         {selectedProduct.variants && selectedProduct.variants.length > 0 && (
                                             <div className="bg-white rounded-2xl p-4 border border-[#1a6e2e]/20 mt-4">
-                                                <h4 className="text-[10px] font-black text-[#1a6e2e] uppercase tracking-[0.2em] mb-3">Select Variant</h4>
+                                                <h4 className="text-[12px] font-black text-[#1a6e2e] uppercase tracking-[0.2em] mb-3">Select Variant</h4>
                                                 <div className="flex gap-2.5 flex-wrap">
                                                     {selectedProduct.variants.map((v, idx) => (
                                                         <motion.button
@@ -619,7 +619,7 @@ const ProductDetailSheet = () => {
                                                         { label: 'Customer Care', value: supportEmail, emoji: '📧' }
                                                     ].map((d) => (
                                                         <div key={d.label} className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 group hover:bg-white transition-all">
-                                                            <span className="text-[10px] text-slate-400 block mb-0.5 font-bold uppercase tracking-wider">{d.label}</span>
+                                                            <span className="text-[12px] text-slate-400 block mb-0.5 font-bold uppercase tracking-wider">{d.label}</span>
                                                             <span className="font-black text-slate-800 text-[12px]">{d.value}</span>
                                                         </div>
                                                     ))}
@@ -665,7 +665,7 @@ const ProductDetailSheet = () => {
                                                                 ))}
                                                             </div>
                                                             <textarea value={newReview.comment} onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })} placeholder="Share your experience..." className="w-full bg-white border border-slate-100 rounded-xl p-3 text-xs font-medium min-h-[80px] outline-none focus:border-[#1a6e2e] transition-all resize-none" />
-                                                            <Button type="submit" disabled={isSubmittingReview} className="w-full h-10 bg-[#1a6e2e] hover:opacity-90 text-white font-black rounded-xl text-[11px] uppercase tracking-[0.1em] transition-all border border-[#1a6e2e]/20">
+                                                            <Button type="submit" disabled={isSubmittingReview} className="w-full h-10 bg-[#1a6e2e] hover:opacity-90 text-white font-black rounded-xl text-[12.5px] uppercase tracking-[0.1em] transition-all border border-[#1a6e2e]/20">
                                                                 {isSubmittingReview ? 'Submitting...' : 'Post Review'}
                                                                 </Button>
                                                         </form>
@@ -680,13 +680,13 @@ const ProductDetailSheet = () => {
                                                                 <div key={r._id} className="p-4 rounded-xl border border-slate-100 bg-white hover:border-[#1a6e2e]/20 hover:translate-x-1 transition-all group">
                                                                     <div className="flex justify-between items-start mb-2">
                                                                         <div className="flex items-center gap-2">
-                                                                            <div className="h-8 w-8 rounded-full bg-[#1a6e2e]/10 flex items-center justify-center text-[11px] font-black text-[#1a6e2e] border border-[#1a6e2e]/20">{r.userId?.name?.[0] || 'A'}</div>
+                                                                            <div className="h-8 w-8 rounded-full bg-[#1a6e2e]/10 flex items-center justify-center text-[12.5px] font-black text-[#1a6e2e] border border-[#1a6e2e]/20">{r.userId?.name?.[0] || 'A'}</div>
                                                                             <div>
                                                                                 <p className="text-[12px] font-black text-slate-800">{r.userId?.name || 'Anonymous'}</p>
                                                                                 <div className="flex gap-0.5">{[...Array(5)].map((_, i) => <Star key={i} size={9} className={cn(i < r.rating ? 'text-[#1a6e2e] fill-[#1a6e2e]' : 'text-slate-200')} />)}</div>
                                                                             </div>
                                                                         </div>
-                                                                        <span className="text-[10px] font-bold text-slate-400">{new Date(r.createdAt).toLocaleDateString()}</span>
+                                                                        <span className="text-[12px] font-bold text-slate-400">{new Date(r.createdAt).toLocaleDateString()}</span>
                                                                     </div>
                                                                     <p className="text-[12px] text-slate-600 font-medium leading-relaxed pl-10">{r.comment}</p>
                                                                 </div>
@@ -694,7 +694,7 @@ const ProductDetailSheet = () => {
                                                         ) : (
                                                             <div className="py-10 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
                                                                 <MessageSquare size={20} className="text-slate-300 mx-auto mb-2" />
-                                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No reviews yet — be the first!</p>
+                                                                <p className="text-[12px] font-black text-slate-400 uppercase tracking-widest">No reviews yet — be the first!</p>
                                                             </div>
                                                         )}
                                                     </div>
@@ -825,7 +825,7 @@ const ProductDetailSheet = () => {
                             {/* Product Info Container */}
                             <div className="px-5 pt-2 pb-6">
                                 {/* Delivery Time Badge */}
-                                <div className="inline-flex items-center gap-1.5 bg-[#1a6e2e]/10 border border-[#1a6e2e]/20 text-[#1a6e2e] px-2.5 py-1 rounded-lg text-[10px] font-black uppercase mb-3">
+                                <div className="inline-flex items-center gap-1.5 bg-[#1a6e2e]/10 border border-[#1a6e2e]/20 text-[#1a6e2e] px-2.5 py-1 rounded-lg text-[12px] font-black uppercase mb-3">
                                     <Clock size={12} strokeWidth={3} />
                                     {selectedProduct.deliveryTime || "8 Mins"}
                                 </div>
@@ -837,7 +837,7 @@ const ProductDetailSheet = () => {
                                 {/* Variants Selection (Mobile) */}
                                 {selectedProduct.variants && selectedProduct.variants.length > 0 && (
                                     <div className="mt-4 mb-2">
-                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Select Variant</h4>
+                                        <h4 className="text-[12px] font-black text-slate-400 uppercase tracking-widest mb-3">Select Variant</h4>
                                         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                                             {selectedProduct.variants.map((v, idx) => (
                                                 <motion.button
@@ -891,7 +891,7 @@ const ProductDetailSheet = () => {
                                                 { label: 'Customer Care', value: supportEmail }
                                             ].map((d) => (
                                                 <div key={d.label} className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                                    <span className="text-gray-400 block mb-0.5 text-[10px] font-bold uppercase tracking-wider">{d.label}</span>
+                                                    <span className="text-gray-400 block mb-0.5 text-[12px] font-bold uppercase tracking-wider">{d.label}</span>
                                                     <span className="font-black text-slate-800 text-xs">{d.value}</span>
                                                 </div>
                                             ))}
@@ -915,7 +915,7 @@ const ProductDetailSheet = () => {
                                             {/* Review Form */}
                                             <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 mb-6">
                                                 <h4 className="font-black text-slate-800 text-sm mb-1">Rate this product</h4>
-                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-4">Reviews are moderated</p>
+                                                <p className="text-[12px] text-slate-400 font-bold uppercase tracking-wider mb-4">Reviews are moderated</p>
                                                 <form onSubmit={handleReviewSubmit} className="space-y-4">
                                                     <div className="flex gap-2">
                                                         {[1, 2, 3, 4, 5].map((s) => (
@@ -948,13 +948,13 @@ const ProductDetailSheet = () => {
                                                         <div key={r._id} className="p-5 rounded-2xl border border-slate-100 bg-white hover:border-[#1a6e2e]/20 transition-all">
                                                             <div className="flex justify-between items-start mb-2">
                                                                 <div className="flex items-center gap-2">
-                                                                    <div className="h-8 w-8 rounded-full bg-[#1a6e2e]/10 flex items-center justify-center text-[10px] font-black text-[#1a6e2e] border border-[#1a6e2e]/20">{r.userId?.name?.[0] || 'A'}</div>
+                                                                    <div className="h-8 w-8 rounded-full bg-[#1a6e2e]/10 flex items-center justify-center text-[12px] font-black text-[#1a6e2e] border border-[#1a6e2e]/20">{r.userId?.name?.[0] || 'A'}</div>
                                                                     <div>
                                                                         <p className="text-xs font-black text-slate-800">{r.userId?.name || 'Anonymous'}</p>
                                                                         <div className="flex gap-0.5">{[...Array(5)].map((_, i) => <Star key={i} size={10} className={cn(i < r.rating ? 'text-[#1a6e2e] fill-[#1a6e2e]' : 'text-slate-200')} />)}</div>
                                                                     </div>
                                                                 </div>
-                                                                <span className="text-[10px] font-bold text-slate-400">{new Date(r.createdAt).toLocaleDateString()}</span>
+                                                                <span className="text-[12px] font-bold text-slate-400">{new Date(r.createdAt).toLocaleDateString()}</span>
                                                             </div>
                                                             <p className="text-xs text-slate-600 font-medium leading-relaxed pl-10">{r.comment}</p>
                                                         </div>
@@ -985,7 +985,7 @@ const ProductDetailSheet = () => {
                                                 <span className="text-sm font-medium text-gray-400 line-through decoration-gray-400/50">
                                                     ₹{selectedVariant?.price || selectedProduct.originalPrice}
                                                 </span>
-                                                <span className="bg-red-50 text-red-500 text-[10px] font-black px-1.5 py-0.5 rounded leading-none">
+                                                <span className="bg-red-50 text-red-500 text-[12px] font-black px-1.5 py-0.5 rounded leading-none">
                                                     {selectedVariant
                                                         ? Math.round(((selectedVariant.price - selectedVariant.salePrice) / selectedVariant.price) * 100)
                                                         : Math.round(((selectedProduct.originalPrice - selectedProduct.price) / selectedProduct.originalPrice) * 100)}% OFF
@@ -1042,7 +1042,7 @@ const ProductDetailSheet = () => {
                                         >
                                             <div className="flex flex-col items-start leading-none">
                                                 <span className="text-[13px] font-[1000] uppercase tracking-wide">View cart</span>
-                                                <span className="text-[11px] font-bold opacity-90 mt-1">{cartCount} {cartCount === 1 ? 'item' : 'items'} in cart</span>
+                                                <span className="text-[12.5px] font-bold opacity-90 mt-1">{cartCount} {cartCount === 1 ? 'item' : 'items'} in cart</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-[16px] font-[1000] tracking-tight">₹{cart.reduce((total, item) => total + (item.price * item.quantity), 0)}</span>

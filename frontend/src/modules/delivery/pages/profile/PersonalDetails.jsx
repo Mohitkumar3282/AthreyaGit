@@ -70,7 +70,7 @@ const PersonalDetails = () => {
               </button>
             )}
           </div>
-          <p className="mt-3 text-sm text-gray-500">Delivery Partner ID: 882190</p>
+          <p className="mt-3 text-[16px] text-gray-700">Delivery Partner ID: 882190</p>
         </div>
 
         {/* Form Fields */}
@@ -88,7 +88,7 @@ const PersonalDetails = () => {
             value={formData.phone}
             readOnly={true} // Phone is usually locked
             icon={Phone}
-            className="bg-gray-50 border-transparent text-gray-500"
+            className="bg-gray-50 border-transparent text-gray-700"
             helperText="Contact support to change phone number"
           />
 
@@ -103,16 +103,16 @@ const PersonalDetails = () => {
           />
 
           <div className="relative">
-            <label className="block text-xs font-medium text-gray-700 mb-1 ml-1">Current Address</label>
+            <label className="block text-[14px] font-medium text-gray-700 mb-1 ml-1">Current Address</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-600">
                 <MapPin size={18} />
               </div>
               <textarea
                 value={formData.address}
                 readOnly={!isEditing}
                 onChange={(e) => setFormData({...formData, address: e.target.value})}
-                className={`w-full pl-10 pr-4 py-2 rounded-xl text-sm border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none ${
+                className={`w-full pl-10 pr-4 py-2 rounded-xl text-[16px] border focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none ${
                   !isEditing ? "bg-gray-50 border-transparent text-gray-600" : "bg-white border-gray-200"
                 }`}
                 rows={3}

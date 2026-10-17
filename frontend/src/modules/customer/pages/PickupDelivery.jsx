@@ -152,11 +152,11 @@ const AddressDropdown = ({
             {getItemIcon(selectedOption)}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xs font-bold text-slate-800 truncate">
+            <div className="text-[13.5px] font-bold text-slate-800 truncate">
               {selectedOption ? (selectedOption.label || selectedOption.name || "Selected Address") : placeholder}
             </div>
             {selectedOption && (selectedOption.fullAddress || selectedOption.address) && (
-              <div className="text-[10.5px] font-medium text-slate-500 truncate max-w-full">
+              <div className="text-[13px] font-medium text-slate-700 truncate max-w-full">
                 {selectedOption.fullAddress || selectedOption.address}
               </div>
             )}
@@ -164,7 +164,7 @@ const AddressDropdown = ({
         </div>
         <ChevronDown
           size={16}
-          className={`text-slate-400 group-hover:text-slate-600 shrink-0 transition-transform duration-200 ${
+          className={`text-slate-600 group-hover:text-slate-600 shrink-0 transition-transform duration-200 ${
             isOpen ? "rotate-180 text-emerald-700" : ""
           }`}
         />
@@ -173,7 +173,7 @@ const AddressDropdown = ({
       {/* Dropdown Options Popup */}
       {isOpen && (
         <div className="absolute z-50 left-0 right-0 top-full mt-1.5 bg-white border border-slate-200/90 rounded-2xl shadow-xl overflow-hidden max-h-72 flex flex-col animate-in fade-in-50 zoom-in-95 duration-150">
-          <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-wider">
+          <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 text-[13px] font-black text-slate-700 uppercase tracking-wider">
             {label || "Choose an Address"}
           </div>
           <div className="overflow-y-auto divide-y divide-slate-100 flex-1">
@@ -206,22 +206,22 @@ const AddressDropdown = ({
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs font-black text-slate-900 leading-snug">
+                      <span className="text-[13.5px] font-black text-slate-900 leading-snug">
                         {addrTitle}
                       </span>
                       {addr._id === "current_location_temp" && (
-                        <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded-md">
+                        <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[12px] font-bold rounded-md">
                           Live GPS
                         </span>
                       )}
                       {addr._id?.includes("map") && (
-                        <span className="px-1.5 py-0.5 bg-sky-100 text-sky-800 text-[9px] font-bold rounded-md">
+                        <span className="px-1.5 py-0.5 bg-sky-100 text-sky-800 text-[12px] font-bold rounded-md">
                           Map Pin
                         </span>
                       )}
                     </div>
                     {addrDetails && (
-                      <p className="text-[11px] text-slate-500 font-normal leading-relaxed mt-0.5 line-clamp-2 break-words">
+                      <p className="text-[13.5px] text-slate-700 font-normal leading-relaxed mt-0.5 line-clamp-2 break-words">
                         {addrDetails}
                       </p>
                     )}
@@ -256,10 +256,10 @@ const AddressDropdown = ({
                   <Plus size={15} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-xs font-black text-emerald-800">
+                  <span className="text-[13.5px] font-black text-emerald-800">
                     {customLabel}
                   </span>
-                  <p className="text-[10px] text-slate-400 leading-tight">
+                  <p className="text-[13px] text-slate-600 leading-tight">
                     Type a manual landmark or doorstep address
                   </p>
                 </div>
@@ -313,7 +313,7 @@ const ShopDropdown = ({
   }, [shops, value, customValue]);
 
   if (loading) {
-    return <p className="text-xs text-slate-400 py-2">Loading nearby stores in Aswapuram...</p>;
+    return <p className="text-[13.5px] text-slate-600 py-2">Loading nearby stores in Aswapuram...</p>;
   }
 
   return (
@@ -328,11 +328,11 @@ const ShopDropdown = ({
             <Store size={14} />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xs font-bold text-slate-800 truncate">
+            <div className="text-[13.5px] font-bold text-slate-800 truncate">
               {selectedShop ? selectedShop.shopName : "-- Choose Store --"}
             </div>
             {selectedShop && selectedShop.locality && (
-              <div className="text-[10.5px] font-medium text-slate-500 truncate max-w-full">
+              <div className="text-[13px] font-medium text-slate-700 truncate max-w-full">
                 {selectedShop.locality}
               </div>
             )}
@@ -340,7 +340,7 @@ const ShopDropdown = ({
         </div>
         <ChevronDown
           size={16}
-          className={`text-slate-400 group-hover:text-slate-600 shrink-0 transition-transform duration-200 ${
+          className={`text-slate-600 group-hover:text-slate-600 shrink-0 transition-transform duration-200 ${
             isOpen ? "rotate-180 text-emerald-700" : ""
           }`}
         />
@@ -348,7 +348,7 @@ const ShopDropdown = ({
 
       {isOpen && (
         <div className="absolute z-50 left-0 right-0 top-full mt-1.5 bg-white border border-slate-200/90 rounded-2xl shadow-xl overflow-hidden max-h-72 flex flex-col animate-in fade-in-50 zoom-in-95 duration-150">
-          <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-wider">
+          <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 text-[13px] font-black text-slate-700 uppercase tracking-wider">
             Choose Store in Aswapuram
           </div>
           <div className="overflow-y-auto divide-y divide-slate-100 flex-1">
@@ -375,10 +375,17 @@ const ShopDropdown = ({
                     <Store size={14} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <span className="text-xs font-black text-slate-900 leading-snug">
+                    <span className="text-[13.5px] font-black text-slate-900 leading-snug flex items-center gap-1.5 flex-wrap">
                       {s.shopName}
+                      <span
+                        className={`px-1.5 py-0.5 rounded-full text-[12px] font-black uppercase ${
+                          s.isOpen === false ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"
+                        }`}
+                      >
+                        {s.isOpen === false ? "Closed" : "Open"}
+                      </span>
                     </span>
-                    <p className="text-[11px] text-slate-500 font-normal mt-0.5 truncate">
+                    <p className="text-[13.5px] text-slate-700 font-normal mt-0.5 truncate">
                       {s.locality || s.address || "Aswapuram"}
                     </p>
                   </div>
@@ -410,10 +417,10 @@ const ShopDropdown = ({
                   <Plus size={15} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-xs font-black text-emerald-800">
+                  <span className="text-[13.5px] font-black text-emerald-800">
                     {customLabel}
                   </span>
-                  <p className="text-[10px] text-slate-400 leading-tight">
+                  <p className="text-[13px] text-slate-600 leading-tight">
                     Type any unlisted local shop name & street
                   </p>
                 </div>
@@ -471,11 +478,11 @@ const CargoPointDropdown = ({
             <Truck size={14} />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xs font-bold text-slate-800 truncate">
+            <div className="text-[13.5px] font-bold text-slate-800 truncate">
               {selectedPoint?.name || "Select Transport Point"}
             </div>
             {selectedPoint?.loc && (
-              <div className="text-[10.5px] font-medium text-slate-500 truncate max-w-full">
+              <div className="text-[13px] font-medium text-slate-700 truncate max-w-full">
                 {selectedPoint.loc}
               </div>
             )}
@@ -483,7 +490,7 @@ const CargoPointDropdown = ({
         </div>
         <ChevronDown
           size={16}
-          className={`text-slate-400 group-hover:text-slate-600 shrink-0 transition-transform duration-200 ${
+          className={`text-slate-600 group-hover:text-slate-600 shrink-0 transition-transform duration-200 ${
             isOpen ? "rotate-180 text-emerald-700" : ""
           }`}
         />
@@ -491,7 +498,7 @@ const CargoPointDropdown = ({
 
       {isOpen && (
         <div className="absolute z-50 left-0 right-0 top-full mt-1.5 bg-white border border-slate-200/90 rounded-2xl shadow-xl overflow-hidden max-h-72 flex flex-col animate-in fade-in-50 zoom-in-95 duration-150">
-          <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-wider">
+          <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 text-[13px] font-black text-slate-700 uppercase tracking-wider">
             Select Cargo or Bus Stand Counter
           </div>
           <div className="overflow-y-auto divide-y divide-slate-100 flex-1">
@@ -517,10 +524,10 @@ const CargoPointDropdown = ({
                     <Truck size={14} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <span className="text-xs font-black text-slate-900 leading-snug">
+                    <span className="text-[13.5px] font-black text-slate-900 leading-snug">
                       {p.name}
                     </span>
-                    <p className="text-[11px] text-slate-500 font-normal mt-0.5 truncate">
+                    <p className="text-[13.5px] text-slate-700 font-normal mt-0.5 truncate">
                       {p.loc}
                     </p>
                   </div>
@@ -571,6 +578,15 @@ const PickupDelivery = () => {
     }
     return DEFAULT_PARCEL_CATEGORIES;
   }, [settings?.parcelCategories]);
+
+  // Admin-managed cargo / bus-stand points; falls back to the built-in list.
+  const cargoPoints = useMemo(() => {
+    if (Array.isArray(settings?.cargoPoints) && settings.cargoPoints.length > 0) {
+      const enabled = settings.cargoPoints.filter((p) => p.enabled !== false);
+      if (enabled.length > 0) return enabled;
+    }
+    return CARGO_POINTS;
+  }, [settings?.cargoPoints]);
 
   const riderTaskTypes = useMemo(() => {
     if (Array.isArray(settings?.riderTaskTypes) && settings.riderTaskTypes.length > 0) {
@@ -723,8 +739,15 @@ const PickupDelivery = () => {
           lat: currentLocation?.latitude,
           lng: currentLocation?.longitude,
         });
-        const fetchedShops =
+        let fetchedShops =
           shopsRes?.data?.results || shopsRes?.data?.result || shopsRes?.data || [];
+        // Outside every shop's delivery radius the nearby list is empty; list
+        // all registered shops so the customer can still pick one.
+        if (!Array.isArray(fetchedShops) || fetchedShops.length === 0) {
+          const allRes = await customerApi.getNearbySellers({});
+          fetchedShops = allRes?.data?.results || allRes?.data?.result || allRes?.data || [];
+        }
+        if (!Array.isArray(fetchedShops)) fetchedShops = [];
         setShops(fetchedShops);
         if (fetchedShops.length > 0 && !selectedShopId) {
           setSelectedShopId(fetchedShops[0]._id || fetchedShops[0].id);
@@ -1128,7 +1151,7 @@ const PickupDelivery = () => {
 
     // 3. CARGO TO HOME
     else if (activeTab === "cargo_to_home") {
-      const selectedCargoPoint = CARGO_POINTS.find(c => c.id === selectedCargoPointId);
+      const selectedCargoPoint = cargoPoints.find(c => c.id === selectedCargoPointId) || cargoPoints[0];
       const cargoPointName = selectedCargoPoint?.id === "other_cargo" ? customCargoName : selectedCargoPoint?.name;
       if (!cargoPointName.trim()) {
         toast.error("Please select cargo office or specify transport point");
@@ -1302,10 +1325,10 @@ const PickupDelivery = () => {
           </button>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="text-amber-500 font-black text-sm">⚡</span>
+              <span className="text-amber-500 font-black text-[15px]">⚡</span>
               <h1 className="text-base sm:text-lg font-black text-[#042A0F] tracking-tight">ATHREYA EXPRESS</h1>
             </div>
-            <p className="text-[10px] sm:text-[11px] font-bold text-slate-500">
+            <p className="text-[13px] sm:text-[13.5px] font-bold text-slate-700">
               Instant pickup & delivery in Aswapuram
             </p>
           </div>
@@ -1313,7 +1336,7 @@ const PickupDelivery = () => {
 
         <button
           onClick={() => triggerWhatsAppOrder()}
-          className="flex items-center gap-1 px-2.5 py-1.5 bg-[#25D366]/10 text-[#0d4d29] border border-[#25D366]/30 rounded-xl text-[10px] font-black hover:bg-[#25D366]/20 transition-colors"
+          className="flex items-center gap-1 px-2.5 py-1.5 bg-[#25D366]/10 text-[#0d4d29] border border-[#25D366]/30 rounded-xl text-[13px] font-black hover:bg-[#25D366]/20 transition-colors"
         >
           <MessageSquare size={13} className="text-[#25D366]" />
           <span>WhatsApp</span>
@@ -1330,9 +1353,9 @@ const PickupDelivery = () => {
               : "text-slate-600 hover:bg-slate-50 font-bold"
           }`}
         >
-          <Home size={17} className={activeTab === "home_to_home" ? "text-[#A3E635]" : "text-slate-500"} />
-          <span className="text-[9.5px] mt-1 text-center leading-tight">Home to Home</span>
-          <span className="text-[7.5px] opacity-80 leading-none mt-0.5">ఇంటికి</span>
+          <Home size={17} className={activeTab === "home_to_home" ? "text-[#A3E635]" : "text-slate-700"} />
+          <span className="text-[12.5px] mt-1 text-center leading-tight">Home to Home</span>
+          <span className="text-[11px] opacity-80 leading-none mt-0.5">ఇంటికి</span>
         </button>
 
         <button
@@ -1343,9 +1366,9 @@ const PickupDelivery = () => {
               : "text-slate-600 hover:bg-slate-50 font-bold"
           }`}
         >
-          <Store size={17} className={activeTab === "shop_to_home" ? "text-[#A3E635]" : "text-slate-500"} />
-          <span className="text-[9.5px] mt-1 text-center leading-tight">Shop to Home</span>
-          <span className="text-[7.5px] opacity-80 leading-none mt-0.5">షాప్ నుండి</span>
+          <Store size={17} className={activeTab === "shop_to_home" ? "text-[#A3E635]" : "text-slate-700"} />
+          <span className="text-[12.5px] mt-1 text-center leading-tight">Shop to Home</span>
+          <span className="text-[11px] opacity-80 leading-none mt-0.5">షాప్ నుండి</span>
         </button>
 
         <button
@@ -1356,9 +1379,9 @@ const PickupDelivery = () => {
               : "text-slate-600 hover:bg-slate-50 font-bold"
           }`}
         >
-          <Truck size={17} className={activeTab === "cargo_to_home" ? "text-[#A3E635]" : "text-slate-500"} />
-          <span className="text-[9.5px] mt-1 text-center leading-tight">Cargo / Bus</span>
-          <span className="text-[7.5px] opacity-80 leading-none mt-0.5">కార్గో / బస్సు</span>
+          <Truck size={17} className={activeTab === "cargo_to_home" ? "text-[#A3E635]" : "text-slate-700"} />
+          <span className="text-[12.5px] mt-1 text-center leading-tight">Cargo / Bus</span>
+          <span className="text-[11px] opacity-80 leading-none mt-0.5">కార్గో / బస్సు</span>
         </button>
 
         <button
@@ -1369,25 +1392,25 @@ const PickupDelivery = () => {
               : "text-slate-600 hover:bg-slate-50 font-bold"
           }`}
         >
-          <Bike size={17} className={activeTab === "rider_delivery" ? "text-[#A3E635]" : "text-slate-500"} />
-          <span className="text-[9.5px] mt-1 text-center leading-tight">Rider Pickup</span>
-          <span className="text-[7.5px] opacity-80 leading-none mt-0.5">రైడర్ పికప్</span>
+          <Bike size={17} className={activeTab === "rider_delivery" ? "text-[#A3E635]" : "text-slate-700"} />
+          <span className="text-[12.5px] mt-1 text-center leading-tight">Rider Pickup</span>
+          <span className="text-[11px] opacity-80 leading-none mt-0.5">రైడర్ పికప్</span>
         </button>
       </div>
 
       {/* Service Banner Showcase */}
       <div className="relative rounded-2xl overflow-hidden mb-5 border border-emerald-900/20 shadow-md bg-gradient-to-r from-[#042A0F] to-[#0d4d29] p-3 text-white flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1 text-[#A3E635] text-[10px] font-black uppercase tracking-wider mb-0.5">
+          <div className="flex items-center gap-1 text-[#A3E635] text-[13px] font-black uppercase tracking-wider mb-0.5">
             <span>⚡ ATHREYA EXPRESS SERVICE</span>
           </div>
-          <h2 className="text-sm sm:text-base font-black text-white leading-tight">
+          <h2 className="text-[15px] sm:text-base font-black text-white leading-tight">
             {activeTab === "home_to_home" && "Home to Home Parcel Delivery (ఇంటి నుండి ఇంటికి)"}
             {activeTab === "shop_to_home" && "Shop to Home Express Delivery (షాప్ నుండి ఇంటికి)"}
             {activeTab === "cargo_to_home" && "Cargo & Bus Stand Parcel Pickup (కార్గో / బస్సు పార్సెల్)"}
             {activeTab === "rider_delivery" && "Book a Rider for Personal Tasks (రైడర్ పికప్)"}
           </h2>
-          <p className="text-[10px] text-slate-300 font-medium mt-1 leading-snug">
+          <p className="text-[13px] text-slate-300 font-medium mt-1 leading-snug">
             {activeTab === "home_to_home" && "Send packages, clothes, documents or food anywhere in Aswapuram."}
             {activeTab === "shop_to_home" && "Get groceries, stationery or items from local stores delivered right to your doorstep."}
             {activeTab === "cargo_to_home" && "Rider collects your parcels from RTC bus stand or cargo transport offices."}
@@ -1416,19 +1439,19 @@ const PickupDelivery = () => {
         <div className="space-y-4">
           {/* Step 1: Pickup Details */}
           <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px]">1</span>
+            <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">1</span>
               Pickup Location (ఎక్కడ నుండి పికప్ చేయాలి)
             </h3>
 
             <div className="space-y-2.5">
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <Label className="text-[11px] font-bold text-slate-700">Sender Pickup Address</Label>
+                  <Label className="text-[13.5px] font-bold text-slate-700">Sender Pickup Address</Label>
                   <button 
                     type="button"
                     onClick={() => handleUseCurrentLocationFor(setH2hPickupAddress)}
-                    className="text-[10px] font-black text-emerald-700 hover:underline flex items-center gap-0.5"
+                    className="text-[13px] font-black text-emerald-700 hover:underline flex items-center gap-0.5"
                   >
                     <Navigation size={10} /> Use GPS Location
                   </button>
@@ -1437,27 +1460,27 @@ const PickupDelivery = () => {
                   placeholder="E.g., House No 4-22, Near Ganesh Temple, Aswapuram"
                   value={h2hPickupAddress}
                   onChange={(e) => setH2hPickupAddress(e.target.value)}
-                  className="text-xs font-semibold rounded-xl bg-slate-50"
+                  className="text-[13.5px] font-semibold rounded-xl bg-slate-50"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-[10.5px] font-bold text-slate-700">Sender Name</Label>
+                  <Label className="text-[13px] font-bold text-slate-700">Sender Name</Label>
                   <Input
                     placeholder="Your Name"
                     value={h2hSenderName}
                     onChange={(e) => setH2hSenderName(e.target.value)}
-                    className="text-xs rounded-xl bg-slate-50 mt-1"
+                    className="text-[13.5px] rounded-xl bg-slate-50 mt-1"
                   />
                 </div>
                 <div>
-                  <Label className="text-[10.5px] font-bold text-slate-700">Sender Phone</Label>
+                  <Label className="text-[13px] font-bold text-slate-700">Sender Phone</Label>
                   <Input
                     placeholder="10-digit mobile"
                     value={h2hSenderPhone}
                     onChange={(e) => setH2hSenderPhone(e.target.value)}
-                    className="text-xs rounded-xl bg-slate-50 mt-1"
+                    className="text-[13.5px] rounded-xl bg-slate-50 mt-1"
                   />
                 </div>
               </div>
@@ -1465,20 +1488,20 @@ const PickupDelivery = () => {
           </Card>
 
           {/* Step 2: Drop Details */}
-          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px]">2</span>
+          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3 overflow-visible">
+            <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">2</span>
               Drop Location (ఎక్కడికి డెలివరీ చేయాలి)
             </h3>
 
             <div className="space-y-2.5">
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <Label className="text-[11px] font-bold text-slate-700">Select Saved Address or Type Custom</Label>
+                  <Label className="text-[13.5px] font-bold text-slate-700">Select Saved Address or Type Custom</Label>
                   <button
                     type="button"
                     onClick={() => setIsH2hMapOpen(true)}
-                    className="text-[10px] font-black text-emerald-700 hover:underline flex items-center gap-0.5 shrink-0"
+                    className="text-[13px] font-black text-emerald-700 hover:underline flex items-center gap-0.5 shrink-0"
                   >
                     <MapPin size={10} /> GPS / Select on Map
                   </button>
@@ -1499,7 +1522,7 @@ const PickupDelivery = () => {
                     placeholder="Enter recipient's full address in Aswapuram"
                     value={h2hDropAddress}
                     onChange={(e) => setH2hDropAddress(e.target.value)}
-                    className="text-xs font-semibold rounded-xl bg-slate-50 mt-2"
+                    className="text-[13.5px] font-semibold rounded-xl bg-slate-50 mt-2"
                   />
                 )}
               </div>
@@ -1508,7 +1531,7 @@ const PickupDelivery = () => {
               {h2hSelectedDropAddressId && h2hSelectedDropAddressId !== "custom_drop" && (
                 <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-100 rounded-xl">
                   <Navigation size={14} className="text-emerald-700 shrink-0" />
-                  <span className="text-[11px] font-bold text-emerald-900">
+                  <span className="text-[13.5px] font-bold text-emerald-900">
                     Estimated Distance: <span className="font-black">{calculatedDistance} km</span>
                     {deliveryFee ? <span className="text-emerald-700"> · Fare ₹{deliveryFee}</span> : null}
                   </span>
@@ -1517,21 +1540,21 @@ const PickupDelivery = () => {
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-[10.5px] font-bold text-slate-700">Receiver Name</Label>
+                  <Label className="text-[13px] font-bold text-slate-700">Receiver Name</Label>
                   <Input
                     placeholder="Receiver's Name"
                     value={h2hReceiverName}
                     onChange={(e) => setH2hReceiverName(e.target.value)}
-                    className="text-xs rounded-xl bg-slate-50 mt-1"
+                    className="text-[13.5px] rounded-xl bg-slate-50 mt-1"
                   />
                 </div>
                 <div>
-                  <Label className="text-[10.5px] font-bold text-slate-700">Receiver Phone</Label>
+                  <Label className="text-[13px] font-bold text-slate-700">Receiver Phone</Label>
                   <Input
                     placeholder="Receiver Mobile"
                     value={h2hReceiverPhone}
                     onChange={(e) => setH2hReceiverPhone(e.target.value)}
-                    className="text-xs rounded-xl bg-slate-50 mt-1"
+                    className="text-[13.5px] rounded-xl bg-slate-50 mt-1"
                   />
                 </div>
               </div>
@@ -1540,14 +1563,14 @@ const PickupDelivery = () => {
 
           {/* Step 3: Parcel Details */}
           <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px]">3</span>
+            <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">3</span>
               Parcel Details (పార్సెల్ వివరాలు)
             </h3>
 
             {/* Category selection */}
             <div>
-              <Label className="text-[11px] font-bold text-slate-700 mb-1.5 block">What are you sending?</Label>
+              <Label className="text-[13.5px] font-bold text-slate-700 mb-1.5 block">What are you sending?</Label>
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
                 {parcelCategories.map((cat) => (
                   <button
@@ -1561,19 +1584,19 @@ const PickupDelivery = () => {
                     }`}
                   >
                     <span className="text-base">{cat.icon}</span>
-                    <span className="text-[9px] mt-0.5 line-clamp-1 leading-tight">{cat.label}</span>
+                    <span className="text-[12px] mt-0.5 line-clamp-1 leading-tight">{cat.label}</span>
                   </button>
                 ))}
               </div>
             </div>
 
             <div>
-              <Label className="text-[11px] font-bold text-slate-700">Description / Contents</Label>
+              <Label className="text-[13.5px] font-bold text-slate-700">Description / Contents</Label>
               <Textarea
                 placeholder="E.g., 2 shirts & 1 pant in sealed plastic bag, handle with care"
                 value={h2hParcelDetails}
                 onChange={(e) => setH2hParcelDetails(e.target.value)}
-                className="mt-1 text-xs bg-slate-50 rounded-xl"
+                className="mt-1 text-[13.5px] bg-slate-50 rounded-xl"
                 rows={2}
               />
             </div>
@@ -1581,22 +1604,22 @@ const PickupDelivery = () => {
             {/* Items count + Weight */}
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-[11px] font-bold text-slate-700">No. of Items (వస్తువుల సంఖ్య)</Label>
+                <Label className="text-[13.5px] font-bold text-slate-700">No. of Items (వస్తువుల సంఖ్య)</Label>
                 <Input
                   type="number"
                   min="1"
                   placeholder="1"
                   value={h2hItemsCount}
                   onChange={(e) => setH2hItemsCount(e.target.value)}
-                  className="text-xs font-bold bg-slate-50 rounded-xl mt-1"
+                  className="text-[13.5px] font-bold bg-slate-50 rounded-xl mt-1"
                 />
               </div>
               <div>
-                <Label className="text-[11px] font-bold text-slate-700">Approx. Weight (బరువు)</Label>
+                <Label className="text-[13.5px] font-bold text-slate-700">Approx. Weight (బరువు)</Label>
                 <select
                   value={h2hWeight}
                   onChange={(e) => setH2hWeight(e.target.value)}
-                  className="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none"
+                  className="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] font-bold text-slate-800 outline-none"
                 >
                   {WEIGHT_OPTIONS.map((w) => (
                     <option key={w} value={w}>{w}</option>
@@ -1607,9 +1630,9 @@ const PickupDelivery = () => {
 
             {/* Optional Photo */}
             <div>
-              <Label className="text-[11px] font-bold text-slate-700">Parcel Photo (Optional)</Label>
+              <Label className="text-[13.5px] font-bold text-slate-700">Parcel Photo (Optional)</Label>
               <div className="mt-1 flex items-center gap-3">
-                <label className="flex items-center gap-2 px-3 py-2 bg-slate-100 border border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-slate-200 text-xs font-bold text-slate-600">
+                <label className="flex items-center gap-2 px-3 py-2 bg-slate-100 border border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-slate-200 text-[13.5px] font-bold text-slate-600">
                   <Upload size={14} />
                   <span>{uploading ? "Uploading..." : "Attach Photo"}</span>
                   <input type="file" onChange={handleImageUpload} className="hidden" accept="image/*" />
@@ -1631,14 +1654,14 @@ const PickupDelivery = () => {
       {activeTab === "shop_to_home" && (
         <div className="space-y-4">
           {/* Step 1: Select Shop */}
-          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px]">1</span>
+          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3 overflow-visible">
+            <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">1</span>
               Select Shop in Aswapuram (షాప్ ఎంచుకోండి)
             </h3>
 
             <div>
-              <Label className="text-[11px] font-bold text-slate-700">Choose Registered Store or Enter Custom</Label>
+              <Label className="text-[13.5px] font-bold text-slate-700">Choose Registered Store or Enter Custom</Label>
               <ShopDropdown
                 shops={shops}
                 value={selectedShopId}
@@ -1654,13 +1677,13 @@ const PickupDelivery = () => {
                     placeholder="Shop Name (e.g. Sri Balaji Kirana)"
                     value={customShopName}
                     onChange={(e) => setCustomShopName(e.target.value)}
-                    className="text-xs bg-slate-50 rounded-xl"
+                    className="text-[13.5px] bg-slate-50 rounded-xl"
                   />
                   <Input
                     placeholder="Shop Location/Street"
                     value={customShopLocation}
                     onChange={(e) => setCustomShopLocation(e.target.value)}
-                    className="text-xs bg-slate-50 rounded-xl"
+                    className="text-[13.5px] bg-slate-50 rounded-xl"
                   />
                 </div>
               )}
@@ -1669,18 +1692,18 @@ const PickupDelivery = () => {
 
           {/* Step 2: Items / Written List */}
           <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px]">2</span>
+            <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">2</span>
               Items List / Bill (వస్తువుల వివరాలు)
             </h3>
 
             <div>
-              <Label className="text-[11px] font-bold text-slate-700">Write Items List or Instructions</Label>
+              <Label className="text-[13.5px] font-bold text-slate-700">Write Items List or Instructions</Label>
               <Textarea
                 placeholder="E.g.&#10;1. Sugar 2kg&#10;2. Fortune Sunflower Oil 1L&#10;3. Ashirvad Atta 5kg"
                 value={shopParcelDetails}
                 onChange={(e) => setShopParcelDetails(e.target.value)}
-                className="mt-1 text-xs bg-slate-50 rounded-xl"
+                className="mt-1 text-[13.5px] bg-slate-50 rounded-xl"
                 rows={3}
               />
             </div>
@@ -1688,22 +1711,22 @@ const PickupDelivery = () => {
             {/* Items count + Weight (helps the rider carry the right bag) */}
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-[11px] font-bold text-slate-700">No. of Items (వస్తువుల సంఖ్య)</Label>
+                <Label className="text-[13.5px] font-bold text-slate-700">No. of Items (వస్తువుల సంఖ్య)</Label>
                 <Input
                   type="number"
                   min="1"
                   placeholder="E.g. 5"
                   value={shopItemsCount}
                   onChange={(e) => setShopItemsCount(e.target.value)}
-                  className="text-xs font-bold bg-slate-50 rounded-xl mt-1"
+                  className="text-[13.5px] font-bold bg-slate-50 rounded-xl mt-1"
                 />
               </div>
               <div>
-                <Label className="text-[11px] font-bold text-slate-700">Approx. Weight (బరువు)</Label>
+                <Label className="text-[13.5px] font-bold text-slate-700">Approx. Weight (బరువు)</Label>
                 <select
                   value={shopWeight}
                   onChange={(e) => setShopWeight(e.target.value)}
-                  className="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none"
+                  className="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] font-bold text-slate-800 outline-none"
                 >
                   {WEIGHT_OPTIONS.map((w) => (
                     <option key={w} value={w}>{w}</option>
@@ -1713,9 +1736,9 @@ const PickupDelivery = () => {
             </div>
 
             <div>
-              <Label className="text-[11px] font-bold text-slate-700">Upload Handwritten List or Shop Bill Photo (Optional)</Label>
+              <Label className="text-[13.5px] font-bold text-slate-700">Upload Handwritten List or Shop Bill Photo (Optional)</Label>
               <div className="mt-1 flex items-center gap-3">
-                <label className="flex items-center gap-2 px-3 py-2 bg-slate-100 border border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-slate-200 text-xs font-bold text-slate-600">
+                <label className="flex items-center gap-2 px-3 py-2 bg-slate-100 border border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-slate-200 text-[13.5px] font-bold text-slate-600">
                   <Upload size={14} />
                   <span>{uploading ? "Uploading..." : "Upload Photo / Bill"}</span>
                   <input type="file" onChange={handleImageUpload} className="hidden" accept="image/*" />
@@ -1731,8 +1754,8 @@ const PickupDelivery = () => {
 
           {/* Step 3: Shop Payment Collection Type */}
           <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px]">3</span>
+            <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">3</span>
               Store Payment (షాప్ బిల్లు ఎవరు చెల్లిస్తారు?)
             </h3>
 
@@ -1746,8 +1769,8 @@ const PickupDelivery = () => {
                     : "bg-slate-50 border-slate-200 text-slate-600 font-bold"
                 }`}
               >
-                <div className="text-xs font-black">Prepaid (నేను చెల్లించాను)</div>
-                <div className="text-[9px] text-slate-500 mt-0.5">I already paid the shop. Rider only picks up.</div>
+                <div className="text-[13.5px] font-black">Prepaid (నేను చెల్లించాను)</div>
+                <div className="text-[12px] text-slate-700 mt-0.5">I already paid the shop. Rider only picks up.</div>
               </button>
 
               <button
@@ -1759,29 +1782,29 @@ const PickupDelivery = () => {
                     : "bg-slate-50 border-slate-200 text-slate-600 font-bold"
                 }`}
               >
-                <div className="text-xs font-black">Pay & Collect (రైడర్ చెల్లింపు)</div>
-                <div className="text-[9px] text-slate-500 mt-0.5">Rider pays the shop bill & collects cash at home.</div>
+                <div className="text-[13.5px] font-black">Pay & Collect (రైడర్ చెల్లింపు)</div>
+                <div className="text-[12px] text-slate-700 mt-0.5">Rider pays the shop bill & collects cash at home.</div>
               </button>
             </div>
 
             {shopPickupType === "pay_and_collect" && (
               <div className="mt-2 p-2.5 bg-amber-50 rounded-xl border border-amber-200">
-                <Label className="text-[11px] font-black text-amber-900">Estimated Shop Bill Amount (₹)</Label>
+                <Label className="text-[13.5px] font-black text-amber-900">Estimated Shop Bill Amount (₹)</Label>
                 <Input
                   type="number"
                   placeholder="Enter estimated bill amount e.g. 250"
                   value={shopBillAmount}
                   onChange={(e) => setShopBillAmount(e.target.value)}
-                  className="mt-1 text-xs font-bold bg-white rounded-xl"
+                  className="mt-1 text-[13.5px] font-bold bg-white rounded-xl"
                 />
               </div>
             )}
           </Card>
 
           {/* Step 4: Home Address */}
-          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px]">4</span>
+          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3 overflow-visible">
+            <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">4</span>
               Home Delivery Address (డెలివరీ చిరునామా)
             </h3>
 
@@ -1802,16 +1825,16 @@ const PickupDelivery = () => {
       {activeTab === "cargo_to_home" && (
         <div className="space-y-4">
           {/* Step 1: Select Cargo Point */}
-          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px]">1</span>
+          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3 overflow-visible">
+            <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">1</span>
               Select Cargo / Bus Stand Point (రవాణా పాయింట్)
             </h3>
 
             <div>
-              <Label className="text-[11px] font-bold text-slate-700">Transport Counter</Label>
+              <Label className="text-[13.5px] font-bold text-slate-700">Transport Counter</Label>
               <CargoPointDropdown
-                points={CARGO_POINTS}
+                points={cargoPoints}
                 value={selectedCargoPointId}
                 onChange={setSelectedCargoPointId}
               />
@@ -1821,7 +1844,7 @@ const PickupDelivery = () => {
                   placeholder="Enter Cargo Office name / location"
                   value={customCargoName}
                   onChange={(e) => setCustomCargoName(e.target.value)}
-                  className="text-xs bg-slate-50 rounded-xl mt-2"
+                  className="text-[13.5px] bg-slate-50 rounded-xl mt-2"
                 />
               )}
             </div>
@@ -1829,39 +1852,39 @@ const PickupDelivery = () => {
 
           {/* Step 2: LR / Booking Details */}
           <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px]">2</span>
+            <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">2</span>
               Booking & Parcel Info (రసీదు & బుకింగ్ వివరాలు)
             </h3>
 
             <div className="space-y-2.5">
               <div>
-                <Label className="text-[11px] font-bold text-slate-700">LR Number / Booking Receipt / Bus Ticket No</Label>
+                <Label className="text-[13.5px] font-bold text-slate-700">LR Number / Booking Receipt / Bus Ticket No</Label>
                 <Input
                   placeholder="E.g. LR # 9845120 or Bus No AP29Z..."
                   value={cargoLrNumber}
                   onChange={(e) => setCargoLrNumber(e.target.value)}
-                  className="text-xs font-bold bg-slate-50 rounded-xl mt-1 uppercase"
+                  className="text-[13.5px] font-bold bg-slate-50 rounded-xl mt-1 uppercase"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-[10.5px] font-bold text-slate-700">Origin / Sent From</Label>
+                  <Label className="text-[13px] font-bold text-slate-700">Origin / Sent From</Label>
                   <Input
                     placeholder="E.g. Hyderabad / Khammam"
                     value={cargoOriginCity}
                     onChange={(e) => setCargoOriginCity(e.target.value)}
-                    className="text-xs rounded-xl bg-slate-50 mt-1"
+                    className="text-[13.5px] rounded-xl bg-slate-50 mt-1"
                   />
                 </div>
                 <div>
-                  <Label className="text-[10.5px] font-bold text-slate-700">Sender Phone (Optional)</Label>
+                  <Label className="text-[13px] font-bold text-slate-700">Sender Phone (Optional)</Label>
                   <Input
                     placeholder="Sender mobile"
                     value={cargoSenderContact}
                     onChange={(e) => setCargoSenderContact(e.target.value)}
-                    className="text-xs rounded-xl bg-slate-50 mt-1"
+                    className="text-[13.5px] rounded-xl bg-slate-50 mt-1"
                   />
                 </div>
               </div>
@@ -1869,22 +1892,22 @@ const PickupDelivery = () => {
               {/* Items count + Weight — helps the rider judge the bike load */}
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-[10.5px] font-bold text-slate-700">No. of Parcels (పార్సెళ్ల సంఖ్య)</Label>
+                  <Label className="text-[13px] font-bold text-slate-700">No. of Parcels (పార్సెళ్ల సంఖ్య)</Label>
                   <Input
                     type="number"
                     min="1"
                     placeholder="1"
                     value={cargoItemsCount}
                     onChange={(e) => setCargoItemsCount(e.target.value)}
-                    className="text-xs font-bold bg-slate-50 rounded-xl mt-1"
+                    className="text-[13.5px] font-bold bg-slate-50 rounded-xl mt-1"
                   />
                 </div>
                 <div>
-                  <Label className="text-[10.5px] font-bold text-slate-700">Approx. Weight (బరువు)</Label>
+                  <Label className="text-[13px] font-bold text-slate-700">Approx. Weight (బరువు)</Label>
                   <select
                     value={cargoWeight}
                     onChange={(e) => setCargoWeight(e.target.value)}
-                    className="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none"
+                    className="w-full mt-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13.5px] font-bold text-slate-800 outline-none"
                   >
                     {WEIGHT_OPTIONS.map((w) => (
                       <option key={w} value={w}>{w}</option>
@@ -1894,9 +1917,9 @@ const PickupDelivery = () => {
               </div>
 
               <div>
-                <Label className="text-[11px] font-bold text-slate-700">Upload LR / Booking Photo (Optional)</Label>
+                <Label className="text-[13.5px] font-bold text-slate-700">Upload LR / Booking Photo (Optional)</Label>
                 <div className="mt-1 flex items-center gap-3">
-                  <label className="flex items-center gap-2 px-3 py-2 bg-slate-100 border border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-slate-200 text-xs font-bold text-slate-600">
+                  <label className="flex items-center gap-2 px-3 py-2 bg-slate-100 border border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-slate-200 text-[13.5px] font-bold text-slate-600">
                     <Upload size={14} />
                     <span>{uploading ? "Uploading..." : "Upload LR Photo"}</span>
                     <input type="file" onChange={handleImageUpload} className="hidden" accept="image/*" />
@@ -1913,28 +1936,28 @@ const PickupDelivery = () => {
 
           {/* Step 3: Freight Charges */}
           <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px]">3</span>
+            <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">3</span>
               Freight Payment at Counter (కౌంటర్ చెల్లింపు)
             </h3>
 
             <div>
-              <Label className="text-[11px] font-bold text-slate-700">Unpaid Freight Charges to Pay at Counter (₹)</Label>
+              <Label className="text-[13.5px] font-bold text-slate-700">Unpaid Freight Charges to Pay at Counter (₹)</Label>
               <Input
                 type="number"
                 placeholder="Leave 0 if freight is already prepaid"
                 value={cargoUnpaidFreight}
                 onChange={(e) => setCargoUnpaidFreight(e.target.value)}
-                className="mt-1 text-xs font-bold bg-slate-50 rounded-xl"
+                className="mt-1 text-[13.5px] font-bold bg-slate-50 rounded-xl"
               />
-              <p className="text-[9.5px] text-slate-400 mt-1">If "To-Pay / Unpaid", rider will pay this amount at cargo counter and collect from you.</p>
+              <p className="text-[12.5px] text-slate-600 mt-1">If "To-Pay / Unpaid", rider will pay this amount at cargo counter and collect from you.</p>
             </div>
           </Card>
 
           {/* Step 4: Home Delivery Address */}
-          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px]">4</span>
+          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3 overflow-visible">
+            <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">4</span>
               Home Delivery Address (డెలివరీ చిరునామా)
             </h3>
 
@@ -1956,8 +1979,8 @@ const PickupDelivery = () => {
         <div className="space-y-4">
           {/* Step 1: Task Type */}
           <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px]">1</span>
+            <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">1</span>
               Task Category (రైడర్ ఏ పని చేయాలి?)
             </h3>
 
@@ -1974,39 +1997,39 @@ const PickupDelivery = () => {
                   }`}
                 >
                   <span className="text-base">{t.icon}</span>
-                  <span className="text-[9.5px] mt-1 line-clamp-1 font-black leading-tight">{t.label}</span>
-                  <span className="text-[7.5px] text-slate-400 mt-0.5">{t.telugu}</span>
+                  <span className="text-[12.5px] mt-1 line-clamp-1 font-black leading-tight">{t.label}</span>
+                  <span className="text-[11px] text-slate-600 mt-0.5">{t.telugu}</span>
                 </button>
               ))}
             </div>
 
             <div>
-              <Label className="text-[11px] font-bold text-slate-700">Detailed Instructions for Rider</Label>
+              <Label className="text-[13.5px] font-bold text-slate-700">Detailed Instructions for Rider</Label>
               <Textarea
                 placeholder="E.g., Go to SBI Bank Aswapuram, collect documents envelope from Mr. Ramesh, and deliver to my home."
                 value={riderInstructions}
                 onChange={(e) => setRiderInstructions(e.target.value)}
-                className="mt-1 text-xs bg-slate-50 rounded-xl"
+                className="mt-1 text-[13.5px] bg-slate-50 rounded-xl"
                 rows={2}
               />
             </div>
           </Card>
 
           {/* Step 2: Pickup & Drop Points */}
-          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px]">2</span>
+          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3 overflow-visible">
+            <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">2</span>
               Route: Pickup & Drop Points
             </h3>
 
             <div className="space-y-3">
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <Label className="text-[11px] font-bold text-slate-700">Pickup Location (ఎక్కడికి వెళ్ళాలి)</Label>
+                  <Label className="text-[13.5px] font-bold text-slate-700">Pickup Location (ఎక్కడికి వెళ్ళాలి)</Label>
                   <button 
                     type="button"
                     onClick={() => handleUseCurrentLocationFor(setRiderPickupLoc)}
-                    className="text-[10px] font-black text-emerald-700 hover:underline flex items-center gap-0.5"
+                    className="text-[13px] font-black text-emerald-700 hover:underline flex items-center gap-0.5"
                   >
                     <Navigation size={10} /> Use GPS
                   </button>
@@ -2015,17 +2038,17 @@ const PickupDelivery = () => {
                   placeholder="Where should rider pick up?"
                   value={riderPickupLoc}
                   onChange={(e) => setRiderPickupLoc(e.target.value)}
-                  className="text-xs rounded-xl bg-slate-50"
+                  className="text-[13.5px] rounded-xl bg-slate-50"
                 />
               </div>
 
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <Label className="text-[11px] font-bold text-slate-700">Drop Destination (ఎక్కడికి ఇవ్వాలి)</Label>
+                  <Label className="text-[13.5px] font-bold text-slate-700">Drop Destination (ఎక్కడికి ఇవ్వాలి)</Label>
                   <button
                     type="button"
                     onClick={() => setIsRiderMapOpen(true)}
-                    className="text-[10px] font-black text-emerald-700 hover:underline flex items-center gap-0.5 shrink-0"
+                    className="text-[13px] font-black text-emerald-700 hover:underline flex items-center gap-0.5 shrink-0"
                   >
                     <MapPin size={10} /> GPS / Select on Map
                   </button>
@@ -2044,7 +2067,7 @@ const PickupDelivery = () => {
                     placeholder="Enter destination in Aswapuram"
                     value={riderDropLoc}
                     onChange={(e) => setRiderDropLoc(e.target.value)}
-                    className="text-xs rounded-xl bg-slate-50 mt-2"
+                    className="text-[13.5px] rounded-xl bg-slate-50 mt-2"
                   />
                 )}
               </div>
@@ -2054,7 +2077,7 @@ const PickupDelivery = () => {
               {riderSelectedAddressId !== "custom_rider_drop" && (
                 <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-100 rounded-xl">
                   <Navigation size={14} className="text-emerald-700 shrink-0" />
-                  <span className="text-[11px] font-bold text-emerald-900">
+                  <span className="text-[13.5px] font-bold text-emerald-900">
                     Estimated Trip Distance: <span className="font-black">{calculatedDistance} km</span>
                     {deliveryFee ? <span className="text-emerald-700"> · Fare ₹{deliveryFee}</span> : null}
                   </span>
@@ -2065,8 +2088,8 @@ const PickupDelivery = () => {
 
           {/* Step 3: Timing */}
           <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px]">3</span>
+            <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">3</span>
               Timing & Schedule
             </h3>
 
@@ -2080,8 +2103,8 @@ const PickupDelivery = () => {
                     : "bg-slate-50 border-slate-200 text-slate-600 font-bold"
                 }`}
               >
-                <div className="text-xs font-black">⚡ Instant Rider</div>
-                <div className="text-[9px] text-slate-500 mt-0.5">Assign rider immediately for fast delivery.</div>
+                <div className="text-[13.5px] font-black">⚡ Instant Rider</div>
+                <div className="text-[12px] text-slate-700 mt-0.5">Assign rider immediately for fast delivery.</div>
               </button>
 
               <button
@@ -2093,19 +2116,19 @@ const PickupDelivery = () => {
                     : "bg-slate-50 border-slate-200 text-slate-600 font-bold"
                 }`}
               >
-                <div className="text-xs font-black">🕒 Schedule for Later</div>
-                <div className="text-[9px] text-slate-500 mt-0.5">Pick a convenient time today.</div>
+                <div className="text-[13.5px] font-black">🕒 Schedule for Later</div>
+                <div className="text-[12px] text-slate-700 mt-0.5">Pick a convenient time today.</div>
               </button>
             </div>
 
             {riderTiming === "scheduled" && (
               <div className="mt-2">
-                <Label className="text-[11px] font-bold text-slate-700">Preferred Time</Label>
+                <Label className="text-[13.5px] font-bold text-slate-700">Preferred Time</Label>
                 <Input
                   type="time"
                   value={riderScheduleTime}
                   onChange={(e) => setRiderScheduleTime(e.target.value)}
-                  className="mt-1 text-xs bg-slate-50 rounded-xl"
+                  className="mt-1 text-[13.5px] bg-slate-50 rounded-xl"
                 />
               </div>
             )}
@@ -2126,12 +2149,12 @@ const PickupDelivery = () => {
             <h3 className="text-base font-black text-slate-900">
               WhatsApp Direct Order (వాట్సాప్ ద్వారా ఆర్డర్)
             </h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+            <p className="text-[13.5px] text-slate-700 mt-1 max-w-sm mx-auto">
               Prefer chatting on WhatsApp? Tap below to send your pickup or shopping list directly to our operations team.
             </p>
           </div>
 
-          <div className="p-3 bg-emerald-50/70 border border-emerald-100 rounded-2xl text-left text-xs font-medium text-slate-700 space-y-1">
+          <div className="p-3 bg-emerald-50/70 border border-emerald-100 rounded-2xl text-left text-[13.5px] font-medium text-slate-700 space-y-1">
             <p className="font-black text-[#042A0F]">⚡ How WhatsApp Order Works:</p>
             <p>1. Tap the green button below to open official Athreya WhatsApp chat.</p>
             <p>2. Pre-filled request is prepared with your location details.</p>
@@ -2141,7 +2164,7 @@ const PickupDelivery = () => {
           <button
             type="button"
             onClick={() => triggerWhatsAppOrder()}
-            className="w-full py-3.5 bg-[#25D366] hover:bg-[#20bd5a] text-[#042A0F] rounded-2xl font-black text-sm uppercase tracking-wide flex items-center justify-center gap-2 shadow-md active:scale-98 transition-all cursor-pointer"
+            className="w-full py-3.5 bg-[#25D366] hover:bg-[#20bd5a] text-[#042A0F] rounded-2xl font-black text-[15px] uppercase tracking-wide flex items-center justify-center gap-2 shadow-md active:scale-98 transition-all cursor-pointer"
           >
             <MessageSquare size={18} />
             <span>Order via WhatsApp Now &gt;</span>
@@ -2156,13 +2179,13 @@ const PickupDelivery = () => {
         <div className="mt-5 space-y-4">
           {/* Fare Summary Card */}
           <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide">
+            <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide">
               Fare & Payment Details (ధర వివరాలు)
             </h3>
 
-            <div className="divide-y divide-slate-100 text-xs">
+            <div className="divide-y divide-slate-100 text-[13.5px]">
               {serviceUnavailable && (
-                <div className="my-2 rounded-xl bg-rose-50 border border-rose-200 px-3 py-2 text-[11px] font-bold text-rose-700">
+                <div className="my-2 rounded-xl bg-rose-50 border border-rose-200 px-3 py-2 text-[13.5px] font-bold text-rose-700">
                   This service is temporarily unavailable. Please try another Athreya Express service.
                 </div>
               )}
@@ -2233,7 +2256,7 @@ const PickupDelivery = () => {
                 </div>
               )}
 
-              <div className="pt-2 flex justify-between items-center font-black text-sm text-[#042A0F]">
+              <div className="pt-2 flex justify-between items-center font-black text-[15px] text-[#042A0F]">
                 <span>Total Payable Amount</span>
                 <span className="text-base text-emerald-800">₹{totalAmount}</span>
               </div>
@@ -2241,7 +2264,7 @@ const PickupDelivery = () => {
 
             {/* Payment Mode Selector */}
             <div className="pt-2 border-t border-slate-100">
-              <Label className="text-[11px] font-bold text-slate-700 mb-1.5 block">Payment Mode</Label>
+              <Label className="text-[13.5px] font-bold text-slate-700 mb-1.5 block">Payment Mode</Label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -2275,12 +2298,12 @@ const PickupDelivery = () => {
             type="button"
             disabled={submitting || serviceUnavailable}
             onClick={handleBookingSubmit}
-            className="w-full py-3.5 bg-[#042A0F] hover:bg-[#063A16] disabled:opacity-70 text-white rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg active:scale-98 transition-all cursor-pointer"
+            className="w-full py-3.5 bg-[#042A0F] hover:bg-[#063A16] disabled:opacity-70 text-white rounded-2xl font-black text-[15px] uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg active:scale-98 transition-all cursor-pointer"
           >
             <span>{submitting ? "Booking Rider..." : "⚡ Confirm Athreya Express Order"}</span>
           </button>
 
-          <p className="text-center text-[10px] text-slate-500 font-medium">
+          <p className="text-center text-[13px] text-slate-700 font-medium">
             🔒 Safe & instant delivery by verified Athreya Delivery Partners in Aswapuram
           </p>
         </div>

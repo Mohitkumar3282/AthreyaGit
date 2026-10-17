@@ -845,7 +845,7 @@ const OrderDetailPage = () => {
         </button>
         <div className="flex-1 text-center">
           <h1 className="text-base font-[1000] tracking-widest uppercase text-white">ORDER SUMMARY</h1>
-          <p className="text-[10px] font-bold text-emerald-200">#{order.orderId.slice(-8)}</p>
+          <p className="text-[12px] font-bold text-emerald-200">#{order.orderId.slice(-8)}</p>
         </div>
         <div className="w-8" />
       </div>
@@ -869,7 +869,7 @@ const OrderDetailPage = () => {
                   ? "Order Cancelled"
                   : "Order Placed Successfully!"}
               </h3>
-              <p className="text-[11px] font-semibold text-slate-500 mt-0.5 truncate">
+              <p className="text-[12.5px] font-semibold text-slate-500 mt-0.5 truncate">
                 Thank you for choosing Athreya Delivery
               </p>
             </div>
@@ -1030,7 +1030,7 @@ const OrderDetailPage = () => {
                     className="h-full w-full object-cover"
                   />
                 </div>
-                <div className="absolute -bottom-1 -right-1 bg-white text-[#1a6e2e] text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 border border-[#1a6e2e]/20">
+                <div className="absolute -bottom-1 -right-1 bg-white text-[#1a6e2e] text-[11px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 border border-[#1a6e2e]/20">
                   4.8 ★
                 </div>
               </div>
@@ -1094,7 +1094,7 @@ const OrderDetailPage = () => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <p className="text-xs font-bold text-[#1a6e2e] uppercase tracking-wider">Delivery Address</p>
-                <span className="bg-[#1a6e2e]/10 text-[#1a6e2e] text-[10px] px-2 py-0.5 rounded-full font-bold">
+                <span className="bg-[#1a6e2e]/10 text-[#1a6e2e] text-[12px] px-2 py-0.5 rounded-full font-bold">
                   {order.address.type}
                 </span>
               </div>
@@ -1134,7 +1134,7 @@ const OrderDetailPage = () => {
               <div className="space-y-4">
                 {order.parcelDetails && (
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Items List / Details</p>
+                    <p className="text-[12px] font-black text-slate-400 uppercase tracking-widest mb-1">Items List / Details</p>
                     <p className="text-sm font-semibold text-slate-800 leading-relaxed whitespace-pre-wrap">
                       {order.parcelDetails}
                     </p>
@@ -1142,7 +1142,7 @@ const OrderDetailPage = () => {
                 )}
                 {order.parcelImage && (
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Order Image / Screenshot</p>
+                    <p className="text-[12px] font-black text-slate-400 uppercase tracking-widest mb-2">Order Image / Screenshot</p>
                     <div className="max-w-xs rounded-2xl overflow-hidden ring-1 ring-slate-100 shadow-md">
                       <img src={order.parcelImage} alt="Order proof" className="w-full object-cover max-h-64" />
                     </div>
@@ -1150,14 +1150,14 @@ const OrderDetailPage = () => {
                 )}
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pickup Type</p>
+                    <p className="text-[12px] font-black text-slate-400 uppercase tracking-widest">Pickup Type</p>
                     <p className="text-sm font-black text-slate-900 mt-0.5">
                       {order.pickupType === "pay_and_collect" ? "Rider pays shop bill" : "Prepaid parcel"}
                     </p>
                   </div>
                   {order.pickupType === "pay_and_collect" && (
                     <div className="text-right">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Bill Amount</p>
+                      <p className="text-[12px] font-black text-slate-400 uppercase tracking-widest">Bill Amount</p>
                       <p className="text-sm font-black text-slate-900 mt-0.5">₹{order.billAmount}</p>
                     </div>
                   )}
@@ -1177,7 +1177,7 @@ const OrderDetailPage = () => {
               </div>
 
               {/* Table Column Headers matching Screen 1 */}
-              <div className="grid grid-cols-12 gap-2 text-[11px] font-black uppercase tracking-wider text-slate-500 px-1 border-b border-slate-100 pb-2">
+              <div className="grid grid-cols-12 gap-2 text-[12.5px] font-black uppercase tracking-wider text-slate-500 px-1 border-b border-slate-100 pb-2">
                 <div className="col-span-5 md:col-span-6">Item</div>
                 <div className="col-span-2 text-right">M.R.P.</div>
                 <div className="col-span-3 md:col-span-2 text-right">Our Price</div>
@@ -1213,7 +1213,7 @@ const OrderDetailPage = () => {
                           <h4 className="font-bold text-slate-800 text-xs md:text-sm truncate">
                             {item.name}
                           </h4>
-                          <p className="text-[10px] font-semibold text-slate-400">
+                          <p className="text-[12px] font-semibold text-slate-400">
                             Qty: {item.quantity} {item.unit ? `· ${item.unit}` : ""}
                           </p>
                         </div>
@@ -1361,7 +1361,7 @@ const OrderDetailPage = () => {
                 <CheckCircle size={26} className="text-white fill-[#0d4d29]" />
               </div>
               <div>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider">🎉 You Earned</p>
+                <p className="text-[12px] font-black text-slate-500 uppercase tracking-wider">🎉 You Earned</p>
                 <h4 className="text-lg md:text-xl font-[1000] text-[#0d592e] leading-tight">
                   {order.coins.earned.toLocaleString("en-IN")} Athreya Coins
                 </h4>
@@ -1389,7 +1389,7 @@ const OrderDetailPage = () => {
               <CreditCard size={18} className="text-slate-700" />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+              <p className="text-[12px] font-bold text-slate-500 uppercase tracking-wider">
                 Payment
               </p>
               <p className="text-sm font-bold text-slate-900">

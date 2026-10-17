@@ -59,12 +59,12 @@ const CheckoutCoinsSection = React.memo(function CheckoutCoinsSection({
             <h4 className="text-xs font-[1000] text-[#0d592e] uppercase tracking-wide">
               Athreya Coin Wallet
             </h4>
-            <p className="text-[11px] font-semibold text-slate-600">
+            <p className="text-[12.5px] font-semibold text-slate-600">
               10,000 Coins = ₹1.00 · ₹1 Saved = 100 Coins
             </p>
           </div>
         </div>
-        <span className="text-[10px] font-black uppercase text-[#0d4d29] bg-white px-2.5 py-1 rounded-lg border border-emerald-200">
+        <span className="text-[12px] font-black uppercase text-[#0d4d29] bg-white px-2.5 py-1 rounded-lg border border-emerald-200">
           0 Coins
         </span>
       </div>
@@ -103,7 +103,7 @@ const CheckoutCoinsSection = React.memo(function CheckoutCoinsSection({
               <span className="text-xs font-[1000] uppercase tracking-wider text-white">
                 Athreya Coin Wallet
               </span>
-              <span className="bg-[#fcd34d] text-[#0d4d29] text-[9px] font-[1000] px-1.5 py-0.5 rounded">
+              <span className="bg-[#fcd34d] text-[#0d4d29] text-[11px] font-[1000] px-1.5 py-0.5 rounded">
                 10k = ₹1
               </span>
             </div>
@@ -132,7 +132,7 @@ const CheckoutCoinsSection = React.memo(function CheckoutCoinsSection({
       </div>
 
       {!canRedeem && (
-        <p className="mt-3 flex items-start gap-1.5 text-[11px] font-semibold text-emerald-200">
+        <p className="mt-3 flex items-start gap-1.5 text-[12.5px] font-semibold text-emerald-200">
           <Info size={13} className="mt-0.5 shrink-0" />
           {balance < minRedeem
             ? `Collect ${minRedeem - balance} more coins to start redeeming.`
@@ -182,10 +182,10 @@ const CheckoutCoinsSection = React.memo(function CheckoutCoinsSection({
                     setDraft(null);
                     onChangeCoins(maxRedeemable);
                   }}
-                  className="text-[11px] font-[1000] uppercase tracking-wider text-[#fcd34d] hover:underline">
+                  className="text-[12.5px] font-[1000] uppercase tracking-wider text-[#fcd34d] hover:underline">
                   Use max ({maxRedeemable.toLocaleString("en-IN")} coins)
                 </button>
-                <span className="text-[10px] font-semibold text-emerald-200">
+                <span className="text-[12px] font-semibold text-emerald-200">
                   Worth ₹{formatRupees(maxRedeemable * rupeePerCoin)}
                 </span>
               </div>
@@ -209,7 +209,7 @@ const CheckoutCoinsSection = React.memo(function CheckoutCoinsSection({
                       ₹{formatRupees(payableAfter)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5 pt-1 text-[10px] font-semibold text-emerald-200 border-t border-white/10">
+                  <div className="flex items-center gap-1.5 pt-1 text-[12px] font-semibold text-emerald-200 border-t border-white/10">
                     <span>✓</span>
                     <span>
                       {appliedCoins.toLocaleString("en-IN")} coins applied

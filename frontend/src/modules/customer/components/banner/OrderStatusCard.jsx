@@ -19,11 +19,11 @@ const OrderStatusCard = memo(({ stage, order, eta, dynamicDistance }) => {
                     <CheckCircle2 className="w-6 h-6 animate-pulse" />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <span className="text-[10px] bg-green-900/50 text-[#A3E635] px-2 py-0.5 rounded-full font-black uppercase">
+                    <span className="text-[12px] bg-green-900/50 text-[#A3E635] px-2 py-0.5 rounded-full font-black uppercase">
                         Order Confirmed
                     </span>
                     <h4 className="text-sm font-black text-white mt-1">Accepting items at {sellerName}</h4>
-                    <p className="text-[10px] text-slate-300 font-bold mt-0.5">We're verifying store availability</p>
+                    <p className="text-[12px] text-slate-300 font-bold mt-0.5">We're verifying store availability</p>
                 </div>
             </div>
         );
@@ -38,7 +38,7 @@ const OrderStatusCard = memo(({ stage, order, eta, dynamicDistance }) => {
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] bg-orange-950 text-orange-400 px-2 py-0.5 rounded-full font-black uppercase">
+                        <span className="text-[12px] bg-orange-950 text-orange-400 px-2 py-0.5 rounded-full font-black uppercase">
                             Preparing Order
                         </span>
                         <div className="flex gap-0.5">
@@ -48,7 +48,7 @@ const OrderStatusCard = memo(({ stage, order, eta, dynamicDistance }) => {
                         </div>
                     </div>
                     <h4 className="text-sm font-black text-white mt-1">Chef is preparing your meal</h4>
-                    <p className="text-[10px] text-slate-300 font-bold mt-0.5">Food packing & sorting in progress</p>
+                    <p className="text-[12px] text-slate-300 font-bold mt-0.5">Food packing & sorting in progress</p>
                 </div>
             </div>
         );
@@ -62,11 +62,11 @@ const OrderStatusCard = memo(({ stage, order, eta, dynamicDistance }) => {
                     <ShoppingBag className="w-6 h-6 animate-pulse" />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <span className="text-[10px] bg-[#042A0F] text-[#A3E635] px-2 py-0.5 rounded-full font-black uppercase">
+                    <span className="text-[12px] bg-[#042A0F] text-[#A3E635] px-2 py-0.5 rounded-full font-black uppercase">
                         Ready For Pickup
                     </span>
                     <h4 className="text-sm font-black text-white mt-1">Your order is packed & ready</h4>
-                    <p className="text-[10px] text-slate-300 font-bold mt-0.5">Athreya Delivery Partner is arriving shortly</p>
+                    <p className="text-[12px] text-slate-300 font-bold mt-0.5">Athreya Delivery Partner is arriving shortly</p>
                 </div>
             </div>
         );
@@ -94,11 +94,11 @@ const OrderStatusCard = memo(({ stage, order, eta, dynamicDistance }) => {
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                         <h4 className="font-black text-white text-xs truncate">{riderName}</h4>
-                        <span className="text-[8px] bg-slate-800 text-slate-300 border border-white/10 px-1.5 py-0.5 rounded font-black uppercase">
+                        <span className="text-[10.5px] bg-slate-800 text-slate-300 border border-white/10 px-1.5 py-0.5 rounded font-black uppercase">
                             RIDER
                         </span>
                     </div>
-                    <p className="text-[9.5px] text-[#A3E635] font-black uppercase tracking-wider mt-0.5">
+                    <p className="text-[11.5px] text-[#A3E635] font-black uppercase tracking-wider mt-0.5">
                         {vehicleNumber}
                     </p>
                 </div>
@@ -132,7 +132,7 @@ const OrderStatusCard = memo(({ stage, order, eta, dynamicDistance }) => {
                         <Clock size={16} className="stroke-[3.5]" />
                     </div>
                     <div>
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Estimated Delivery Time</p>
+                        <p className="text-[11px] font-black text-slate-400 uppercase tracking-wider">Estimated Delivery Time</p>
                         <h5 className="text-[14px] font-black text-white leading-none mt-0.5 font-sans">
                             {eta || "Calculating…"}
                         </h5>
@@ -140,7 +140,7 @@ const OrderStatusCard = memo(({ stage, order, eta, dynamicDistance }) => {
                 </div>
                 {dynamicDistance && (
                     <div className="text-right">
-                        <p className="text-[9px] font-black text-[#A3E635] uppercase tracking-wider">Distance Remaining</p>
+                        <p className="text-[11px] font-black text-[#A3E635] uppercase tracking-wider">Distance Remaining</p>
                         <h5 className="text-[14px] font-black text-white leading-none mt-0.5 font-sans">
                             {dynamicDistance}
                         </h5>

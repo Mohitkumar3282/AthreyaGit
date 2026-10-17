@@ -91,14 +91,14 @@ const ReturnTasks = () => {
                     <h1 className="text-2xl font-black text-slate-900">
                         {taskType === "cancellation" ? "Cancellation" : "Return"} Tasks
                     </h1>
-                    <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    <p className="text-[14px] text-slate-700 font-medium mt-0.5">
                         Manage {taskType === "cancellation" ? "order cancellation" : "return"} pickups assigned to you.
                     </p>
                 </div>
                 <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200 w-fit">
                     <button
                         onClick={() => setTaskType("return")}
-                        className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
+                        className={`px-4 py-1.5 rounded-lg text-[13.5px] font-black uppercase tracking-widest transition-all duration-300 ${
                             taskType === "return"
                                 ? "bg-slate-900 text-white shadow-md"
                                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
@@ -108,7 +108,7 @@ const ReturnTasks = () => {
                     </button>
                     <button
                         onClick={() => setTaskType("cancellation")}
-                        className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
+                        className={`px-4 py-1.5 rounded-lg text-[13.5px] font-black uppercase tracking-widest transition-all duration-300 ${
                             taskType === "cancellation"
                                 ? "bg-slate-900 text-white shadow-md"
                                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
@@ -122,15 +122,15 @@ const ReturnTasks = () => {
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-slate-100 shadow-sm">
                     <Loader2 className="h-8 w-8 text-primary animate-spin" />
-                    <p className="text-xs text-slate-500 font-bold mt-3 uppercase tracking-widest">Loading Return Tasks...</p>
+                    <p className="text-[14px] text-slate-700 font-bold mt-3 uppercase tracking-widest">Loading Return Tasks...</p>
                 </div>
             ) : tasks.length === 0 ? (
                 <div className="bg-white rounded-3xl p-10 text-center border-2 border-dashed border-gray-200 flex flex-col items-center">
                     <div className="w-14 h-14 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100 opacity-60">
-                        <Package size={20} className="text-gray-400" />
+                        <Package size={20} className="text-gray-600" />
                     </div>
-                    <h3 className="text-sm font-bold text-gray-800">No Return Tasks</h3>
-                    <p className="text-xs text-gray-500 mt-1 max-w-[200px]">You currently have no return pickups assigned to you.</p>
+                    <h3 className="text-[16px] font-bold text-gray-800">No Return Tasks</h3>
+                    <p className="text-[14px] text-gray-700 mt-1 max-w-[200px]">You currently have no return pickups assigned to you.</p>
                 </div>
             ) : (
                 <div className="space-y-4">
@@ -145,7 +145,7 @@ const ReturnTasks = () => {
                             <Card key={task._id} className="p-5 border border-slate-100 hover:shadow-md transition-all relative overflow-hidden bg-white">
                                 <div className="flex justify-between items-start mb-4">
                                     <div>
-                                        <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase tracking-wider mb-2 inline-block">
+                                        <span className="text-[12.5px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase tracking-wider mb-2 inline-block">
                                             Return Pickup
                                         </span>
                                         <h4 className="font-extrabold text-slate-900 text-base">
@@ -154,36 +154,36 @@ const ReturnTasks = () => {
                                     </div>
                                     <div className="text-right">
                                         <span className="block font-black text-brand-600 text-base">₹15.00</span>
-                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Earnings</span>
+                                        <span className="text-[12.5px] font-bold text-slate-600 uppercase tracking-tighter">Earnings</span>
                                     </div>
                                 </div>
 
-                                <div className="space-y-2 text-xs text-slate-600 mb-5">
+                                <div className="space-y-2 text-[14px] text-slate-600 mb-5">
                                     <div className="flex items-start gap-2">
-                                        <MapPin className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+                                        <MapPin className="h-4 w-4 text-slate-600 shrink-0 mt-0.5" />
                                         <div>
                                             <p className="font-bold text-slate-800">Pickup Location</p>
-                                            <p className="text-slate-500 mt-0.5">{task.order_id?.address?.address || "Address not available"}</p>
+                                            <p className="text-slate-700 mt-0.5">{task.order_id?.address?.address || "Address not available"}</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 {!accepted ? (
                                     <div className="space-y-3">
-                                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-800 rounded-xl text-xs font-bold border border-amber-200">
+                                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-800 rounded-xl text-[14px] font-bold border border-amber-200">
                                             <Clock size={14} className="animate-pulse" />
                                             <span>Acceptance Window: {formatCountdown(remaining)}</span>
                                         </div>
                                         <div className="flex gap-2">
                                             <Button
                                                 variant="outline"
-                                                className="flex-1 text-xs font-bold border-rose-200 text-rose-600 hover:bg-rose-50"
+                                                className="flex-1 text-[14px] font-bold border-rose-200 text-rose-600 hover:bg-rose-50"
                                                 onClick={() => handleDecline(task._id)}
                                             >
                                                 Decline
                                             </Button>
                                             <Button
-                                                className="flex-1 text-xs font-bold bg-slate-900"
+                                                className="flex-1 text-[14px] font-bold bg-slate-900"
                                                 onClick={() => handleAccept(task._id)}
                                             >
                                                 Accept task
@@ -193,7 +193,7 @@ const ReturnTasks = () => {
                                 ) : (
                                     <div className="flex gap-2">
                                         <Button
-                                            className="flex-1 text-xs font-bold bg-slate-900 flex items-center justify-center gap-1"
+                                            className="flex-1 text-[14px] font-bold bg-slate-900 flex items-center justify-center gap-1"
                                             onClick={() => navigate(`/delivery/return-task-details/${task._id}?type=${taskType}`)}
                                         >
                                             View Details & Execute <ArrowRight size={14} />

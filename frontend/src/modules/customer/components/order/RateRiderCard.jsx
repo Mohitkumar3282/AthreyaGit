@@ -49,7 +49,7 @@ const RateRiderCard = ({ order, onRated }) => {
         <h3 className="font-[1000] text-slate-800 text-sm md:text-base leading-tight">
           Rate your delivery partner
         </h3>
-        <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
+        <p className="text-[12.5px] font-semibold text-slate-500 mt-0.5">
           {order.deliveryBoy?.name
             ? `How was your experience with ${order.deliveryBoy.name}?`
             : "How was your delivery experience?"}
@@ -82,7 +82,7 @@ const RateRiderCard = ({ order, onRated }) => {
       {stars > 0 && (
         <>
           <div>
-            <p className="text-[11px] font-bold text-slate-600 mb-1.5">
+            <p className="text-[12.5px] font-bold text-slate-600 mb-1.5">
               Add a tip for {order.deliveryBoy?.name || "your rider"}? (optional)
             </p>
             <div className="flex items-center gap-1.5">
@@ -91,7 +91,7 @@ const RateRiderCard = ({ order, onRated }) => {
                   key={amt}
                   type="button"
                   onClick={() => setTipAmount((prev) => (prev === amt ? 0 : amt))}
-                  className={`px-3 py-1.5 rounded-full text-[11px] font-black border transition-all ${
+                  className={`px-3 py-1.5 rounded-full text-[12.5px] font-black border transition-all ${
                     tipAmount === amt
                       ? "bg-amber-400 border-amber-400 text-white"
                       : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"

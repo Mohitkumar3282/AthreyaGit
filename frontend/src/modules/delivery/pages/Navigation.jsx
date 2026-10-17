@@ -62,12 +62,12 @@ const Navigation = () => {
 
         <div className="bg-black/70 text-white px-4 py-2 rounded-full backdrop-blur-md shadow-lg flex items-center space-x-3 pointer-events-auto">
           <div className="flex flex-col items-center">
-            <span className="text-xs font-medium text-gray-300">Distance</span>
+            <span className="text-[14px] font-medium text-gray-300">Distance</span>
             <span className="font-bold text-lg">1.2 km</span>
           </div>
           <div className="w-px h-8 bg-gray-500"></div>
           <div className="flex flex-col items-center">
-            <span className="text-xs font-medium text-gray-300">ETA</span>
+            <span className="text-[14px] font-medium text-gray-300">ETA</span>
             <span className="font-bold text-lg text-brand-400">4 min</span>
           </div>
         </div>
@@ -98,7 +98,7 @@ const Navigation = () => {
             </div>
             <div>
               <h3 className="font-bold text-lg text-gray-900">Priya Sharma</h3>
-              <p className="text-gray-500 text-sm">
+              <p className="text-gray-500 text-[16px]">
                 Drop: Flat 302, Green Apts
               </p>
             </div>

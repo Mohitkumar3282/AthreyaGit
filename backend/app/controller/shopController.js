@@ -141,7 +141,9 @@ export const getShopById = async (req, res) => {
 export const getShopProducts = async (req, res) => {
   try {
     const { id } = req.params;
-    const { search, category, isFeatured, limit = 40, page = 1 } = req.query;
+    const { search, category, isFeatured, page = 1 } = req.query;
+    // A shop can list hundreds of products; keep each page bounded (max 100).
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 40, 1), 100);
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       if (id.startsWith("mock-")) {

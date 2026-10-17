@@ -916,7 +916,7 @@ const DeliveryLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans max-w-md mx-auto relative shadow-2xl overflow-hidden border-x border-gray-100">
+    <div className="delivery-app min-h-screen bg-gray-50 text-gray-900 font-sans max-w-md mx-auto relative shadow-2xl overflow-hidden border-x border-gray-100">
       {/* Full-screen order alert — portaled so it always stacks above nav/content */}
       {typeof document !== "undefined" &&
         createPortal(
@@ -951,12 +951,12 @@ const DeliveryLayout = () => {
                           ? "⚡ Athreya Express request"
                           : "New order request"}
                     </h2>
-                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-4">
+                    <p className="text-[14px] font-semibold text-slate-700 uppercase tracking-wider mb-4">
                       {activeOrder.isReturnPickup ? "Collect return item" : "Accept or reject"}
                     </p>
                     <div className="flex items-center gap-2 mb-6">
                       <span className="text-2xl font-black text-brand-600">₹{activeOrder.earnings}</span>
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider font-outfit">
+                      <span className="text-[14px] font-bold text-slate-600 uppercase tracking-wider font-outfit">
                         Earnings
                       </span>
                     </div>
@@ -965,7 +965,7 @@ const DeliveryLayout = () => {
                       {/* Return Items "Small Cart" */}
                       {activeOrder.isReturnPickup && activeOrder.items?.length > 0 && (
                         <div className="bg-slate-50 p-2.5 rounded-2xl border border-slate-100 flex flex-col gap-2">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">
+                          <p className="text-[12.5px] font-black text-slate-600 uppercase tracking-widest px-1">
                             Return Items ({activeOrder.items.length})
                           </p>
                           <div className="flex gap-2 overflow-x-auto no-scrollbar">
@@ -975,16 +975,16 @@ const DeliveryLayout = () => {
                                   {item.image ? (
                                     <img src={item.image} alt="" className="h-full w-full object-cover" />
                                   ) : (
-                                    <div className="h-full w-full flex items-center justify-center text-slate-300 font-bold text-[8px]">
+                                    <div className="h-full w-full flex items-center justify-center text-slate-300 font-bold text-[12px]">
                                       NO IMG
                                     </div>
                                   )}
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <p className="text-[10px] font-bold text-slate-900 truncate mb-0.5">
+                                  <p className="text-[13.5px] font-bold text-slate-900 truncate mb-0.5">
                                     {item.name}
                                   </p>
-                                  <p className="text-[10px] font-black text-primary">
+                                  <p className="text-[13.5px] font-black text-primary">
                                     {item.quantity} Unit{item.quantity > 1 ? 's' : ''}
                                   </p>
                                 </div>
@@ -999,28 +999,28 @@ const DeliveryLayout = () => {
                           <div className="w-2 h-2 rounded-full bg-black " />
                         </div>
                         <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase">
+                          <p className="text-[13.5px] font-bold text-slate-600 uppercase">
                             {activeOrder.isReturnPickup ? "Customer Pickup" : "Pickup"}
                           </p>
-                          <p className="text-sm font-bold text-slate-900">{activeOrder.pickup}</p>
+                          <p className="text-[16px] font-bold text-slate-900">{activeOrder.pickup}</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
                         <MapPin className="h-5 w-5 text-rose-500 mt-1 shrink-0" />
                         <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase">
+                          <p className="text-[13.5px] font-bold text-slate-600 uppercase">
                             {activeOrder.isReturnPickup ? "Return To Seller" : "Drop"}
                           </p>
-                          <p className="text-sm font-bold text-slate-900 line-clamp-2">{activeOrder.drop}</p>
+                          <p className="text-[16px] font-bold text-slate-900 line-clamp-2">{activeOrder.drop}</p>
                         </div>
                       </div>
                     </div>
 
                     {(activeOrder.distance || activeOrder.estTime) && (
                       <div className="w-full mb-4 rounded-2xl bg-slate-50 border border-slate-100 px-4 py-2.5 flex items-center justify-between gap-3">
-                        <span className="text-[11px] font-bold text-slate-600">{activeOrder.distance}</span>
+                        <span className="text-[14px] font-bold text-slate-600">{activeOrder.distance}</span>
                         {activeOrder.estTime && (
-                          <span className="text-[11px] font-black text-primary whitespace-nowrap">{activeOrder.estTime}</span>
+                          <span className="text-[14px] font-black text-primary whitespace-nowrap">{activeOrder.estTime}</span>
                         )}
                       </div>
                     )}
@@ -1037,7 +1037,7 @@ const DeliveryLayout = () => {
                         className={timeLeft < 10 ? "bg-rose-500 h-full" : "bg-primary h-full"}
                       />
                     </div>
-                    <p className="text-[10px] font-bold text-slate-400 mb-4 w-full text-center">
+                    <p className="text-[13.5px] font-bold text-slate-600 mb-4 w-full text-center">
                       {timeLeft}s left to respond
                     </p>
 
@@ -1046,7 +1046,7 @@ const DeliveryLayout = () => {
                         type="button"
                         onClick={skipOrder}
                         disabled={isAcceptingOrder}
-                        className="py-4 rounded-2xl bg-slate-100 text-slate-700 font-black text-xs uppercase tracking-wider hover:bg-slate-200/80 disabled:opacity-50 disabled:pointer-events-none"
+                        className="py-4 rounded-2xl bg-slate-100 text-slate-700 font-black text-[14px] uppercase tracking-wider hover:bg-slate-200/80 disabled:opacity-50 disabled:pointer-events-none"
                       >
                         Reject
                       </button>
@@ -1054,7 +1054,7 @@ const DeliveryLayout = () => {
                         type="button"
                         onClick={handleAcceptOrder}
                         disabled={isAcceptingOrder}
-                        className="py-4 rounded-2xl bg-primary text-primary-foreground font-black text-xs uppercase tracking-wider shadow-lg shadow-primary/30 active:scale-95 disabled:opacity-60 disabled:pointer-events-none"
+                        className="py-4 rounded-2xl bg-primary text-primary-foreground font-black text-[14px] uppercase tracking-wider shadow-lg shadow-primary/30 active:scale-95 disabled:opacity-60 disabled:pointer-events-none"
                       >
                         {isAcceptingOrder ? "Accepting…" : "Accept"}
                       </button>
@@ -1078,7 +1078,7 @@ const DeliveryLayout = () => {
                 className="flex items-center gap-1 bg-white/95 backdrop-blur-sm border border-gray-200 shadow-md rounded-full px-2.5 py-1.5 text-gray-700 active:scale-95 transition-transform"
               >
                 <Languages className="h-3.5 w-3.5" />
-                <span className="text-[10px] font-black">
+                <span className="text-[13.5px] font-black">
                   {LANGUAGES.find((l) => l.code === language)?.code.toUpperCase() || "EN"}
                 </span>
               </button>

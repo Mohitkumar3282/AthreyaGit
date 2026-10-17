@@ -251,7 +251,7 @@ const CustomerAuth = () => {
                             >
                                 {activeCategory.title.toUpperCase()} INSIDE
                             </motion.h2>
-                            <p className="text-[10px] font-bold uppercase tracking-[4px] opacity-70">Everything delivered fast</p>
+                            <p className="text-[12px] font-bold uppercase tracking-[4px] opacity-70">Everything delivered fast</p>
                         </div>
 
                         {/* S-Curve Divider */}
@@ -329,7 +329,7 @@ const CustomerAuth = () => {
                                         <h3 className="text-xl font-black text-gray-900 tracking-tight">
                                             {isLogin ? 'Welcome Back!' : 'Create Account'}
                                         </h3>
-                                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest leading-none">
+                                        <p className="text-[12.5px] font-bold text-gray-400 uppercase tracking-widest leading-none">
                                             OTP will be sent for verification
                                         </p>
                                     </div>
@@ -384,21 +384,21 @@ const CustomerAuth = () => {
 
                                     {/* Legal Agreement Footer */}
                                     <div className="pt-2 flex flex-col items-center gap-1">
-                                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest text-center">
+                                        <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest text-center">
                                             By continuing, you agree to our
                                         </p>
                                         <div className="flex items-center gap-1.5 underline decoration-gray-200 underline-offset-4">
                                             <button 
                                                 onClick={() => navigate('/terms')}
-                                                className="text-[10px] font-black uppercase tracking-widest hover:text-gray-900 transition-colors"
+                                                className="text-[12px] font-black uppercase tracking-widest hover:text-gray-900 transition-colors"
                                                 style={{ color: activeCategory.theme }}
                                             >
                                                 Terms & Condition
                                             </button>
-                                            <span className="text-[8px] text-gray-300">•</span>
+                                            <span className="text-[10.5px] text-gray-300">•</span>
                                             <button 
                                                 onClick={() => navigate('/privacy')}
-                                                className="text-[10px] font-black uppercase tracking-widest hover:text-gray-900 transition-colors"
+                                                className="text-[12px] font-black uppercase tracking-widest hover:text-gray-900 transition-colors"
                                                 style={{ color: activeCategory.theme }}
                                             >
                                                 Privacy Policy
@@ -422,7 +422,7 @@ const CustomerAuth = () => {
                                         </button>
                                         <div>
                                             <h3 className="text-xl font-black text-gray-900 tracking-tight">Verify Device</h3>
-                                            <p className="text-[10px] font-black tracking-widest text-gray-400 uppercase">+91 {formData.phone}</p>
+                                            <p className="text-[12px] font-black tracking-widest text-gray-400 uppercase">+91 {formData.phone}</p>
                                         </div>
                                     </div>
 
@@ -466,7 +466,7 @@ const CustomerAuth = () => {
                                                     type="button"
                                                     disabled={timer > 0}
                                                     onClick={handleSendOtp}
-                                                    className={`text-[10px] font-black uppercase tracking-widest ${timer > 0 ? 'text-gray-300' : 'underline'}`}
+                                                    className={`text-[12px] font-black uppercase tracking-widest ${timer > 0 ? 'text-gray-300' : 'underline'}`}
                                                     style={{ color: timer > 0 ? undefined : activeCategory.theme }}
                                                 >
                                                     {timer > 0 ? `Resend Code in ${timer}s` : 'Resend Now'}

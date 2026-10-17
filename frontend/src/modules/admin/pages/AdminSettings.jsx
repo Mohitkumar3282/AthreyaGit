@@ -226,6 +226,51 @@ const AdminSettings = () => {
         }
     };
 
+    // Cargo / bus-stand points (customers pick one under Express > Cargo)
+    const DEFAULT_CARGO_POINTS = [
+        { id: "apsrtc_asw", name: "APSRTC Bus Stand Parcel Counter", loc: "Aswapuram Main Bus Stand", enabled: true },
+        { id: "tsrtc_asw", name: "TSRTC Cargo / Parcel Center", loc: "Aswapuram Bus Station", enabled: true },
+        { id: "navata", name: "Navata Road Transport", loc: "Manuguru Road / Aswapuram", enabled: true },
+        { id: "bmps", name: "BMPS Parcel Service", loc: "Market Area, Aswapuram", enabled: true },
+        { id: "kranti", name: "Kranti Transport Office", loc: "Main Road, Aswapuram", enabled: true },
+        { id: "travels_cargo", name: "Private Travels Cargo (Orange/Morning Star)", loc: "Bypass Junction, Aswapuram", enabled: true },
+        { id: "other_cargo", name: "Other Cargo / Bus Transport Point", loc: "Custom Location", enabled: true },
+    ];
+    const cargoPointsList = (settings.cargoPoints && settings.cargoPoints.length > 0) ? settings.cargoPoints : DEFAULT_CARGO_POINTS;
+    const setCargoPoints = (list) => setSettings(prev => ({ ...prev, cargoPoints: list }));
+
+    const handleAddCargoPoint = () => {
+        const name = window.prompt('Cargo / bus stand point name (e.g. "SRTC Parcel Office"):');
+        if (!name || !name.trim()) return;
+        const loc = window.prompt('Location / landmark (e.g. "Near Main Bus Stand"):', '') || '';
+        const baseId = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'point_' + Date.now();
+        const other = cargoPointsList.filter(p => p.id === 'other_cargo');
+        const rest = cargoPointsList.filter(p => p.id !== 'other_cargo');
+        const id = rest.some(p => p.id === baseId) ? baseId + '_' + Date.now() : baseId;
+        // keep the "Other" option last
+        setCargoPoints([...rest, { id, name: name.trim(), loc: loc.trim(), enabled: true }, ...other]);
+        showToast('Point added! Click "Save All Changes" to publish it.', 'success');
+    };
+    const handleEditCargoPoint = (index) => {
+        const item = cargoPointsList[index];
+        const name = window.prompt('Point name:', item.name);
+        if (!name || !name.trim()) return;
+        const loc = window.prompt('Location / landmark:', item.loc || '');
+        if (loc === null) return;
+        const list = [...cargoPointsList];
+        list[index] = { ...item, name: name.trim(), loc: loc.trim() };
+        setCargoPoints(list);
+    };
+    const handleToggleCargoPoint = (index) => {
+        const list = [...cargoPointsList];
+        list[index] = { ...list[index], enabled: list[index].enabled === false };
+        setCargoPoints(list);
+    };
+    const handleDeleteCargoPoint = (index) => {
+        setCargoPoints(cargoPointsList.filter((_, i) => i !== index));
+        showToast('Point removed! Click "Save All Changes" to publish.', 'info');
+    };
+
     // Service Areas Management
     const [areaModal, setAreaModal] = useState({
         isOpen: false,
@@ -1273,6 +1318,62 @@ const AdminSettings = () => {
                                                     onClick={() => handleDeleteCategoryItem('parcel', idx)}
                                                     className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-red-500 hover:bg-red-50 hover:border-red-200 flex items-center justify-center transition-all"
                                                 >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </Card>
+
+                            {/* Cargo / Bus Stand Points */}
+                            <Card className="border-none shadow-xl ring-1 ring-slate-100 bg-white rounded-2xl overflow-hidden p-6 space-y-6">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                                    <div>
+                                        <h2 className="text-base font-black text-slate-900 tracking-tight">
+                                            Cargo / Bus Stand Points (రవాణా పాయింట్లు)
+                                        </h2>
+                                        <p className="text-xs font-semibold text-slate-500 mt-1">
+                                            The counters customers can choose under Express &gt; Cargo &amp; Bus Stand Parcel Pickup. Add as many as you need.
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleAddCargoPoint}
+                                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#042A0F] text-[#A3E635] hover:bg-[#063A16] rounded-xl text-xs font-black uppercase tracking-wider active:scale-95 transition-all shadow-md shrink-0"
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                        <span>Add Point</span>
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {cargoPointsList.map((pt, idx) => (
+                                        <div
+                                            key={pt.id || idx}
+                                            className={cn(
+                                                "p-3.5 rounded-2xl border flex items-center justify-between gap-3",
+                                                pt.enabled !== false ? "bg-slate-50 border-slate-200" : "bg-slate-100/60 border-dashed border-slate-300 opacity-60"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-xl shrink-0">🚌</div>
+                                                <div className="min-w-0">
+                                                    <h4 className="text-xs font-black text-slate-900 truncate">{pt.name}</h4>
+                                                    <p className="text-[10px] font-bold text-slate-500 truncate mt-0.5">{pt.loc || 'No location'}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-1 shrink-0">
+                                                <button type="button" title={pt.enabled !== false ? "Hide from customers" : "Show to customers"} onClick={() => handleToggleCargoPoint(idx)}
+                                                    className={cn("w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold border",
+                                                        pt.enabled !== false ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-200 text-slate-500 border-slate-300")}>
+                                                    {pt.enabled !== false ? "✓" : "✕"}
+                                                </button>
+                                                <button type="button" title="Edit" onClick={() => handleEditCargoPoint(idx)}
+                                                    className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 flex items-center justify-center">
+                                                    <Edit3 className="h-3.5 w-3.5" />
+                                                </button>
+                                                <button type="button" title="Delete" onClick={() => handleDeleteCargoPoint(idx)}
+                                                    className="w-7 h-7 rounded-lg bg-white border border-slate-200 text-red-500 hover:bg-red-50 flex items-center justify-center">
                                                     <Trash2 className="h-3.5 w-3.5" />
                                                 </button>
                                             </div>

@@ -37,7 +37,7 @@ const CheckoutRupeeWalletSection = React.memo(function CheckoutRupeeWalletSectio
               <h4 className="text-xs font-[1000] text-[#0d4d29] uppercase tracking-wider">
                 Rupee Wallet
               </h4>
-              <span className="bg-emerald-200 text-[#0d4d29] text-[9px] font-[1000] px-1.5 py-0.5 rounded">
+              <span className="bg-emerald-200 text-[#0d4d29] text-[11px] font-[1000] px-1.5 py-0.5 rounded">
                 Cashback & Refunds
               </span>
             </div>
@@ -78,7 +78,7 @@ const CheckoutRupeeWalletSection = React.memo(function CheckoutRupeeWalletSectio
                   -₹{Number(walletAmountToUse || 0).toFixed(2)}
                 </span>
               </div>
-              <p className="text-[10px] font-semibold text-slate-500 pl-1">
+              <p className="text-[12px] font-semibold text-slate-500 pl-1">
                 ✓ Directly deducted from your final payable amount.
               </p>
             </div>

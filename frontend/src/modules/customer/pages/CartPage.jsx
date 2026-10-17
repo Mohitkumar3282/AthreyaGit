@@ -94,7 +94,7 @@ const CartPage = () => {
                                                 <div className="min-w-0 flex-1 space-y-1">
                                                     <div className="flex items-start justify-between gap-3">
                                                         <div className="min-w-0">
-                                                            <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#0d4d29]">
+                                                            <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-[12px] font-black uppercase tracking-wider text-[#0d4d29]">
                                                                 {item.category || "Grocery"}
                                                             </span>
                                                             <h3 className="mt-1 truncate text-base md:text-lg font-[1000] tracking-tight text-slate-900">
@@ -223,7 +223,7 @@ const CartPage = () => {
                                     </Button>
                                 </Link>
 
-                                <div className="grid grid-cols-2 gap-2 text-[10px] font-black uppercase tracking-wider text-slate-500 pt-1">
+                                <div className="grid grid-cols-2 gap-2 text-[12px] font-black uppercase tracking-wider text-slate-500 pt-1">
                                     <div className="rounded-xl border border-slate-100 bg-slate-50 px-2.5 py-2 flex items-center gap-1.5">
                                         <Truck size={14} className="text-[#0d4d29]" />
                                         Fast Delivery
@@ -239,14 +239,14 @@ const CartPage = () => {
                             {totalCartSavings > 0 && (
                                 <div className="rounded-3xl bg-[#fefce8] border-2 border-[#fef08a] p-4 flex items-center justify-between gap-3 shadow-xs">
                                     <div className="space-y-1 min-w-0">
-                                        <div className="inline-flex items-center gap-1 bg-[#fde047]/70 px-2.5 py-0.5 rounded-full text-[9px] font-[1000] text-amber-950 uppercase">
+                                        <div className="inline-flex items-center gap-1 bg-[#fde047]/70 px-2.5 py-0.5 rounded-full text-[11px] font-[1000] text-amber-950 uppercase">
                                             <span>🎉</span> ATHREYA REWARD
                                         </div>
                                         <div className="text-xl md:text-2xl font-[1000] text-[#0d592e] flex items-center gap-1.5 flex-wrap">
                                             <span>🪙 {Math.floor(totalCartSavings * 100).toLocaleString("en-IN")}</span>
                                             <span className="text-xs md:text-sm font-bold text-[#166534]">Coins</span>
                                         </div>
-                                        <p className="text-[11px] font-bold text-amber-950/80">
+                                        <p className="text-[12.5px] font-bold text-amber-950/80">
                                             You will earn {Math.floor(totalCartSavings * 100).toLocaleString("en-IN")} Athreya Coins on this order!
                                         </p>
                                     </div>

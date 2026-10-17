@@ -251,7 +251,7 @@ const DeliveryAuth = () => {
                         ? "Partner Login"
                         : "Partner Registration"}
                 </h1>
-                <p className="text-gray-500 text-sm mt-1 max-w-[240px] mx-auto">
+                <p className="text-gray-700 text-[16px] mt-1 max-w-[240px] mx-auto">
                   {step === "pending_approval"
                     ? "Your application is under review by admin"
                     : step === "otp"
@@ -271,9 +271,9 @@ const DeliveryAuth = () => {
                 <button
                   key={m}
                   onClick={() => switchMode(m)}
-                  className={`flex-1 py-2.5 text-sm font-black rounded-xl transition-all duration-300 ${mode === m
+                  className={`flex-1 py-2.5 text-[16px] font-black rounded-xl transition-all duration-300 ${mode === m
                     ? "bg-white text-brand-600 shadow-sm"
-                    : "text-gray-400 hover:text-gray-600"
+                    : "text-gray-600 hover:text-gray-600"
                     }`}
                 >
                   {m === "login" ? "Login" : "Join Now"}
@@ -306,7 +306,7 @@ const DeliveryAuth = () => {
                         >
                           {/* Profile Photo Capture */}
                           <div className="flex flex-col items-center justify-center py-2">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 self-start ml-1">Profile Photo</label>
+                            <label className="text-[14px] font-black text-gray-600 uppercase tracking-widest mb-3 self-start ml-1">Profile Photo</label>
                             <div className="relative group">
                               <div className="w-24 h-24 rounded-3xl bg-brand-50 border-2 border-dashed border-brand-200 flex items-center justify-center overflow-hidden transition-all group-hover:border-brand-400">
                                 {profileImagePreview ? (
@@ -336,61 +336,61 @@ const DeliveryAuth = () => {
                                 <Camera className="w-4 h-4" />
                               </label>
                             </div>
-                            <p className="text-[10px] text-gray-400 font-bold mt-3">Upload a clear photo of your face</p>
+                            <p className="text-[13.5px] text-gray-600 font-bold mt-3">Upload a clear photo of your face</p>
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Full Name</label>
+                            <label className="text-[14px] font-black text-gray-600 uppercase tracking-widest ml-1">Full Name</label>
                             <div className="relative">
                               <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
                               <input
                                 type="text"
                                 value={signupName}
                                 onChange={(e) => setSignupName(e.target.value)}
-                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
+                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
                                 placeholder="Enter your full name"
                               />
                             </div>
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Phone Number</label>
+                            <label className="text-[14px] font-black text-gray-600 uppercase tracking-widest ml-1">Phone Number</label>
                             <div className="relative">
                               <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
-                              <span className="absolute left-10 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm border-r border-gray-200 pr-2.5">+91</span>
+                              <span className="absolute left-10 top-1/2 -translate-y-1/2 text-gray-700 font-bold text-[16px] border-r border-gray-200 pr-2.5">+91</span>
                               <input
                                 type="tel"
                                 value={signupPhone}
                                 onChange={(e) => setSignupPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                                 maxLength={10}
-                                className="w-full pl-24 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
+                                className="w-full pl-24 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
                                 placeholder="00000 00000"
                               />
                             </div>
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
+                            <label className="text-[14px] font-black text-gray-600 uppercase tracking-widest ml-1">Email Address</label>
                             <div className="relative">
                               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
                               <input
                                 type="email"
                                 value={signupEmail}
                                 onChange={(e) => setSignupEmail(e.target.value)}
-                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
+                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
                                 placeholder="example@gmail.com"
                               />
                             </div>
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Permanent Address</label>
+                            <label className="text-[14px] font-black text-gray-600 uppercase tracking-widest ml-1">Permanent Address</label>
                             <div className="relative">
                               <MapPin className="absolute left-4 top-4 text-gray-300 w-4 h-4" />
                               <textarea
                                 value={signupAddress}
                                 onChange={(e) => setSignupAddress(e.target.value)}
-                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all resize-none h-24"
+                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all resize-none h-24"
                                 placeholder="Complete building address..."
                               />
                             </div>
@@ -408,7 +408,7 @@ const DeliveryAuth = () => {
                               }
                               setSignupStep(2);
                             }}
-                            className="w-full py-4 bg-black  text-primary-foreground rounded-2xl text-sm font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2"
+                            className="w-full py-4 bg-black  text-primary-foreground rounded-2xl text-[16px] font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2"
                           >
                             Next Step <ArrowRight className="w-4 h-4" />
                           </button>
@@ -423,17 +423,17 @@ const DeliveryAuth = () => {
                           className="space-y-4"
                         >
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Vehicle Type</label>
+                            <label className="text-[14px] font-black text-gray-600 uppercase tracking-widest ml-1">Vehicle Type</label>
                             <div className="relative">
                               <Bike className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
                               <button
                                 type="button"
                                 onClick={() => setShowVehicleDropdown(!showVehicleDropdown)}
-                                className="w-full pl-11 pr-10 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none text-left"
+                                className="w-full pl-11 pr-10 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-bold text-gray-900 focus:outline-none text-left"
                               >
                                 {VEHICLE_TYPES.find((v) => v.value === signupVehicle)?.label}
                               </button>
-                              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 w-4 h-4" />
                               <AnimatePresence>
                                 {showVehicleDropdown && (
                                   <motion.div
@@ -446,7 +446,7 @@ const DeliveryAuth = () => {
                                       <button
                                         key={v.value}
                                         onClick={() => { setSignupVehicle(v.value); setShowVehicleDropdown(false); }}
-                                        className="w-full px-4 py-3 text-sm font-bold text-left hover:bg-brand-50 transition-colors"
+                                        className="w-full px-4 py-3 text-[16px] font-bold text-left hover:bg-brand-50 transition-colors"
                                       >
                                         {v.label}
                                       </button>
@@ -458,28 +458,28 @@ const DeliveryAuth = () => {
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Vehicle Plate Number</label>
+                            <label className="text-[14px] font-black text-gray-600 uppercase tracking-widest ml-1">Vehicle Plate Number</label>
                             <div className="relative">
                               <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
                               <input
                                 type="text"
                                 value={signupVehicleNumber}
                                 onChange={(e) => setSignupVehicleNumber(e.target.value.toUpperCase())}
-                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
+                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
                                 placeholder="KA 05 MN 8921"
                               />
                             </div>
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Driving License Number</label>
+                            <label className="text-[14px] font-black text-gray-600 uppercase tracking-widest ml-1">Driving License Number</label>
                             <div className="relative">
                               <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
                               <input
                                 type="text"
                                 value={signupDLNumber}
                                 onChange={(e) => setSignupDLNumber(e.target.value.toUpperCase())}
-                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
+                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
                                 placeholder="DL-1420110012345"
                               />
                             </div>
@@ -488,7 +488,7 @@ const DeliveryAuth = () => {
                           <div className="flex gap-4 pt-2">
                             <button
                               onClick={() => setSignupStep(1)}
-                              className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
+                              className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl text-[16px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
                             >
                               Back
                             </button>
@@ -504,7 +504,7 @@ const DeliveryAuth = () => {
                                 }
                                 setSignupStep(3);
                               }}
-                              className="flex-[2] py-4 bg-black  text-primary-foreground rounded-2xl text-sm font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2"
+                              className="flex-[2] py-4 bg-black  text-primary-foreground rounded-2xl text-[16px] font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2"
                             >
                               Next Step <ArrowRight className="w-4 h-4" />
                             </button>
@@ -520,52 +520,52 @@ const DeliveryAuth = () => {
                           className="space-y-4"
                         >
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Aadhar Number</label>
+                            <label className="text-[14px] font-black text-gray-600 uppercase tracking-widest ml-1">Aadhar Number</label>
                             <input
                               type="text"
                               value={signupAadharNumber}
                               onChange={(e) => setSignupAadharNumber(e.target.value.replace(/\D/g, "").slice(0, 12))}
-                              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all font-mono"
+                              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all font-mono"
                               placeholder="0000 0000 0000"
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">PAN Card Number</label>
+                            <label className="text-[14px] font-black text-gray-600 uppercase tracking-widest ml-1">PAN Card Number</label>
                             <input
                               type="text"
                               value={signupPanNumber}
                               onChange={(e) => setSignupPanNumber(e.target.value.toUpperCase().slice(0, 10))}
-                              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all font-mono"
+                              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all font-mono"
                               placeholder="ABCDE1234F"
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Account Holder Name</label>
+                            <label className="text-[14px] font-black text-gray-600 uppercase tracking-widest ml-1">Account Holder Name</label>
                             <input
                               type="text"
                               value={signupAccountHolder}
                               onChange={(e) => setSignupAccountHolder(e.target.value.toUpperCase())}
-                              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
+                              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
                               placeholder="AS PER BANK RECORDS"
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Account Number</label>
+                            <label className="text-[14px] font-black text-gray-600 uppercase tracking-widest ml-1">Account Number</label>
                             <input
                               type="text"
                               value={signupAccountNumber}
                               onChange={(e) => setSignupAccountNumber(e.target.value.replace(/\D/g, ""))}
-                              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
+                              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
                               placeholder="000000000000"
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">IFSC Code</label>
+                            <label className="text-[14px] font-black text-gray-600 uppercase tracking-widest ml-1">IFSC Code</label>
                             <input
                               type="text"
                               value={signupIfsc}
                               onChange={(e) => setSignupIfsc(e.target.value.toUpperCase())}
-                              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
+                              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
                               placeholder="HDFC0001234"
                             />
                           </div>
@@ -573,7 +573,7 @@ const DeliveryAuth = () => {
                           <div className="flex gap-4 pt-2">
                             <button
                               onClick={() => setSignupStep(2)}
-                              className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
+                              className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl text-[16px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
                             >
                               Back
                             </button>
@@ -593,7 +593,7 @@ const DeliveryAuth = () => {
                                 }
                                 setSignupStep(4);
                               }}
-                              className="flex-[2] py-4 bg-black  text-primary-foreground rounded-2xl text-sm font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2"
+                              className="flex-[2] py-4 bg-black  text-primary-foreground rounded-2xl text-[16px] font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2"
                             >
                               Next Step <ArrowRight className="w-4 h-4" />
                             </button>
@@ -633,14 +633,14 @@ const DeliveryAuth = () => {
                                     }`}
                                 >
                                   <div className="flex items-center gap-3">
-                                    <div className={`p-2 rounded-xl ${doc.state ? "bg-brand-100 text-brand-600" : "bg-white text-gray-400 shadow-sm"}`}>
+                                    <div className={`p-2 rounded-xl ${doc.state ? "bg-brand-100 text-brand-600" : "bg-white text-gray-600 shadow-sm"}`}>
                                       {doc.state ? <CheckCircle className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
                                     </div>
                                     <div className="text-left">
-                                      <p className={`text-xs font-black uppercase tracking-tight ${doc.state ? "text-brand-700" : "text-gray-500"}`}>
+                                      <p className={`text-[14px] font-black uppercase tracking-tight ${doc.state ? "text-brand-700" : "text-gray-700"}`}>
                                         {doc.label}
                                       </p>
-                                      <p className="text-[10px] text-gray-400 font-bold truncate max-w-[180px]">
+                                      <p className="text-[13.5px] text-gray-600 font-bold truncate max-w-[180px]">
                                         {doc.state ? doc.state.name : "Tap to upload document"}
                                       </p>
                                     </div>
@@ -660,7 +660,7 @@ const DeliveryAuth = () => {
                                 </label>
                               </div>
                             ))}
-                            <p className="text-[10px] text-gray-400 italic px-1 flex items-center gap-1.5">
+                            <p className="text-[13.5px] text-gray-600 italic px-1 flex items-center gap-1.5">
                               <ShieldCheck className="w-3 h-3 text-brand-300" />
                               Documents will be verified by our team after submission.
                             </p>
@@ -669,14 +669,14 @@ const DeliveryAuth = () => {
                           <div className="flex gap-3">
                             <button
                               onClick={() => setSignupStep(3)}
-                              className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
+                              className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl text-[16px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
                             >
                               Back
                             </button>
                             <button
                               onClick={handleSendOtp}
                               disabled={loading}
-                              className="flex-[2] py-4 bg-black  text-primary-foreground rounded-2xl text-sm font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                              className="flex-[2] py-4 bg-black  text-primary-foreground rounded-2xl text-[16px] font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               {loading ? (
                                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -690,7 +690,7 @@ const DeliveryAuth = () => {
                         </motion.div>
                       )}
 
-                      <p className="text-center text-xs text-gray-400 font-semibold pt-1">
+                      <p className="text-center text-[14px] text-gray-600 font-semibold pt-1">
                         By joining, you agree to our{" "}
                         <span className="text-brand-500 font-bold cursor-pointer hover:underline">Terms</span>{" "}
                         &amp;{" "}
@@ -704,12 +704,12 @@ const DeliveryAuth = () => {
                     <div className="space-y-4">
                       {/* Phone */}
                       <div className="space-y-1.5">
-                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">
+                        <label className="text-[14px] font-black text-gray-600 uppercase tracking-widest ml-1">
                           Phone Number
                         </label>
                         <div className="relative">
                           <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
-                          <span className="absolute left-10 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm border-r border-gray-200 pr-2.5">
+                          <span className="absolute left-10 top-1/2 -translate-y-1/2 text-gray-700 font-bold text-[16px] border-r border-gray-200 pr-2.5">
                             +91
                           </span>
                           <input
@@ -720,7 +720,7 @@ const DeliveryAuth = () => {
                               setLoginPhone(val);
                             }}
                             maxLength={10}
-                            className="w-full pl-24 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all placeholder:text-gray-300"
+                            className="w-full pl-24 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-[16px] font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all placeholder:text-gray-300"
                             placeholder="00000 00000"
                           />
                         </div>
@@ -729,7 +729,7 @@ const DeliveryAuth = () => {
                       <button
                         onClick={handleSendOtp}
                         disabled={loading}
-                        className="w-full py-4 bg-black  text-primary-foreground rounded-2xl text-sm font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
+                        className="w-full py-4 bg-black  text-primary-foreground rounded-2xl text-[16px] font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
                       >
                         {loading ? (
                           <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -754,7 +754,7 @@ const DeliveryAuth = () => {
                 >
                   {/* OTP Boxes */}
                   <div className="space-y-2 text-center">
-                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest">
+                    <label className="text-[14px] font-black text-gray-600 uppercase tracking-widest">
                       Enter Security Code
                     </label>
                     <div className="flex justify-center gap-3 pt-1">
@@ -776,13 +776,13 @@ const DeliveryAuth = () => {
                   {/* Timer / Resend */}
                   <div className="text-center">
                     {timer > 0 ? (
-                      <p className="text-gray-400 text-sm font-medium">
+                      <p className="text-gray-600 text-[16px] font-medium">
                         Resend code in <span className="text-brand-600 font-bold">{timer}s</span>
                       </p>
                     ) : (
                       <button
                         onClick={handleSendOtp}
-                        className="text-brand-600 font-black text-sm uppercase tracking-wide hover:underline"
+                        className="text-brand-600 font-black text-[16px] uppercase tracking-wide hover:underline"
                       >
                         Resend OTP
                       </button>
@@ -798,7 +798,7 @@ const DeliveryAuth = () => {
                       onChange={(e) => setAgreed(e.target.checked)}
                       className="mt-0.5 h-4 w-4 accent-brand-600 cursor-pointer"
                     />
-                    <label htmlFor="terms" className="text-xs text-gray-500 leading-relaxed cursor-pointer">
+                    <label htmlFor="terms" className="text-[14px] text-gray-700 leading-relaxed cursor-pointer">
                       I confirm my phone number is correct and I agree to the{" "}
                       <span className="text-brand-600 font-bold">Terms of Service</span> &amp;{" "}
                       <span className="text-brand-600 font-bold">Privacy Policy</span>.
@@ -809,7 +809,7 @@ const DeliveryAuth = () => {
                   <button
                     onClick={handleVerifyOtp}
                     disabled={!agreed || otp.some((d) => !d) || loading}
-                    className="w-full py-4 bg-black  text-primary-foreground rounded-2xl text-sm font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full py-4 bg-black  text-primary-foreground rounded-2xl text-[16px] font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {loading ? (
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -821,7 +821,7 @@ const DeliveryAuth = () => {
                   {/* Back */}
                   <button
                     onClick={() => { setStep("form"); setOtp(["", "", "", ""]); }}
-                    className="w-full flex items-center justify-center gap-1.5 text-gray-400 hover:text-gray-600 text-sm font-bold transition-colors"
+                    className="w-full flex items-center justify-center gap-1.5 text-gray-600 hover:text-gray-600 text-[16px] font-bold transition-colors"
                   >
                     <ChevronLeft className="w-4 h-4" /> Edit Phone Number
                   </button>
@@ -843,15 +843,15 @@ const DeliveryAuth = () => {
                   </div>
                   <div className="space-y-2">
                     <h3 className="text-lg font-black text-gray-900">Document Verification Pending</h3>
-                    <p className="text-xs text-gray-500 max-w-[280px] mx-auto leading-relaxed">
+                    <p className="text-[14px] text-gray-700 max-w-[280px] mx-auto leading-relaxed">
                       Thank you for submitting your details! Your account and uploaded documents are currently being verified by our Admin Team.
                     </p>
                     <div className="bg-amber-50/70 border border-amber-100 rounded-2xl p-3.5 mt-3 text-left">
-                      <p className="text-[11px] font-bold text-amber-800 flex items-center gap-2">
+                      <p className="text-[14px] font-bold text-amber-800 flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
                         Under Review by Admin
                       </p>
-                      <p className="text-[10px] text-amber-700 mt-1">
+                      <p className="text-[13.5px] text-amber-700 mt-1">
                         Once your Aadhar, PAN, and DL details are approved, you will be able to log in to your delivery partner account.
                       </p>
                     </div>
@@ -859,7 +859,7 @@ const DeliveryAuth = () => {
 
                   <button
                     onClick={() => switchMode("login")}
-                    className="w-full py-4 bg-black text-primary-foreground rounded-2xl text-sm font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all"
+                    className="w-full py-4 bg-black text-primary-foreground rounded-2xl text-[16px] font-black tracking-widest uppercase shadow-lg shadow-brand-200 hover:bg-brand-700 transition-all"
                   >
                     Back to Login
                   </button>
@@ -872,10 +872,10 @@ const DeliveryAuth = () => {
         {/* Footer */}
         <div className="mt-6 flex items-center justify-center gap-3 opacity-40">
           <span className="h-px w-8 bg-gray-400" />
-          <ShieldCheck className="text-gray-500 w-4 h-4" />
+          <ShieldCheck className="text-gray-700 w-4 h-4" />
           <span className="h-px w-8 bg-gray-400" />
         </div>
-        <p className="text-center text-[10px] font-black text-gray-300 uppercase tracking-[4px] mt-2">
+        <p className="text-center text-[13.5px] font-black text-gray-300 uppercase tracking-[4px] mt-2">
           {appName} Partner Ecosystem • v1.0
         </p>
       </motion.div>

@@ -1070,15 +1070,15 @@ const CheckoutPage = () => {
           <div className="mt-8 flex gap-6 text-slate-400">
             <div className="flex flex-col items-center gap-2">
               <div className="p-3 bg-slate-50 rounded-2xl"><Clock size={20} /></div>
-              <span className="text-[10px] font-bold uppercase tracking-wider">Fast Delivery</span>
+              <span className="text-[12px] font-bold uppercase tracking-wider">Fast Delivery</span>
             </div>
             <div className="flex flex-col items-center gap-2">
               <div className="p-3 bg-slate-50 rounded-2xl"><Tag size={20} /></div>
-              <span className="text-[10px] font-bold uppercase tracking-wider">Daily Deals</span>
+              <span className="text-[12px] font-bold uppercase tracking-wider">Daily Deals</span>
             </div>
             <div className="flex flex-col items-center gap-2">
               <div className="p-3 bg-slate-50 rounded-2xl"><Sparkles size={20} /></div>
-              <span className="text-[10px] font-bold uppercase tracking-wider">Fresh Items</span>
+              <span className="text-[12px] font-bold uppercase tracking-wider">Fresh Items</span>
             </div>
           </div>
         </div>
@@ -1119,12 +1119,12 @@ const CheckoutPage = () => {
               />
               <div className="flex flex-col items-start leading-none font-sans">
                 <span className="text-xs md:text-sm font-[1000] text-[#0d4d29] tracking-wide uppercase">ATHREYA</span>
-                <span className="text-[8px] md:text-[9px] font-bold text-[#0d4d29] tracking-[0.12em] uppercase">DELIVERY</span>
+                <span className="text-[10.5px] md:text-[11px] font-bold text-[#0d4d29] tracking-[0.12em] uppercase">DELIVERY</span>
               </div>
             </div>
             <div className="flex items-center gap-2 mt-1">
               <h1 className="text-sm md:text-base font-[1000] text-slate-800 uppercase tracking-wide">Checkout</h1>
-              <span className="text-[10px] font-bold text-[#0d4d29] bg-[#edf8f0] px-2 py-0.5 rounded-full border border-emerald-200">
+              <span className="text-[12px] font-bold text-[#0d4d29] bg-[#edf8f0] px-2 py-0.5 rounded-full border border-emerald-200">
                 {cartCount} {cartCount === 1 ? "Item" : "Items"}
               </span>
             </div>
@@ -1303,7 +1303,7 @@ const CheckoutPage = () => {
                 disabled={cart.length === 0 || isPlacingOrder || Boolean(previewError)}
                 text={finalAmountToPay === 0 ? "Place Free Order" : "Order Now"}
               />
-              <p className="text-center text-[10px] text-slate-400 font-bold mt-2 uppercase tracking-[0.1em]">
+              <p className="text-center text-[12px] text-slate-400 font-bold mt-2 uppercase tracking-[0.1em]">
                 🔒 SSL encrypted secure checkout
               </p>
             </div>
@@ -1321,8 +1321,8 @@ const CheckoutPage = () => {
             <div className="p-3 mb-2 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2 text-left animate-in fade-in">
               <MapPin className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
               <div>
-                <p className="text-[11px] font-black text-red-800 uppercase">Out of Delivery Range</p>
-                <p className="text-[11px] font-semibold text-red-600 leading-tight mt-0.5">{previewError}</p>
+                <p className="text-[12.5px] font-black text-red-800 uppercase">Out of Delivery Range</p>
+                <p className="text-[12.5px] font-semibold text-red-600 leading-tight mt-0.5">{previewError}</p>
               </div>
             </div>
           )}
@@ -1357,12 +1357,12 @@ const CheckoutPage = () => {
                   <div className={`p-2 rounded-full ${currentAddress.id === addr.id ? "bg-[#1a6e2e] text-[#1a6e2e]-foreground" : "bg-slate-100 text-slate-500"}`}>
                     <MapPin size={16} />
                   </div>
-                  <span className="font-black text-slate-800 uppercase tracking-widest text-[10px]">{addr.label}</span>
+                  <span className="font-black text-slate-800 uppercase tracking-widest text-[12px]">{addr.label}</span>
                 </div>
                 <p className="text-sm font-bold text-slate-800">{user?.name || currentAddress.name}</p>
                 <p className="text-xs text-slate-500 leading-relaxed mb-1">{addr.address}</p>
                 {addr.phone && (
-                  <p className="text-[11px] text-slate-400 font-medium">Phone: {addr.phone}</p>
+                  <p className="text-[12.5px] text-slate-400 font-medium">Phone: {addr.phone}</p>
                 )}
               </button>
             ))}

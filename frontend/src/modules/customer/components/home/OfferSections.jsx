@@ -48,7 +48,7 @@ const OfferSections = ({ sections, noServiceData }) => {
 
                 }}>
                 <div className="flex-1 pr-4">
-                  <p className="text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-black/60 mb-1">
+                  <p className="text-[12px] md:text-[12.5px] font-bold uppercase tracking-wider text-black/60 mb-1">
                     Trending right now
                   </p>
                   <h3 className="text-xl md:text-2xl font-bold tracking-tight leading-tight drop-border border-[#1a6e2e]/20">
@@ -58,7 +58,7 @@ const OfferSections = ({ sections, noServiceData }) => {
                     .map((c) => (typeof c === "object" && c?.name ? c.name : null))
                     .filter(Boolean)
                     .join(", ") || section.categoryId?.name) && (
-                    <p className="text-[11px] md:text-xs font-semibold text-black/75 mt-1">
+                    <p className="text-[12.5px] md:text-xs font-semibold text-black/75 mt-1">
                       {(section.categoryIds || [])
                         .map((c) => (typeof c === "object" && c?.name ? c.name : null))
                         .filter(Boolean)
@@ -92,7 +92,7 @@ const OfferSections = ({ sections, noServiceData }) => {
                   )}
 
                   {sectionProducts.length > 0 && (
-                    <div className="absolute top-1 left-1 px-2 py-0.5 rounded-full bg-black/75 text-[9px] font-semibold text-white/95 tracking-wide flex items-center gap-1 border border-white/10">
+                    <div className="absolute top-1 left-1 px-2 py-0.5 rounded-full bg-black/75 text-[11px] font-semibold text-white/95 tracking-wide flex items-center gap-1 border border-white/10">
                       <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
                       {sectionProducts.length} items
                     </div>

@@ -419,7 +419,7 @@ const LiveTrackingMap = memo(({
             <Clock size={20} strokeWidth={2.5} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+            <p className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">
               Arriving in
             </p>
             <h2 className="text-xl font-black text-gray-900 leading-none">
@@ -429,7 +429,7 @@ const LiveTrackingMap = memo(({
         </motion.div>
         <button
           type="button"
-          className="bg-white rounded-full px-3 py-2 border border-[#1a6e2e]/20 cursor-pointer hover:bg-slate-50 transition-colors flex items-center gap-1.5 text-[10px] font-bold text-slate-700"
+          className="bg-white rounded-full px-3 py-2 border border-[#1a6e2e]/20 cursor-pointer hover:bg-slate-50 transition-colors flex items-center gap-1.5 text-[12px] font-bold text-slate-700"
           onClick={() => {
             if (typeof onOpenInMaps === "function") {
               onOpenInMaps({ riderLocation, destinationLocation });
@@ -463,7 +463,7 @@ const LiveTrackingMap = memo(({
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-gray-900 text-xs truncate">{riderName}</h3>
-                <p className="text-[10px] text-gray-500 flex items-center gap-1">
+                <p className="text-[12px] text-gray-500 flex items-center gap-1">
                   <Shield size={8} />
                   Vaccinated
                 </p>
@@ -490,7 +490,7 @@ const LiveTrackingMap = memo(({
 
       {/* Route cache indicator */}
       {routePolyline && (
-        <div className="absolute bottom-2 right-2 bg-white px-2 py-1 rounded-md text-[10px] text-slate-600 font-bold border border-slate-200">
+        <div className="absolute bottom-2 right-2 bg-white px-2 py-1 rounded-md text-[12px] text-slate-600 font-bold border border-slate-200">
           Route cached • Reduced API cost
         </div>
       )}

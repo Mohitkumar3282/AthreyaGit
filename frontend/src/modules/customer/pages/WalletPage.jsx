@@ -73,7 +73,7 @@ const CoinRow = ({ tx }) => {
           <h4 className="font-[1000] text-slate-800 text-sm">
             {COIN_TX_LABELS[tx.type] || tx.type}
           </h4>
-          <p className="text-[11px] font-semibold text-slate-500 truncate">
+          <p className="text-[12.5px] font-semibold text-slate-500 truncate">
             {/*
               Quote the rate this row actually paid, computed from the row's
               own coins and savings base — not a fixed "1%". Historic rows keep
@@ -84,7 +84,7 @@ const CoinRow = ({ tx }) => {
               : tx.description || "Loyalty reward"}
             {tx.orderId ? ` (Order #${tx.orderId.slice(-6)})` : ""}
           </p>
-          <p className="text-[10px] font-medium text-slate-400 mt-0.5">
+          <p className="text-[12px] font-medium text-slate-400 mt-0.5">
             {formatDate(tx.date)}
           </p>
         </div>
@@ -97,7 +97,7 @@ const CoinRow = ({ tx }) => {
           {isCredit ? "+" : "-"}
           {Number(tx.coins || 0).toLocaleString("en-IN")} Coins
         </div>
-        <div className="text-[11px] font-bold text-slate-500">
+        <div className="text-[12.5px] font-bold text-slate-500">
           = ₹{rupees(tx.rupeeValue)}
         </div>
       </div>
@@ -209,13 +209,13 @@ const WalletPage = () => {
               <div className="w-7 h-7 rounded-lg bg-emerald-100 text-[#0d4d29] flex items-center justify-center font-bold">
                 <Plus size={15} strokeWidth={3} />
               </div>
-              <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tight">Coins Earned</span>
+              <span className="text-[12.5px] font-bold text-slate-600 uppercase tracking-tight">Coins Earned</span>
             </div>
             <div>
               <div className="text-base sm:text-lg font-[1000] text-[#0d4d29]">
                 {loading ? "—" : `+${lifetimeEarned.toLocaleString("en-IN")}`}
               </div>
-              <div className="text-[10.5px] font-semibold text-slate-500">
+              <div className="text-[12px] font-semibold text-slate-500">
                 = ₹{rupees(lifetimeEarned * coinValue)} total earned
               </div>
             </div>
@@ -227,13 +227,13 @@ const WalletPage = () => {
               <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center font-bold">
                 <ArrowUpRight size={15} strokeWidth={3} />
               </div>
-              <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tight">Coins Redeemed</span>
+              <span className="text-[12.5px] font-bold text-slate-600 uppercase tracking-tight">Coins Redeemed</span>
             </div>
             <div>
               <div className="text-base sm:text-lg font-[1000] text-amber-900">
                 {loading ? "—" : `-${lifetimeRedeemed.toLocaleString("en-IN")}`}
               </div>
-              <div className="text-[10.5px] font-semibold text-slate-500">
+              <div className="text-[12px] font-semibold text-slate-500">
                 = ₹{rupees(lifetimeRedeemed * coinValue)} saved on orders
               </div>
             </div>
@@ -301,7 +301,7 @@ const WalletPage = () => {
             </h3>
             
             {/* Filter buttons */}
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-[10.5px] font-black">
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-[12px] font-black">
               <button
                 type="button"
                 onClick={() => setTxFilter("ALL")}
@@ -360,7 +360,7 @@ const WalletPage = () => {
                 <h3 className="text-sm md:text-base font-[1000] text-slate-800 uppercase tracking-wide">
                   Cashback & Refund Balance (₹)
                 </h3>
-                <p className="text-[11px] font-semibold text-slate-500">
+                <p className="text-[12.5px] font-semibold text-slate-500">
                   Direct wallet credit usable at checkout
                 </p>
               </div>
@@ -392,7 +392,7 @@ const WalletPage = () => {
                         <h4 className="font-bold text-slate-800 text-xs md:text-sm">
                           {tx.title}
                         </h4>
-                        <p className="text-[10px] text-slate-400">
+                        <p className="text-[12px] text-slate-400">
                           {formatDate(tx.date)}
                           {tx.orderId ? ` · #${tx.orderId.slice(-6)}` : ""}
                         </p>

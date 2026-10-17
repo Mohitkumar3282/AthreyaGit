@@ -54,19 +54,19 @@ const Documents = () => {
     switch (status) {
       case "Verified":
         return (
-          <span className="flex items-center text-brand-600 bg-brand-50 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
+          <span className="flex items-center text-brand-600 bg-brand-50 px-2 py-1 rounded text-[13.5px] font-bold uppercase tracking-wider">
             <FileCheck size={12} className="mr-1" /> Verified
           </span>
         );
       case "Pending":
         return (
-          <span className="flex items-center text-yellow-600 bg-yellow-50 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
+          <span className="flex items-center text-yellow-600 bg-yellow-50 px-2 py-1 rounded text-[13.5px] font-bold uppercase tracking-wider">
             <Clock size={12} className="mr-1" /> Pending
           </span>
         );
       case "Rejected":
         return (
-          <span className="flex items-center text-red-600 bg-red-50 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
+          <span className="flex items-center text-red-600 bg-red-50 px-2 py-1 rounded text-[13.5px] font-bold uppercase tracking-wider">
             <XCircle size={12} className="mr-1" /> Rejected
           </span>
         );
@@ -99,7 +99,7 @@ const Documents = () => {
             </div>
 
             {doc.fileName && (
-              <p className="text-xs text-gray-500 mb-3 flex items-center">
+              <p className="text-[14px] text-gray-700 mb-3 flex items-center">
                 <span className="truncate max-w-[200px]">{doc.fileName}</span>
                 <span className="mx-2">•</span>
                 <span>{doc.uploadedOn}</span>
@@ -107,7 +107,7 @@ const Documents = () => {
             )}
 
             {doc.status === "Rejected" && (
-              <div className="bg-red-50 text-red-700 text-xs p-2 rounded mb-3">
+              <div className="bg-red-50 text-red-700 text-[14px] p-2 rounded mb-3">
                 Reason: {doc.reason}
               </div>
             )}
@@ -116,7 +116,7 @@ const Documents = () => {
               {doc.status !== "Verified" && (
                 <Button 
                   size="sm" 
-                  className="w-full text-xs h-8" 
+                  className="w-full text-[14px] h-8" 
                   onClick={() => handleUpload(doc.id)}
                 >
                   <UploadCloud size={14} className="mr-1" /> 
@@ -127,7 +127,7 @@ const Documents = () => {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="w-full text-xs h-8"
+                  className="w-full text-[14px] h-8"
                   onClick={() => toast.success("Downloading document...")}
                 >
                   View File

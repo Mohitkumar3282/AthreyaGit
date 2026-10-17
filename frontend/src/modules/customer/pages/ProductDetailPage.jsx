@@ -224,7 +224,7 @@ const ProductDetailPage = () => {
                 <div className="lg:w-[55%] xl:w-[60%] space-y-6 md:space-y-8">
                     <div>
                         <div className="flex items-center gap-3 mb-4">
-                            <span className="bg-[#1a6e2e]/10 text-[#1a6e2e] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border border-[#1a6e2e]/20">
+                            <span className="bg-[#1a6e2e]/10 text-[#1a6e2e] px-3 py-1 rounded-full text-[12px] font-black uppercase tracking-wider border border-[#1a6e2e]/20">
                                 {product.categoryId?.name || 'Essential'}
                             </span>
                             <div className="flex items-center gap-1 text-orange-500 font-bold bg-orange-50 px-3 py-0.5 rounded-full text-xs">
@@ -308,15 +308,15 @@ const ProductDetailPage = () => {
 
                     <div className="grid grid-cols-3 gap-4">
                         <div className="bg-white p-4 rounded-2xl border border-[#1a6e2e]/20 text-center">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Weight</p>
+                            <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-1">Weight</p>
                             <p className="text-sm font-black text-slate-800">{product.weight || '1 unit'}</p>
                         </div>
                         <div className="bg-white p-4 rounded-2xl border border-[#1a6e2e]/20 text-center">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Stock</p>
+                            <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-1">Stock</p>
                             <p className="text-sm font-black text-slate-800">{product.stock > 0 ? 'In Stock' : 'Out of Stock'}</p>
                         </div>
                         <div className="bg-white p-4 rounded-2xl border border-[#1a6e2e]/20 text-center">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Brand</p>
+                            <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-1">Brand</p>
                             <p className="text-sm font-black text-slate-800">{product.brand || 'Premium'}</p>
                         </div>
                     </div>
@@ -406,7 +406,7 @@ const ProductDetailPage = () => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(review.createdAt).toLocaleDateString()}</span>
+                                            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">{new Date(review.createdAt).toLocaleDateString()}</span>
                                         </div>
                                         <p className="text-slate-600 font-medium leading-relaxed">{review.comment}</p>
                                     </div>

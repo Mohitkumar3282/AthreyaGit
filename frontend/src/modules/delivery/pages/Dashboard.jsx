@@ -136,13 +136,13 @@ const Dashboard = () => {
             <h2 className="ds-h2 leading-tight">
               {user?.name || "Delivery Partner"}
             </h2>
-            <div className="flex items-center text-sm font-medium">
+            <div className="flex items-center text-[16px] font-medium">
               <span className="flex items-center bg-yellow-50 text-yellow-600 px-1.5 py-0.5 rounded border border-yellow-100">
                 <Star size={12} fill="currentColor" className="mr-1" />
                 4.8
               </span>
               <span className="text-gray-300 mx-2">•</span>
-              <span className="ds-caption text-gray-500">ID: 882190</span>
+              <span className="ds-caption text-gray-700">ID: 882190</span>
             </div>
           </div>
         </div>
@@ -163,14 +163,14 @@ const Dashboard = () => {
       <div className="px-6 py-6">
         <div className="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 group">
           <div className="flex items-center justify-between mb-3 px-1">
-            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Service Status</span>
+            <span className="text-[13.5px] font-black text-gray-600 uppercase tracking-[0.2em]">Service Status</span>
             <div className="flex items-center gap-1.5">
               <div className={cn(
                 "w-1.5 h-1.5 rounded-full animate-pulse",
                 isOnline ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]"
               )} />
               <span className={cn(
-                "text-[11px] font-bold uppercase tracking-wider",
+                "text-[14px] font-bold uppercase tracking-wider",
                 isOnline ? "text-emerald-600" : "text-rose-600"
               )}>
                 {isOnline ? "Receiving Orders" : "Currently Offline"}
@@ -187,7 +187,7 @@ const Dashboard = () => {
               {/* Left slot (visible when knob is on the right, prompting to go offline) */}
               <div className="w-1/2 flex items-center justify-center px-2">
                 <span className={cn(
-                  "text-[11px] font-black tracking-wider uppercase select-none transition-all duration-300 flex items-center gap-1.5",
+                  "text-[14px] font-black tracking-wider uppercase select-none transition-all duration-300 flex items-center gap-1.5",
                   isOnline ? "opacity-100 text-slate-600 hover:text-rose-600" : "opacity-0 pointer-events-none"
                 )}>
                   <XCircle size={14} className="text-rose-500" /> Go Offline
@@ -196,7 +196,7 @@ const Dashboard = () => {
               {/* Right slot (visible when knob is on the left, prompting to go online) */}
               <div className="w-1/2 flex items-center justify-center px-2">
                 <span className={cn(
-                  "text-[11px] font-black tracking-wider uppercase select-none transition-all duration-300 flex items-center gap-1.5",
+                  "text-[14px] font-black tracking-wider uppercase select-none transition-all duration-300 flex items-center gap-1.5",
                   !isOnline ? "opacity-100 text-emerald-700 font-extrabold" : "opacity-0 pointer-events-none"
                 )}>
                   <CheckCircle size={14} className="text-emerald-600" /> Go Online
@@ -229,7 +229,7 @@ const Dashboard = () => {
               <motion.div initial={false}>
                 {isOnline ? <CheckCircle size={18} strokeWidth={2.5} /> : <XCircle size={18} strokeWidth={2.5} />}
               </motion.div>
-              <span className="text-xs font-black uppercase tracking-widest select-none">
+              <span className="text-[14px] font-black uppercase tracking-widest select-none">
                 {isOnline ? "ONLINE" : "OFFLINE"}
               </span>
             </motion.div>
@@ -245,10 +245,10 @@ const Dashboard = () => {
           <button
             onClick={() => setActiveTab("delivery")}
             className={cn(
-              "flex-1 py-3 px-4 rounded-xl text-center text-xs font-black transition-all duration-300 uppercase tracking-widest",
+              "flex-1 py-3 px-4 rounded-xl text-center text-[14px] font-black transition-all duration-300 uppercase tracking-widest",
               activeTab === "delivery"
                 ? "bg-white text-primary shadow-sm ring-1 ring-black/5"
-                : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+                : "text-gray-700 hover:text-gray-700 hover:bg-gray-200/50"
             )}
           >
             Deliveries
@@ -256,10 +256,10 @@ const Dashboard = () => {
           <button
             onClick={() => setActiveTab("return")}
             className={cn(
-              "flex-1 py-3 px-4 rounded-xl text-center text-xs font-black transition-all duration-300 uppercase tracking-widest",
+              "flex-1 py-3 px-4 rounded-xl text-center text-[14px] font-black transition-all duration-300 uppercase tracking-widest",
               activeTab === "return"
                 ? "bg-white text-primary shadow-sm ring-1 ring-black/5"
-                : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+                : "text-gray-700 hover:text-gray-700 hover:bg-gray-200/50"
             )}
           >
             Returns
@@ -282,17 +282,17 @@ const Dashboard = () => {
               variant="ghost"
               size="sm"
               onClick={() => navigate("/delivery/earnings")}
-              className="text-primary hover:text-primary/80 hover:bg-primary/5 h-8 px-3 text-xs font-bold rounded-full">
+              className="text-primary hover:text-primary/80 hover:bg-primary/5 h-8 px-3 text-[14px] font-bold rounded-full">
               View Details
             </Button>
           </div>
 
           <div className="flex items-baseline mb-6 relative z-10">
-            <span className="text-2xl font-bold text-gray-400 mr-1">₹</span>
+            <span className="text-2xl font-bold text-gray-600 mr-1">₹</span>
             <span className="text-4xl font-extrabold text-gray-900 tracking-tight">
               {earnings.today}
             </span>
-            <span className="ml-3 text-brand-600 text-xs font-bold flex items-center bg-brand-50 border border-brand-100 px-2 py-1 rounded-full">
+            <span className="ml-3 text-brand-600 text-[14px] font-bold flex items-center bg-brand-50 border border-brand-100 px-2 py-1 rounded-full">
               <TrendingUp size={12} className="mr-1" /> +12%
             </span>
           </div>
@@ -342,10 +342,10 @@ const Dashboard = () => {
               exit={{ opacity: 0 }}
               className="bg-white rounded-2xl p-8 text-center shadow-sm border border-gray-100">
               <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-gray-100">
-                <AlertCircle size={32} className="text-gray-400" />
+                <AlertCircle size={32} className="text-gray-600" />
               </div>
               <h3 className="ds-h3 mb-2">You are Offline</h3>
-              <p className="text-sm text-gray-500 max-w-[250px] mx-auto">
+              <p className="text-[16px] text-gray-700 max-w-[250px] mx-auto">
                 Go online to start receiving delivery requests and earning
                 money.
               </p>
@@ -367,12 +367,12 @@ const Dashboard = () => {
                     ? "1 order waiting"
                     : `${availableOrders.length} orders waiting`}
                 </h3>
-                <p className="text-sm text-gray-600 leading-relaxed px-1">
+                <p className="text-[16px] text-gray-600 leading-relaxed px-1">
                   A fullscreen alert will open with <strong>Accept</strong> and{" "}
                   <strong>Reject</strong>. Use that to respond before the timer
                   ends.
                 </p>
-                <div className="mt-4 flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                <div className="mt-4 flex items-center justify-center gap-2 text-[13.5px] font-bold text-gray-600 uppercase tracking-wider">
                   <span className="w-2 h-2 bg-brand-500 rounded-full animate-pulse" />
                   Listening for assignments
                 </div>
@@ -396,7 +396,7 @@ const Dashboard = () => {
                   <h3 className="ds-h3 mb-2 text-gray-800">
                     Finding Orders Nearby...
                   </h3>
-                  <p className="text-sm text-gray-500 max-w-[220px] mx-auto mb-6">
+                  <p className="text-[16px] text-gray-700 max-w-[220px] mx-auto mb-6">
                     We're looking for delivery requests in your area. Stay
                     online!
                   </p>
@@ -413,42 +413,42 @@ const Dashboard = () => {
             >
               <div className="bg-slate-900 text-white rounded-3xl p-4 shadow-md flex items-center justify-between gap-3">
                 <div>
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Assigned Pickups</h4>
-                  <p className="text-xs font-bold text-slate-200 mt-0.5">Check return tasks assigned directly to you.</p>
+                  <h4 className="text-[14px] font-black uppercase tracking-wider text-slate-600">Assigned Pickups</h4>
+                  <p className="text-[14px] font-bold text-slate-200 mt-0.5">Check return tasks assigned directly to you.</p>
                 </div>
                 <Button 
                   onClick={() => navigate("/delivery/return-tasks")}
-                  className="bg-white text-slate-900 hover:bg-slate-100 text-[10px] font-black tracking-widest px-4 py-2.5 rounded-xl uppercase shrink-0"
+                  className="bg-white text-slate-900 hover:bg-slate-100 text-[13.5px] font-black tracking-widest px-4 py-2.5 rounded-xl uppercase shrink-0"
                 >
                   View Tasks
                 </Button>
               </div>
 
               <div className="flex justify-between items-center mb-1">
-                <h3 className="text-sm font-bold text-gray-800 tracking-tight">Available Return Pickups</h3>
-                <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase italic">Open for Acceptance</span>
+                <h3 className="text-[16px] font-bold text-gray-800 tracking-tight">Available Return Pickups</h3>
+                <span className="text-[13.5px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase italic">Open for Acceptance</span>
               </div>
               {availableOrders.length > 0 ? (
                 availableOrders.map((order) => (
                   <Card key={order._id} className="p-4 border-2 border-primary/5 hover:border-primary/20 transition-all shadow-sm">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <span className="text-[10px] font-black text-primary/60 uppercase tracking-widest mb-1 block">Return Task</span>
+                        <span className="text-[13.5px] font-black text-primary/60 uppercase tracking-widest mb-1 block">Return Task</span>
                         <h4 className="font-bold text-gray-900">#{order.orderId}</h4>
                       </div>
                       <div className="text-right">
                         <span className="block font-black text-brand-600 text-lg">₹{order.returnDeliveryCommission || 0}</span>
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Commission</span>
+                        <span className="text-[13.5px] font-bold text-gray-600 uppercase tracking-tighter">Commission</span>
                       </div>
                     </div>
                     
                     <div className="space-y-2 mb-5">
-                      <div className="flex items-center text-xs text-gray-600">
-                        <MapPin size={12} className="mr-2 text-gray-400" />
+                      <div className="flex items-center text-[14px] text-gray-600">
+                        <MapPin size={12} className="mr-2 text-gray-600" />
                         <span className="truncate">{order.seller?.shopName || "Store"}</span>
                       </div>
-                      <div className="flex items-center text-[11px] text-gray-500 font-medium">
-                        <Package size={12} className="mr-2 text-gray-400" />
+                      <div className="flex items-center text-[14px] text-gray-700 font-medium">
+                        <Package size={12} className="mr-2 text-gray-600" />
                         <span>Pickup from Customer & Return to Store</span>
                       </div>
                     </div>
@@ -457,7 +457,7 @@ const Dashboard = () => {
                        <Button 
                         variant="primary" 
                         size="sm" 
-                        className="flex-1 font-black text-[10px] tracking-widest uppercase h-10 shadow-lg shadow-primary/20"
+                        className="flex-1 font-black text-[13.5px] tracking-widest uppercase h-10 shadow-lg shadow-primary/20"
                         onClick={() => handleAcceptReturn(order.orderId)}
                       >
                         Accept Pickup
@@ -465,7 +465,7 @@ const Dashboard = () => {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="px-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-600 hover:bg-gray-100 h-10"
+                        className="px-4 text-[13.5px] font-black uppercase tracking-widest text-gray-600 hover:text-gray-600 hover:bg-gray-100 h-10"
                         onClick={() => navigate(`/delivery/order-details/${order.orderId}`)}
                       >
                         View
@@ -476,10 +476,10 @@ const Dashboard = () => {
               ) : (
                 <div className="bg-white rounded-2xl p-10 text-center border-2 border-dashed border-gray-100 flex flex-col items-center">
                   <div className="w-14 h-14 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100 opacity-60">
-                    <Package size={20} className="text-gray-400" />
+                    <Package size={20} className="text-gray-600" />
                   </div>
-                  <h4 className="text-sm font-bold text-gray-800 mb-1">No returns nearby</h4>
-                  <p className="text-[11px] text-gray-400">Keep checking back for new return tasks.</p>
+                  <h4 className="text-[16px] font-bold text-gray-800 mb-1">No returns nearby</h4>
+                  <p className="text-[14px] text-gray-600">Keep checking back for new return tasks.</p>
                 </div>
               )}
             </motion.div>

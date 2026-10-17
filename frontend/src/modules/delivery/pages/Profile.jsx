@@ -167,15 +167,15 @@ const Profile = () => {
           </div>
           <div className="text-white">
             <h2 className="font-bold text-xl">{rider?.name || "..."}</h2>
-            <p className="text-white/80 text-sm flex items-center mb-1">
+            <p className="text-white/80 text-[16px] flex items-center mb-1">
               <Phone size={14} className="mr-1" /> {rider?.phone || "—"}
             </p>
             <div className="flex items-center space-x-2">
-              <span className="bg-white/20 px-2 py-0.5 rounded text-xs font-medium backdrop-blur-sm">
+              <span className="bg-white/20 px-2 py-0.5 rounded text-[14px] font-medium backdrop-blur-sm">
                 ID: {rider?._id ? String(rider._id).slice(-6).toUpperCase() : "—"}
               </span>
               {rider?.isVerified && (
-                <span className="bg-brand-500 text-primary-foreground px-2 py-0.5 rounded text-xs font-bold shadow-sm">
+                <span className="bg-brand-500 text-primary-foreground px-2 py-0.5 rounded text-[14px] font-bold shadow-sm">
                   VERIFIED
                 </span>
               )}
@@ -191,25 +191,25 @@ const Profile = () => {
         transition={{ delay: 0.2 }}
         className="mx-6 -mt-12 bg-white rounded-2xl p-4 shadow-xl mb-6 flex justify-between text-center relative z-10">
         <div className="flex-1">
-          <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">
+          <p className="text-gray-600 text-[13.5px] uppercase font-bold tracking-wider">
             Joined
           </p>
           <p className="font-bold text-gray-900 text-lg">{joinedLabel}</p>
         </div>
         <div className="w-px bg-gray-100"></div>
         <div className="flex-1">
-          <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">
+          <p className="text-gray-600 text-[13.5px] uppercase font-bold tracking-wider">
             Trips
           </p>
           <p className="font-bold text-gray-900 text-lg">{tripsCompleted ?? "—"}</p>
         </div>
         <div className="w-px bg-gray-100"></div>
         <div className="flex-1">
-          <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">
+          <p className="text-gray-600 text-[13.5px] uppercase font-bold tracking-wider">
             Rating
           </p>
           <p className="font-bold text-gray-900 text-lg flex justify-center items-center">
-            {ratingLabel} <span className="text-yellow-400 text-sm ml-1">★</span>
+            {ratingLabel} <span className="text-yellow-400 text-[16px] ml-1">★</span>
           </p>
         </div>
       </motion.div>
@@ -236,7 +236,7 @@ const Profile = () => {
                 <p className="font-bold text-gray-900 group-hover:text-primary transition-colors">
                   {item.label}
                 </p>
-                <p className="text-xs text-gray-400">{item.sub}</p>
+                <p className="text-[14px] text-gray-600">{item.sub}</p>
               </div>
             </div>
             <ChevronRight
@@ -248,7 +248,7 @@ const Profile = () => {
 
         {/* FAQ Section */}
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 overflow-hidden">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 px-2">Delivery Partner FAQs</p>
+          <p className="text-[13.5px] font-bold text-gray-600 uppercase tracking-widest mb-4 px-2">Delivery Partner FAQs</p>
           <div className="divide-y divide-gray-50">
             {faqs.length > 0 ? (
               faqs.map((faq) => (
@@ -259,7 +259,7 @@ const Profile = () => {
                 />
               ))
             ) : (
-              <div className="py-4 text-center text-xs text-gray-400">No FAQs available</div>
+              <div className="py-4 text-center text-[14px] text-gray-600">No FAQs available</div>
             )}
           </div>
         </div>
@@ -274,7 +274,7 @@ const Profile = () => {
         </motion.div>
       </motion.div>
 
-      <div className="text-center text-gray-400 text-xs mt-8 pb-4">
+      <div className="text-center text-gray-600 text-[14px] mt-8 pb-4">
         {appName} Delivery Partner App
         <br />
         Version 1.2.0 (Build 450)
@@ -288,14 +288,14 @@ const DeliveryFAQItem = ({ question, answer }) => {
   return (
     <div className="py-4 px-2 cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => setIsOpen(!isOpen)}>
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-gray-700">{question}</h3>
-        {isOpen ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+        <h3 className="text-[16px] font-bold text-gray-700">{question}</h3>
+        {isOpen ? <ChevronUp size={16} className="text-gray-600" /> : <ChevronDown size={16} className="text-gray-600" />}
       </div>
       {isOpen && (
         <motion.p
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
-          className="mt-2 text-xs text-gray-500 font-medium leading-relaxed"
+          className="mt-2 text-[14px] text-gray-700 font-medium leading-relaxed"
         >
           {answer}
         </motion.p>

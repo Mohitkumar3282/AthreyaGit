@@ -107,7 +107,7 @@ const Withdrawals = () => {
                     <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/5 rounded-full -ml-12 -mb-12 blur-2xl"></div>
 
                     <div className="relative z-10">
-                        <p className="text-brand-100 text-xs font-bold uppercase tracking-wider mb-2 opacity-90">Available for Withdrawal</p>
+                        <p className="text-brand-100 text-[14px] font-bold uppercase tracking-wider mb-2 opacity-90">Available for Withdrawal</p>
                         <h2 className="text-4xl font-extrabold flex items-baseline leading-none tracking-tight">
                             <span className="text-2xl mr-1 font-bold">₹</span>
                             {stats.availableBalance.toLocaleString()}
@@ -116,7 +116,7 @@ const Withdrawals = () => {
                         <div className="mt-6 flex items-center justify-between text-white bg-white/10 p-3 rounded-xl backdrop-blur-md border border-white/10">
                             <div className="flex items-center">
                                 <Clock size={16} className="mr-2 opacity-80" />
-                                <span className="text-[11px] font-bold">Pending: ₹{stats.pendingWithdrawals.toLocaleString()}</span>
+                                <span className="text-[14px] font-bold">Pending: ₹{stats.pendingWithdrawals.toLocaleString()}</span>
                             </div>
                             <ArrowUpRight size={16} className="opacity-80" />
                         </div>
@@ -134,11 +134,11 @@ const Withdrawals = () => {
 
                     <div className="space-y-4">
                         <div>
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">
+                            <label className="text-[14px] font-bold text-gray-600 uppercase tracking-wider mb-2 block">
                                 Amount to Withdraw
                             </label>
                             <div className="relative">
-                                <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                                <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" size={20} />
                                 <input
                                     type="number"
                                     placeholder="0.00"
@@ -151,7 +151,7 @@ const Withdrawals = () => {
 
                         <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-xl">
                             <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={16} />
-                            <p className="text-[10px] text-amber-700 font-medium leading-relaxed">
+                            <p className="text-[13.5px] text-amber-700 font-medium leading-relaxed">
                                 Processing may take 24-48 business hours. Funds will be transferred to your primary bank account.
                             </p>
                         </div>
@@ -159,7 +159,7 @@ const Withdrawals = () => {
                         <Button
                             onClick={handleRequest}
                             disabled={loading || !amount || Number(amount) <= 0}
-                            className="w-full py-4 rounded-2xl font-bold text-sm shadow-lg shadow-primary/20"
+                            className="w-full py-4 rounded-2xl font-bold text-[16px] shadow-lg shadow-primary/20"
                         >
                             {loading ? (
                                 <RotateCw className="animate-spin mr-2" size={18} />
@@ -172,12 +172,12 @@ const Withdrawals = () => {
                 {/* History */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between px-1">
-                        <h3 className="font-bold text-gray-800 flex items-center gap-2 uppercase tracking-widest text-[10px]">
+                        <h3 className="font-bold text-gray-800 flex items-center gap-2 uppercase tracking-widest text-[13.5px]">
                             Transfer History
                         </h3>
                         <button
                             onClick={fetchData}
-                            className="text-primary text-[10px] font-bold flex items-center gap-1 uppercase"
+                            className="text-primary text-[13.5px] font-bold flex items-center gap-1 uppercase"
                         >
                             <RotateCw size={12} className={fetching ? "animate-spin" : ""} />
                             Refresh
@@ -207,7 +207,7 @@ const Withdrawals = () => {
                                         </div>
                                         <div>
                                             <p className="font-bold text-gray-900">₹{Math.abs(item.amount).toLocaleString()}</p>
-                                            <p className="text-[10px] font-medium text-gray-400 mt-0.5">
+                                            <p className="text-[13.5px] font-medium text-gray-600 mt-0.5">
                                                 {new Date(item.date).toLocaleDateString()} • {item.id}
                                             </p>
                                         </div>
@@ -220,7 +220,7 @@ const Withdrawals = () => {
                         ) : (
                             <div className="bg-white p-12 rounded-2xl border border-dashed border-gray-200 text-center">
                                 <Clock className="mx-auto text-gray-200 mb-2" size={32} />
-                                <p className="text-xs text-gray-400 font-medium tracking-tight">No history found</p>
+                                <p className="text-[14px] text-gray-600 font-medium tracking-tight">No history found</p>
                             </div>
                         )}
                     </div>
@@ -239,7 +239,7 @@ const Badge = ({ children, variant = "default" }) => {
     };
 
     return (
-        <span className={cn("px-2 py-1 rounded text-[10px] font-bold tracking-wider leading-none", variants[variant])}>
+        <span className={cn("px-2 py-1 rounded text-[13.5px] font-bold tracking-wider leading-none", variants[variant])}>
             {children}
         </span>
     );

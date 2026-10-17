@@ -195,7 +195,7 @@ const ReturnTaskDetail = () => {
     if (!task) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-6">
-                <p className="text-sm font-bold text-slate-800">{isCancellation ? "Cancellation" : "Return"} task not found</p>
+                <p className="text-[16px] font-bold text-slate-800">{isCancellation ? "Cancellation" : "Return"} task not found</p>
                 <Button className="mt-4 bg-slate-900" onClick={() => navigate("/delivery/return-tasks")}>
                     Back to tasks
                 </Button>
@@ -216,7 +216,7 @@ const ReturnTaskDetail = () => {
                 </button>
                 <div className="flex-1 text-center">
                     <h1 className="text-base font-bold text-slate-800">Task Details</h1>
-                    <p className="text-xs text-slate-500 font-medium">#{order.orderId || "Order"}</p>
+                    <p className="text-[14px] text-slate-700 font-medium">#{order.orderId || "Order"}</p>
                 </div>
                 <div className="w-10" />
             </div>
@@ -225,8 +225,8 @@ const ReturnTaskDetail = () => {
                 {/* Status Card */}
                 <Card className="bg-white p-4 border border-slate-100">
                     <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-slate-500 uppercase">Status</span>
-                        <span className="text-xs font-black bg-primary/10 text-primary px-3 py-1 rounded-full uppercase tracking-wider">
+                        <span className="text-[14px] font-bold text-slate-700 uppercase">Status</span>
+                        <span className="text-[14px] font-black bg-primary/10 text-primary px-3 py-1 rounded-full uppercase tracking-wider">
                             {task.status}
                         </span>
                     </div>
@@ -236,16 +236,16 @@ const ReturnTaskDetail = () => {
                 {(task.status === "PICKUP_SCHEDULED") && (
                     <Card className="bg-white p-5 border-2 border-primary/20 shadow-md space-y-4">
                         <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">1</div>
-                            <h3 className="font-extrabold text-slate-900 text-sm">Customer Pickup Instructions</h3>
+                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-[16px]">1</div>
+                            <h3 className="font-extrabold text-slate-900 text-[16px]">Customer Pickup Instructions</h3>
                         </div>
 
-                        <div className="space-y-3 text-xs text-slate-600">
+                        <div className="space-y-3 text-[14px] text-slate-600">
                             <div className="flex items-start gap-2">
-                                <MapPin className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+                                <MapPin className="h-4 w-4 text-slate-600 shrink-0 mt-0.5" />
                                 <div>
                                     <p className="font-bold text-slate-800">Customer Location</p>
-                                    <p className="text-slate-500 mt-0.5">{order.address?.address || "Address N/A"}</p>
+                                    <p className="text-slate-700 mt-0.5">{order.address?.address || "Address N/A"}</p>
                                     <button 
                                         onClick={() => handleOpenInMaps(order.address?.location?.lat, order.address?.location?.lng)}
                                         className="text-primary font-bold mt-1.5 flex items-center gap-1 hover:underline"
@@ -256,10 +256,10 @@ const ReturnTaskDetail = () => {
                             </div>
 
                             <div className="flex items-center gap-2 pt-2">
-                                <Phone className="h-4 w-4 text-slate-400 shrink-0" />
+                                <Phone className="h-4 w-4 text-slate-600 shrink-0" />
                                 <div>
                                     <p className="font-bold text-slate-800">Contact Customer</p>
-                                    <a href={`tel:${customer.phone}`} className="text-slate-500 font-semibold">{customer.name || "Customer"} • {customer.phone}</a>
+                                    <a href={`tel:${customer.phone}`} className="text-slate-700 font-semibold">{customer.name || "Customer"} • {customer.phone}</a>
                                 </div>
                             </div>
                         </div>
@@ -275,7 +275,7 @@ const ReturnTaskDetail = () => {
                                     >
                                         Send OTP to Customer
                                     </Button>
-                                    <label className="text-xs font-bold text-slate-600 block">Enter Pickup OTP from Customer</label>
+                                    <label className="text-[14px] font-bold text-slate-600 block">Enter Pickup OTP from Customer</label>
                                     <div className="flex flex-col sm:flex-row gap-2">
                                         <input
                                             type="text"
@@ -299,7 +299,7 @@ const ReturnTaskDetail = () => {
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-2 text-emerald-700 bg-emerald-50 border border-emerald-200 p-3 rounded-xl">
                                         <ShieldCheck size={18} />
-                                        <span className="text-xs font-bold">OTP Verified! Capture return proof photo:</span>
+                                        <span className="text-[14px] font-bold">OTP Verified! Capture return proof photo:</span>
                                     </div>
 
                                     <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
@@ -315,8 +315,8 @@ const ReturnTaskDetail = () => {
                                             </div>
                                         ) : (
                                             <label className="flex flex-col items-center gap-1.5 cursor-pointer hover:text-primary transition-colors">
-                                                <Camera className="h-8 w-8 text-slate-400" />
-                                                <span className="text-xs font-bold text-slate-600">Capture Proof Photo</span>
+                                                <Camera className="h-8 w-8 text-slate-600" />
+                                                <span className="text-[14px] font-bold text-slate-600">Capture Proof Photo</span>
                                                 <input type="file" accept="image/*" capture="environment" onChange={handleImageSelect} className="hidden" />
                                             </label>
                                         )}
@@ -340,17 +340,17 @@ const ReturnTaskDetail = () => {
                 {task.status === "PICKED_UP" && (
                     <Card className="bg-white p-5 border-2 border-primary/20 shadow-md space-y-4">
                         <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">2</div>
-                            <h3 className="font-extrabold text-slate-900 text-sm">Return Package to Store</h3>
+                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-[16px]">2</div>
+                            <h3 className="font-extrabold text-slate-900 text-[16px]">Return Package to Store</h3>
                         </div>
 
-                        <div className="space-y-3 text-xs text-slate-600">
+                        <div className="space-y-3 text-[14px] text-slate-600">
                             <div className="flex items-start gap-2">
-                                <ShoppingBag className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+                                <ShoppingBag className="h-4 w-4 text-slate-600 shrink-0 mt-0.5" />
                                 <div>
                                     <p className="font-bold text-slate-800">Seller Store Location</p>
                                     <p className="text-slate-900 font-bold mt-0.5">{seller.shopName || "Store"}</p>
-                                    <p className="text-slate-500 mt-0.5">{seller.address || "Seller address N/A"}</p>
+                                    <p className="text-slate-700 mt-0.5">{seller.address || "Seller address N/A"}</p>
                                     {seller.location?.coordinates && (
                                         <button 
                                             onClick={() => handleOpenInMaps(seller.location.coordinates[1], seller.location.coordinates[0])}
@@ -372,7 +372,7 @@ const ReturnTaskDetail = () => {
                                 >
                                     Send OTP to Seller
                                 </Button>
-                                <label className="text-xs font-bold text-slate-600 block">Enter Drop OTP from Seller Store</label>
+                                <label className="text-[14px] font-bold text-slate-600 block">Enter Drop OTP from Seller Store</label>
                                 <div className="flex flex-col sm:flex-row gap-2">
                                     <input
                                         type="text"
@@ -403,7 +403,7 @@ const ReturnTaskDetail = () => {
                             <CheckCircle2 className="h-12 w-12 text-emerald-600" />
                         </div>
                         <h3 className="font-extrabold text-emerald-950 text-base">{isCancellation ? "Cancellation" : "Return"} Pickup Completed</h3>
-                        <p className="text-xs text-emerald-800">
+                        <p className="text-[14px] text-emerald-800">
                             The package has been successfully delivered back to the seller store, and the transaction is complete.
                         </p>
                         <Button

@@ -98,7 +98,7 @@ const Hero = () => {
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 md:p-12 flex flex-col justify-end text-white">
                                     <div className={`transform transition-all duration-700 ${index === current ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
                                         <div className="flex items-center gap-2 mb-2 md:mb-3">
-                                            <span className={`${banner.badgeColor} font-black px-3 py-1 md:px-4 md:py-1.5 rounded-full text-[10px] md:text-xs uppercase tracking-wider border border-[#1a6e2e]/20 flex items-center gap-1`}>
+                                            <span className={`${banner.badgeColor} font-black px-3 py-1 md:px-4 md:py-1.5 rounded-full text-[12px] md:text-xs uppercase tracking-wider border border-[#1a6e2e]/20 flex items-center gap-1`}>
                                                 <banner.badgeIcon size={12} className="md:w-[14px] md:h-[14px]" fill="currentColor" /> {banner.badge}
                                             </span>
                                         </div>
@@ -149,12 +149,12 @@ const Hero = () => {
                             <img src={settings?.logoUrl || LogoTransparent} alt="Logo" className="h-7 sm:h-9 w-auto object-contain" />
                             <div className="flex flex-col items-start leading-none font-sans">
                                 <span className="text-[11.5px] font-black text-[#1a6e2e] tracking-wide uppercase">ATHREYA</span>
-                                <span className="text-[7.5px] font-bold text-[#1a6e2e] tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
+                                <span className="text-[10px] font-bold text-[#1a6e2e] tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
                             </div>
                         </div>
 
                         {/* Bottom Scrolling Marquee Overlay */}
-                        <div className="absolute bottom-0 left-0 right-0 bg-[#3a2a83]/90 text-white py-1.5 md:py-2.5 overflow-hidden whitespace-nowrap z-30 font-black border-t border-white/10 uppercase tracking-widest text-[10px] md:text-xs">
+                        <div className="absolute bottom-0 left-0 right-0 bg-[#3a2a83]/90 text-white py-1.5 md:py-2.5 overflow-hidden whitespace-nowrap z-30 font-black border-t border-white/10 uppercase tracking-widest text-[12px] md:text-xs">
                             <div className="classic-marquee-track flex w-max items-center gap-8">
                                 <span>One App. Every Shop. Every Need. Delivered Fast & Safe</span>
                                 <span className="text-yellow-400">&bull;</span>

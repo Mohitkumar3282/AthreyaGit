@@ -109,7 +109,7 @@ const Notifications = () => {
               variant="ghost"
               size="sm"
               onClick={handleMarkAllAsRead}
-              className="text-primary text-xs font-bold hover:bg-primary/5 px-2">
+              className="text-primary text-[14px] font-bold hover:bg-primary/5 px-2">
               Mark all read
             </Button>
           )}
@@ -147,20 +147,20 @@ const Notifications = () => {
                       <div
                         className={`p-3 rounded-full mr-4 flex-shrink-0 ${notification.type === "order"
                           ? "bg-orange-100 text-orange-600"
-                          : notification.isRead ? "bg-gray-100 text-gray-400" : "bg-brand-100 text-brand-600"
+                          : notification.isRead ? "bg-gray-100 text-gray-600" : "bg-brand-100 text-brand-600"
                           }`}>
                         {notification.type === "order" ? <Megaphone size={20} /> : <Bell size={20} />}
                       </div>
 
                       <div className="flex-1">
                         <h3
-                          className={`font-extrabold text-gray-900 mb-0.5 text-sm ${!notification.isRead ? "text-brand-900" : "text-gray-700 font-bold"}`}>
+                          className={`font-extrabold text-gray-900 mb-0.5 text-[16px] ${!notification.isRead ? "text-brand-900" : "text-gray-700 font-bold"}`}>
                           {notification.title}
                         </h3>
-                        <p className={`text-xs mb-2 leading-snug ${!notification.isRead ? "text-gray-900 font-medium" : "text-gray-500"}`}>
+                        <p className={`text-[14px] mb-2 leading-snug ${!notification.isRead ? "text-gray-900 font-medium" : "text-gray-700"}`}>
                           {notification.message}
                         </p>
-                        <div className="flex items-center text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                        <div className="flex items-center text-[13.5px] text-gray-600 font-bold uppercase tracking-wider">
                           <Clock size={10} className="mr-1" />
                           {new Date(notification.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, {new Date(notification.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
@@ -180,7 +180,7 @@ const Notifications = () => {
                   <Bell size={40} className="text-gray-300" />
                 </div>
                 <h3 className="ds-h3 text-gray-900 mb-2">You're All Caught Up!</h3>
-                <p className="text-gray-500 text-sm max-w-[200px] mx-auto">
+                <p className="text-gray-700 text-[16px] max-w-[200px] mx-auto">
                   New notifications will appear here automatically.
                 </p>
               </motion.div>

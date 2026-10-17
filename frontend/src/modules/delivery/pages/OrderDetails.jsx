@@ -698,14 +698,14 @@ const OrderDetails = () => {
         {!isReturn && isAssignedRider && step <= 2 && (
           <button
             onClick={handleRiderCancelOrder}
-            className="text-[10px] font-bold text-rose-600 uppercase tracking-wide hover:underline"
+            className="text-[13.5px] font-bold text-rose-600 uppercase tracking-wide hover:underline"
           >
             Cancel Order
           </button>
         )}
         <div className="flex flex-col items-end">
           <span
-            className={`text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wide ${publicStatusStage === 1
+            className={`text-[14px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wide ${publicStatusStage === 1
                 ? "bg-brand-100 text-brand-700"
                 : publicStatusStage === 2
                   ? "bg-amber-100 text-amber-700"
@@ -726,7 +726,7 @@ const OrderDetails = () => {
             order.payment?.method?.toLowerCase() === "cod") &&
             !isReturn &&
             step < 4 && (
-              <span className={`mt-1 text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm animate-pulse bg-orange-600`}>
+              <span className={`mt-1 text-white text-[13.5px] font-black px-2 py-0.5 rounded shadow-sm animate-pulse bg-orange-600`}>
                 COLLECT CASH: ₹{Math.max(0, (order.pricing?.total || 0) - (order.pricing?.walletAmount || 0))}
               </span>
             )}
@@ -755,14 +755,14 @@ const OrderDetails = () => {
                   <h2 className="text-2xl font-black mb-1 uppercase tracking-tight text-white">
                     New Return Task
                   </h2>
-                  <p className="text-brand-100 text-sm font-medium leading-relaxed">
+                  <p className="text-brand-100 text-[16px] font-medium leading-relaxed">
                     Pick up product from customer and deliver back to seller.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 w-full pt-4">
                   <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm border border-white/10">
-                    <p className="text-[10px] uppercase font-bold text-brand-200 mb-1">
+                    <p className="text-[13.5px] uppercase font-bold text-brand-200 mb-1">
                       Earnings
                     </p>
                     <p className="text-xl font-black text-white">
@@ -770,7 +770,7 @@ const OrderDetails = () => {
                     </p>
                   </div>
                   <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm border border-white/10">
-                    <p className="text-[10px] uppercase font-bold text-brand-200 mb-1">
+                    <p className="text-[13.5px] uppercase font-bold text-brand-200 mb-1">
                       Distance
                     </p>
                     <p className="text-xl font-black text-white">
@@ -781,7 +781,7 @@ const OrderDetails = () => {
 
                 {/* Product Detail List */}
                 <div className="w-full space-y-3 pt-2">
-                  <p className="text-[10px] uppercase font-bold text-brand-200 text-left px-1">
+                  <p className="text-[13.5px] uppercase font-bold text-brand-200 text-left px-1">
                     Items to pick up
                   </p>
                   <div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar-dark text-left">
@@ -795,18 +795,18 @@ const OrderDetails = () => {
                           />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-white truncate">{item.name}</p>
-                          <p className="text-[10px] text-brand-200 font-medium">Qty: {item.quantity}</p>
+                          <p className="text-[16px] font-bold text-white truncate">{item.name}</p>
+                          <p className="text-[13.5px] text-brand-200 font-medium">Qty: {item.quantity}</p>
                         </div>
                       </div>
                     ))}
                   </div>
                   {order.returnReason && (
                     <div className="bg-brand-900/30 rounded-xl p-3 border border-brand-400/20 text-left">
-                      <p className="text-[10px] uppercase font-bold text-brand-200 mb-1">Reason for return</p>
-                      <p className="text-xs text-white leading-relaxed line-clamp-2">{order.returnReason}</p>
+                      <p className="text-[13.5px] uppercase font-bold text-brand-200 mb-1">Reason for return</p>
+                      <p className="text-[14px] text-white leading-relaxed line-clamp-2">{order.returnReason}</p>
                       {order.returnReasonDetail && (
-                        <p className="text-[10px] text-brand-100 italic mt-1 line-clamp-2">"{order.returnReasonDetail}"</p>
+                        <p className="text-[13.5px] text-brand-100 italic mt-1 line-clamp-2">"{order.returnReasonDetail}"</p>
                       )}
 
                       {order.returnImages?.length > 0 && (
@@ -840,7 +840,7 @@ const OrderDetails = () => {
               className="bg-red-50 rounded-2xl p-4 border border-red-100 flex items-center text-red-700 mb-6"
             >
               <AlertTriangle className="mr-3" size={20} />
-              <p className="font-bold text-sm">
+              <p className="font-bold text-[16px]">
                 This task has been accepted by another partner.
               </p>
             </motion.div>
@@ -876,7 +876,7 @@ const OrderDetails = () => {
               <Navigation size={20} />
             </div>
             <div>
-              <p className="text-[11px] font-bold text-[#C85D00] uppercase tracking-wider">
+              <p className="text-[14px] font-bold text-[#C85D00] uppercase tracking-wider">
                 Estimated Time
               </p>
               <p className="text-xl font-black text-[#8B3F00] leading-none">
@@ -886,14 +886,14 @@ const OrderDetails = () => {
           </div>
           <div className="text-right flex flex-col items-end gap-2">
             <div>
-              <p className="text-[11px] font-bold text-[#C85D00] uppercase tracking-wider">
+              <p className="text-[14px] font-bold text-[#C85D00] uppercase tracking-wider">
                 Arriving in
               </p>
               <p className="text-xl font-black text-[#8B3F00] leading-none">
                 {summary.arrivingInText}
               </p>
             </div>
-            <div className="inline-flex items-center rounded-full bg-white/80 px-3 py-1.5 text-[11px] font-bold text-[#C87400] ring-1 ring-[#F4D98B]">
+            <div className="inline-flex items-center rounded-full bg-white/80 px-3 py-1.5 text-[14px] font-bold text-[#C87400] ring-1 ring-[#F4D98B]">
               Total distance: {summary.totalDistanceText}
             </div>
           </div>
@@ -920,14 +920,14 @@ const OrderDetails = () => {
                   borderColor: id <= publicStatusStage ? "var(--primary)" : "#e5e7eb",
                   color: id <= publicStatusStage ? "#ffffff" : "#9ca3af",
                 }}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 z-10 shadow-sm"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[14px] font-bold border-2 z-10 shadow-sm"
                 aria-label={label}
               >
                 {id < publicStatusStage ? <CheckCircle size={16} /> : id}
               </motion.div>
             ))}
           </div>
-          <div className="flex justify-between mt-2 text-xs text-slate-500 font-medium px-1">
+          <div className="flex justify-between mt-2 text-[14px] text-slate-700 font-medium px-1">
             {PUBLIC_STATUS_STEPS.map(({ id, label }) => (
               <span key={id} className="text-center">
                 {label}
@@ -960,7 +960,7 @@ const OrderDetails = () => {
                       <h2 className="font-bold text-gray-800">
                         {isReturn ? "Customer Pickup" : "Pickup Location"}
                       </h2>
-                      <p className="text-xs text-orange-600 font-medium">
+                      <p className="text-[14px] text-orange-600 font-medium">
                         {isReturn ? "Customer Address" : isExpress ? "Athreya Express Pickup" : "Store Location"}
                       </p>
                     </div>
@@ -986,7 +986,7 @@ const OrderDetails = () => {
                         ? order.pickupAddress?.name || "Pickup Contact"
                         : order.seller?.shopName || "Seller Store"}
                   </h3>
-                  <p className="text-gray-500 text-sm mb-4 leading-relaxed">
+                  <p className="text-gray-700 text-[16px] mb-4 leading-relaxed">
                     {isReturn
                       ? order.address?.address || "Address not available"
                       : isExpress
@@ -1008,8 +1008,8 @@ const OrderDetails = () => {
                       <Camera className="w-5 h-5 text-purple-700" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-gray-900 text-sm">Upload Shop Bill</h4>
-                      <p className="text-xs text-gray-500">A photo of the original merchant bill is required</p>
+                      <h4 className="font-bold text-gray-900 text-[16px]">Upload Shop Bill</h4>
+                      <p className="text-[14px] text-gray-700">A photo of the original merchant bill is required</p>
                     </div>
                   </div>
 
@@ -1021,7 +1021,7 @@ const OrderDetails = () => {
                       <button
                         onClick={() => billFileInputRef.current?.click()}
                         disabled={isUploadingBill}
-                        className="text-xs font-bold text-purple-700 flex items-center gap-1 hover:underline"
+                        className="text-[14px] font-bold text-purple-700 flex items-center gap-1 hover:underline"
                       >
                         {isUploadingBill ? "Uploading..." : "Change Photo"}
                       </button>
@@ -1036,9 +1036,9 @@ const OrderDetails = () => {
                         <Loader2 className="w-6 h-6 text-purple-700 animate-spin" />
                       ) : (
                         <>
-                          <Camera className="w-8 h-8 text-gray-400 mb-2" />
-                          <span className="text-sm font-bold text-gray-700">Take Photo of Shop Bill</span>
-                          <span className="text-xs text-gray-400 mt-1">Image required to proceed</span>
+                          <Camera className="w-8 h-8 text-gray-600 mb-2" />
+                          <span className="text-[16px] font-bold text-gray-700">Take Photo of Shop Bill</span>
+                          <span className="text-[14px] text-gray-600 mt-1">Image required to proceed</span>
                         </>
                       )}
                     </button>
@@ -1082,7 +1082,7 @@ const OrderDetails = () => {
                       </h2>
                       <div className="flex items-center space-x-2 mt-0.5">
                         <p
-                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${order.payment?.method?.toLowerCase() === "cash" ||
+                          className={`text-[13.5px] font-bold px-1.5 py-0.5 rounded border ${order.payment?.method?.toLowerCase() === "cash" ||
                               order.payment?.method?.toLowerCase() === "cod"
                               ? "bg-orange-50 text-orange-700 border-orange-200"
                               : "bg-brand-50 text-brand-700 border-brand-200"
@@ -1090,7 +1090,7 @@ const OrderDetails = () => {
                         >
                           {order.payment?.method?.toUpperCase() || "PENDING"}
                         </p>
-                        <p className="text-[10px] text-gray-400 font-medium">Bill: Rs.{order.pricing?.total}</p>
+                        <p className="text-[13.5px] text-gray-600 font-medium">Bill: Rs.{order.pricing?.total}</p>
                       </div>
                     </div>
                   </div>
@@ -1118,10 +1118,10 @@ const OrderDetails = () => {
                       ? order.seller?.shopName || "Seller Store"
                       : order.address?.name || "Customer"}
                   </h3>
-                  <p className="text-gray-500 text-sm mb-1">
+                  <p className="text-gray-700 text-[16px] mb-1">
                     {isReturn ? order.seller?.address : order.address?.address}
                   </p>
-                  <p className="text-gray-500 text-sm mb-4">
+                  <p className="text-gray-700 text-[16px] mb-4">
                     {isReturn ? order.seller?.address : order.address?.city}
                   </p>
                   <Button onClick={handleNavigate} className="w-full bg-black  hover:bg-brand-700 text-primary-foreground border-none">
@@ -1143,7 +1143,7 @@ const OrderDetails = () => {
                 </div>
                 <div>
                   <span>Custom Pickup Details</span>
-                  <span className="ml-2 text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                  <span className="ml-2 text-[14px] font-normal text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full">
                     {order.pickupType === "pay_and_collect" ? "Pay & Collect" : "Prepaid"}
                   </span>
                 </div>
@@ -1151,14 +1151,14 @@ const OrderDetails = () => {
 
               {order.parcelDetails && (
                 <div className="p-3 bg-white border border-gray-100 rounded-xl">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Parcel Description</p>
-                  <p className="text-sm font-semibold text-gray-800 leading-relaxed whitespace-pre-wrap">{order.parcelDetails}</p>
+                  <p className="text-[13.5px] font-black text-gray-600 uppercase tracking-widest mb-1">Parcel Description</p>
+                  <p className="text-[16px] font-semibold text-gray-800 leading-relaxed whitespace-pre-wrap">{order.parcelDetails}</p>
                 </div>
               )}
 
               {order.parcelImage && (
                 <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Order Screenshot / Image</p>
+                  <p className="text-[13.5px] font-black text-gray-600 uppercase tracking-widest mb-2">Order Screenshot / Image</p>
                   <div className="max-w-xs rounded-xl overflow-hidden ring-1 ring-slate-100 shadow-sm">
                     <img src={order.parcelImage} alt="Parcel proof" className="w-full object-cover max-h-48" />
                   </div>
@@ -1167,8 +1167,8 @@ const OrderDetails = () => {
 
               <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-center justify-between text-amber-800">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Collect Instruction</p>
-                  <p className="text-xs font-bold mt-0.5">
+                  <p className="text-[13.5px] font-black uppercase tracking-widest text-amber-600">Collect Instruction</p>
+                  <p className="text-[14px] font-bold mt-0.5">
                     {order.pickupType === "pay_and_collect"
                       ? `Pay cash ₹${order.billAmount} at shop and collect`
                       : "Collect prepaid parcel from shop"}
@@ -1176,13 +1176,13 @@ const OrderDetails = () => {
                 </div>
                 {order.pickupType === "pay_and_collect" && (
                   <div className="text-right">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Reimbursement</p>
-                    <p className="text-sm font-black">₹{order.billAmount}</p>
+                    <p className="text-[13.5px] font-black uppercase tracking-widest text-amber-600">Reimbursement</p>
+                    <p className="text-[16px] font-black">₹{order.billAmount}</p>
                   </div>
                 )}
               </div>
 
-              <div className="pt-3 border-t border-gray-200 flex justify-between items-center text-sm font-bold text-gray-900">
+              <div className="pt-3 border-t border-gray-200 flex justify-between items-center text-[16px] font-bold text-gray-900">
                 <span>Rider Payout</span>
                 <span>Rs.{order.paymentBreakdown?.riderPayoutTotal || 0}</span>
               </div>
@@ -1199,13 +1199,13 @@ const OrderDetails = () => {
                   </div>
                   <div>
                     <span>Order Items</span>
-                    <span className="ml-2 text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                    <span className="ml-2 text-[14px] font-normal text-gray-700 bg-gray-100 px-2 py-0.5 rounded-full">
                       {order.items?.length || 0} items
                     </span>
                   </div>
                 </div>
                 <motion.div animate={{ rotate: itemsExpanded ? 180 : 0 }} transition={{ duration: 0.3 }}>
-                  <ChevronDown size={20} className="text-gray-400" />
+                  <ChevronDown size={20} className="text-gray-600" />
                 </motion.div>
               </motion.div>
 
@@ -1220,9 +1220,9 @@ const OrderDetails = () => {
                   >
                     <div className="p-4 border-t border-gray-100 bg-gray-50/50 space-y-3">
                       {(isReturn ? order.returnItems : order.items)?.map((item, i) => (
-                        <div key={i} className="flex justify-between items-center text-sm">
+                        <div key={i} className="flex justify-between items-center text-[16px]">
                           <div className="flex items-center">
-                            <span className="font-bold text-gray-500 mr-3 text-xs w-6 bg-white border border-gray-200 text-center rounded py-0.5">
+                            <span className="font-bold text-gray-700 mr-3 text-[14px] w-6 bg-white border border-gray-200 text-center rounded py-0.5">
                               x{item.quantity}
                             </span>
                             <span className="text-gray-800 font-medium">{item.name}</span>
@@ -1231,7 +1231,7 @@ const OrderDetails = () => {
                         </div>
                       ))}
                       <div className="pt-3 mt-2 border-t border-gray-200 flex justify-between items-center">
-                        <span className="text-gray-500 text-sm">Total Bill</span>
+                        <span className="text-gray-700 text-[16px]">Total Bill</span>
                         <span className="text-lg font-bold text-gray-900">Rs.{order.pricing?.total}</span>
                       </div>
                     </div>
@@ -1249,7 +1249,7 @@ const OrderDetails = () => {
           transition={{ delay: 0.2 }}
         >
           <AlertTriangle className="text-yellow-600 mr-3 mt-0.5 flex-shrink-0" size={18} />
-          <p className="text-sm text-yellow-800 leading-relaxed">
+          <p className="text-[16px] text-yellow-800 leading-relaxed">
             <strong>Note:</strong> Handle eggs with care. Call customer if location is hard to find.
           </p>
         </motion.div>
@@ -1268,7 +1268,7 @@ const OrderDetails = () => {
                   <ShieldCheck className="mr-2 text-primary" size={24} />
                   <h3 className="font-bold text-lg">Request Pickup OTP</h3>
                 </div>
-                <p className="text-gray-500 text-sm mb-4">
+                <p className="text-gray-700 text-[16px] mb-4">
                   Proof uploaded ✅. Slide to send OTP to customer.
                 </p>
                 <DeliverySlideButton
@@ -1293,7 +1293,7 @@ const OrderDetails = () => {
                 <ShieldCheck className="mr-2 text-orange-600" size={24} />
                 <h3 className="font-bold text-lg">Request Pickup OTP</h3>
               </div>
-              <p className="text-gray-500 text-sm mb-4">
+              <p className="text-gray-700 text-[16px] mb-4">
                 Slide to send a 4-digit code to the sender. Ask them for it before taking the parcel.
               </p>
               <DeliverySlideButton
@@ -1332,7 +1332,7 @@ const OrderDetails = () => {
                 <ShieldCheck className="mr-2 text-primary" size={24} />
                 <h3 className="font-bold text-lg">Generate Delivery OTP</h3>
               </div>
-              <p className="text-gray-500 text-sm mb-4">
+              <p className="text-gray-700 text-[16px] mb-4">
                 Slide to generate OTP for the customer.
               </p>
               <DeliverySlideButton
@@ -1353,7 +1353,7 @@ const OrderDetails = () => {
                 <ShieldCheck className="mr-2 text-green-600" size={24} />
                 <h3 className="font-bold text-lg">Request Seller OTP</h3>
               </div>
-              <p className="text-gray-500 text-sm mb-4">
+              <p className="text-gray-700 text-[16px] mb-4">
                 Slide to send OTP to seller (via app + SMS). Seller will share it with you.
               </p>
               <DeliverySlideButton
@@ -1420,7 +1420,7 @@ const OrderDetails = () => {
           <div className="max-w-2xl mx-auto p-4">
             <div className="relative h-16 bg-slate-100 rounded-full overflow-hidden select-none">
               <motion.div
-                className={`absolute inset-0 flex items-center justify-center text-slate-400 font-bold text-lg pointer-events-none transition-opacity duration-300 ${dragX > 50 ? "opacity-0" : "opacity-100"
+                className={`absolute inset-0 flex items-center justify-center text-slate-600 font-bold text-lg pointer-events-none transition-opacity duration-300 ${dragX > 50 ? "opacity-0" : "opacity-100"
                   }`}
                 animate={{ x: [0, 5, 0] }}
                 transition={{ repeat: Infinity, duration: 1.5 }}

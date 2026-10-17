@@ -145,10 +145,10 @@ const ShopProductSearch = ({ query }) => {
                 </div>
                 <div className="min-w-0">
                   <h4 className="text-[14px] font-black text-slate-900 truncate">{shop.name}</h4>
-                  <div className="flex items-center gap-1.5 mt-0.5 text-[10.5px] text-slate-500 font-bold flex-wrap">
+                  <div className="flex items-center gap-1.5 mt-0.5 text-[12px] text-slate-500 font-bold flex-wrap">
                     <span className="text-amber-500">{shop.rating} ★</span>
                     <span
-                      className={`px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                      className={`px-1.5 py-0.5 rounded-full text-[11px] font-black uppercase ${
                         closed ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"
                       }`}
                     >
@@ -161,14 +161,14 @@ const ShopProductSearch = ({ query }) => {
               </div>
               <button
                 onClick={() => navigate(`/shops/${shop.id}`)}
-                className="shrink-0 flex items-center gap-0.5 rounded-full bg-[#1a6e2e] text-white text-[11px] font-black px-3 py-2 border-0 cursor-pointer active:scale-95"
+                className="shrink-0 flex items-center gap-0.5 rounded-full bg-[#1a6e2e] text-white text-[12.5px] font-black px-3 py-2 border-0 cursor-pointer active:scale-95"
               >
                 Open shop <ChevronRight size={14} />
               </button>
             </div>
 
             {closed && (
-              <p className="text-[11px] font-bold text-red-600 bg-red-50 rounded-xl px-3 py-2">
+              <p className="text-[12.5px] font-bold text-red-600 bg-red-50 rounded-xl px-3 py-2">
                 {shop.closedMessage || "This shop is closed right now."} You can order once it opens.
               </p>
             )}

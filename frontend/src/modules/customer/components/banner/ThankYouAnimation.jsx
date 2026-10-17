@@ -54,7 +54,7 @@ const ThankYouAnimation = memo(({ isThankYouStage }) => {
                             <CheckCircle size={56} className="stroke-[2.5]" />
                         </motion.div>
                         <h2 className="text-lg md:text-2xl font-black text-white mt-1">Order Delivered Successfully</h2>
-                        <span className="text-[10px] bg-green-900/50 text-[#A3E635] px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider">
+                        <span className="text-[12px] bg-green-900/50 text-[#A3E635] px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider">
                             OTP Verified
                         </span>
                     </motion.div>
@@ -77,7 +77,7 @@ const ThankYouAnimation = memo(({ isThankYouStage }) => {
                             🙏
                         </motion.span>
                         <h2 className="text-xl md:text-3xl font-black text-[#A3E635] mt-1">Thank You!</h2>
-                        <p className="text-[11px] md:text-sm text-slate-200 font-bold max-w-sm">
+                        <p className="text-[12.5px] md:text-sm text-slate-200 font-bold max-w-sm">
                             Thank you for ordering with Athreya Delivery. Hope you enjoy your meal!
                         </p>
                     </motion.div>

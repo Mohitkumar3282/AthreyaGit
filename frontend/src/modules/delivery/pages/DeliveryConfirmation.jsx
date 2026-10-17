@@ -103,7 +103,7 @@ const DeliveryConfirmation = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
-          className="text-gray-500 mb-8">
+          className="text-gray-700 mb-8">
           Order #{orderId} has been delivered.
         </motion.p>
         <motion.div
@@ -125,7 +125,7 @@ const DeliveryConfirmation = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6 pt-2">
         <h1 className="ds-h2 text-gray-900">Confirm Delivery</h1>
-        <div className="text-xs font-bold text-gray-400">Order: #{orderId}</div>
+        <div className="text-[14px] font-bold text-gray-600">Order: #{orderId}</div>
       </div>
 
       <div className="flex-1 space-y-6 max-w-lg mx-auto w-full">
@@ -138,7 +138,7 @@ const DeliveryConfirmation = () => {
             className={`p-6 border-l-4 ${isPrepaid ? "border-l-brand-500 bg-brand-50/30" : "border-l-orange-500 bg-orange-50/30"}`}>
             <div className="flex justify-between items-start mb-4">
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
+                <p className="text-[14px] font-bold uppercase tracking-wider text-gray-700 mb-1">
                   {isPrepaid ? "Payment Status" : "Amount to Collect"}
                 </p>
                 <h2
@@ -158,12 +158,12 @@ const DeliveryConfirmation = () => {
 
             {!isPrepaid && (
               <div className="bg-white p-4 rounded-xl border border-orange-100 shadow-sm mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-[16px] font-medium text-gray-700 mb-2">
                   Cash Received
                 </label>
                 <div className="relative rounded-md shadow-sm">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                    <span className="text-gray-500 sm:text-sm font-bold">
+                    <span className="text-gray-700 sm:text-[16px] font-bold">
                       ₹
                     </span>
                   </div>
@@ -179,7 +179,7 @@ const DeliveryConfirmation = () => {
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
-                    className="mt-3 p-2 bg-brand-50 border border-brand-100 rounded-lg text-sm text-brand-700 font-medium flex items-center">
+                    className="mt-3 p-2 bg-brand-50 border border-brand-100 rounded-lg text-[16px] text-brand-700 font-medium flex items-center">
                     <CheckCircle size={16} className="mr-2" />
                     Return Change:{" "}
                     <span className="font-bold ml-1">
@@ -203,7 +203,7 @@ const DeliveryConfirmation = () => {
                 <ShieldCheck className="mr-2 text-primary" size={24} />
                 <h3 className="font-bold text-lg">Generate Delivery OTP</h3>
               </div>
-              <p className="text-gray-500 text-sm mb-4">
+              <p className="text-gray-700 text-[16px] mb-4">
                 Slide the button below to generate an OTP for the customer. You must be within 0-120 meters of the delivery location.
               </p>
 
@@ -235,9 +235,9 @@ const DeliveryConfirmation = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.4 }}>
           <Card className="p-0 overflow-hidden">
-            <button className="w-full p-4 flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors">
-              <Camera size={32} className="mb-2 text-gray-400" />
-              <span className="font-medium text-sm">
+            <button className="w-full p-4 flex flex-col items-center justify-center text-gray-700 hover:bg-gray-50 transition-colors">
+              <Camera size={32} className="mb-2 text-gray-600" />
+              <span className="font-medium text-[16px]">
                 Upload Photo Proof (Optional)
               </span>
             </button>

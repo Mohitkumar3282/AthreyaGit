@@ -26,7 +26,7 @@ const Footer = () => {
                             </div>
                             <div className="flex flex-col items-start leading-none font-sans">
                                 <span className="text-base md:text-lg font-[1000] text-[#0d4d29] tracking-wide uppercase">ATHREYA</span>
-                                <span className="text-[9px] md:text-[10px] font-bold text-[#0d4d29] tracking-[0.14em] mt-0.5 uppercase">DELIVERY</span>
+                                <span className="text-[11px] md:text-[12px] font-bold text-[#0d4d29] tracking-[0.14em] mt-0.5 uppercase">DELIVERY</span>
                             </div>
                         </div>
                         <p className="text-xs leading-relaxed md:text-sm md:leading-normal text-slate-600 md:max-w-xs font-medium">

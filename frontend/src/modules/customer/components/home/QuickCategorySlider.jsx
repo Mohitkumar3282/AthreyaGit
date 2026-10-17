@@ -70,7 +70,7 @@ const QuickCategorySlider = ({ categories, onCategoryClick }) => {
                     className="absolute left-1/2 top-2.5 md:top-3 z-10 h-[56px] w-[56px] md:h-[64px] md:w-[64px] -translate-x-1/2 object-contain drop- mix-blend-multiply group-hover/item:scale-110 transition-transform duration-500"
                   />
                   <div className="absolute inset-x-1.5 md:inset-x-2 bottom-1.5 z-20 text-center">
-                    <span className="block text-[9px] md:text-[10px] lg:text-[11px] font-semibold text-[#1f2b20] leading-tight whitespace-nowrap overflow-hidden text-ellipsis drop- group-hover/item:text-[#1a6e2e] transition-colors">
+                    <span className="block text-[11px] md:text-[12px] lg:text-[12.5px] font-semibold text-[#1f2b20] leading-tight whitespace-nowrap overflow-hidden text-ellipsis drop- group-hover/item:text-[#1a6e2e] transition-colors">
                       {cat.name}
                     </span>
                   </div>

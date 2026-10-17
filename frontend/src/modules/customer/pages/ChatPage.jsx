@@ -399,7 +399,7 @@ const ChatPage = () => {
               <h1 className="text-base font-black text-slate-800 leading-none">
                 Support Chat
               </h1>
-              <p className="text-[10px] text-[#1a6e2e] font-bold mt-1 uppercase tracking-wider flex items-center gap-1">
+              <p className="text-[12px] text-[#1a6e2e] font-bold mt-1 uppercase tracking-wider flex items-center gap-1">
                 <span className="h-1 w-1 bg-[#1a6e2e]/10 rounded-full"></span>
                 Online
               </p>
@@ -471,7 +471,7 @@ const ChatPage = () => {
               </div>
               {msg.time ? (
                 <span
-                  className={`text-[10px] text-slate-400 mt-1 px-1 font-medium ${
+                  className={`text-[12px] text-slate-400 mt-1 px-1 font-medium ${
                     msg.sender === "user" ? "text-right" : "text-left"
                   }`}
                 >

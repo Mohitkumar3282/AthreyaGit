@@ -108,7 +108,7 @@ const CodCash = () => {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="ds-h2 text-gray-900">COD Cash</h1>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-[14px] text-gray-700 mt-1">
               Simple view of what you should collect and what you should submit.
             </p>
           </div>
@@ -119,7 +119,7 @@ const CodCash = () => {
             onClick={fetchSummary}
             aria-label="Refresh"
           >
-            <RotateCw size={18} className={loading ? "animate-spin text-gray-400" : "text-gray-600"} />
+            <RotateCw size={18} className={loading ? "animate-spin text-gray-600" : "text-gray-600"} />
           </Button>
         </div>
       </div>
@@ -134,14 +134,14 @@ const CodCash = () => {
           <Card className="p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                <p className="text-[14px] font-bold text-gray-700 uppercase tracking-wide mb-1">
                   Cash To Submit
                 </p>
                 <p className="text-3xl font-extrabold text-gray-900">
                   {RUPEE}
                   {safeMoney(data.systemFloatCOD).toLocaleString()}
                 </p>
-                <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+                <p className="text-[14px] text-gray-700 mt-2 leading-relaxed">
                   This is the platform money you are holding for COD orders.
                   It is calculated after your delivery commission.
                 </p>
@@ -153,7 +153,7 @@ const CodCash = () => {
 
             <div className="grid grid-cols-2 gap-3 mt-4">
               <div className="rounded-xl bg-gray-50 border border-gray-100 p-3">
-                <p className="text-[11px] font-bold text-gray-500 uppercase">
+                <p className="text-[14px] font-bold text-gray-700 uppercase">
                   Cash In Hand
                 </p>
                 <p className="text-lg font-bold text-gray-900">
@@ -162,7 +162,7 @@ const CodCash = () => {
                 </p>
               </div>
               <div className="rounded-xl bg-gray-50 border border-gray-100 p-3">
-                <p className="text-[11px] font-bold text-gray-500 uppercase">
+                <p className="text-[14px] font-bold text-gray-700 uppercase">
                   Pending Orders
                 </p>
                 <p className="text-lg font-bold text-gray-900">{pendingOrdersCount}</p>
@@ -173,26 +173,26 @@ const CodCash = () => {
               <div className="flex flex-col gap-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-bold text-orange-700 uppercase">
+                    <p className="text-[14px] font-bold text-orange-700 uppercase">
                       Ready To Pay Now
                     </p>
                     <p className="text-xl font-extrabold text-gray-900 mt-1">
                       {RUPEE}
                       {safeMoney(payableNowAmount).toLocaleString()}
                     </p>
-                    <p className="text-xs text-gray-600 mt-1">
+                    <p className="text-[14px] text-gray-600 mt-1">
                       Only cash from collected orders can be paid now.
                     </p>
                   </div>
                 </div>
 
                 <div>
-                  <p className="text-[11px] font-bold text-orange-700 uppercase">
+                  <p className="text-[14px] font-bold text-orange-700 uppercase">
                     Enter Amount
                   </p>
                   <div className="mt-2 flex items-center gap-3">
                     <div className="flex-1 rounded-xl border border-orange-200 bg-white px-4 py-3">
-                      <label className="text-[11px] font-bold text-gray-500 uppercase block mb-1">
+                      <label className="text-[14px] font-bold text-gray-700 uppercase block mb-1">
                         Amount To Pay
                       </label>
                       <div className="flex items-center gap-2">
@@ -217,12 +217,12 @@ const CodCash = () => {
                       {paying ? "Paying..." : "Pay Admin"}
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-600 mt-2">
+                  <p className="text-[14px] text-gray-600 mt-2">
                     Max you can pay right now: {RUPEE}
                     {safeMoney(payableNowAmount).toLocaleString()}
                   </p>
                   {payableNowAmount <= 0 && (
-                    <p className="text-xs text-orange-700 mt-1">
+                    <p className="text-[14px] text-orange-700 mt-1">
                       You can pay after COD cash is marked as collected.
                     </p>
                   )}
@@ -235,7 +235,7 @@ const CodCash = () => {
         <motion.div variants={itemVariants}>
           <Card className="p-6">
             <h3 className="font-bold text-gray-900 mb-1">To Collect From Customer</h3>
-            <p className="text-xs text-gray-500 mb-4">
+            <p className="text-[14px] text-gray-700 mb-4">
               These COD orders are not marked as collected yet.
             </p>
 
@@ -246,13 +246,13 @@ const CodCash = () => {
                   className="flex items-center justify-between rounded-xl border border-orange-100 bg-orange-50/40 p-3"
                 >
                   <div>
-                    <p className="text-sm font-bold text-gray-900">Order #{row.orderId}</p>
-                    <p className="text-xs text-gray-600">
+                    <p className="text-[16px] font-bold text-gray-900">Order #{row.orderId}</p>
+                    <p className="text-[14px] text-gray-600">
                       Collect {RUPEE}
                       {safeMoney(row.amountGross).toLocaleString()} (gross)
                     </p>
                   </div>
-                  <p className="text-sm font-extrabold text-orange-700">
+                  <p className="text-[16px] font-extrabold text-orange-700">
                     {RUPEE}
                     {safeMoney(row.amountNetExpected).toLocaleString()}
                   </p>
@@ -260,7 +260,7 @@ const CodCash = () => {
               ))}
 
               {(!Array.isArray(data.toCollect) || data.toCollect.length === 0) && (
-                <div className="rounded-xl border border-dashed border-gray-200 p-4 text-center text-sm text-gray-400">
+                <div className="rounded-xl border border-dashed border-gray-200 p-4 text-center text-[16px] text-gray-600">
                   Nothing to collect right now.
                 </div>
               )}
@@ -271,7 +271,7 @@ const CodCash = () => {
         <motion.div variants={itemVariants}>
           <Card className="p-6">
             <h3 className="font-bold text-gray-900 mb-1">To Submit To Platform</h3>
-            <p className="text-xs text-gray-500 mb-4">
+            <p className="text-[14px] text-gray-700 mb-4">
               These orders are marked collected. Submit the net cash shown here.
             </p>
 
@@ -282,10 +282,10 @@ const CodCash = () => {
                   className="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-3"
                 >
                   <div>
-                    <p className="text-sm font-bold text-gray-900">Order #{row.orderId}</p>
-                    <p className="text-xs text-gray-500">Submit to platform (net)</p>
+                    <p className="text-[16px] font-bold text-gray-900">Order #{row.orderId}</p>
+                    <p className="text-[14px] text-gray-700">Submit to platform (net)</p>
                   </div>
-                  <p className="text-sm font-extrabold text-gray-900">
+                  <p className="text-[16px] font-extrabold text-gray-900">
                     {RUPEE}
                     {safeMoney(row.amountNetPending).toLocaleString()}
                   </p>
@@ -293,7 +293,7 @@ const CodCash = () => {
               ))}
 
               {(!Array.isArray(data.toRemit) || data.toRemit.length === 0) && (
-                <div className="rounded-xl border border-dashed border-gray-200 p-4 text-center text-sm text-gray-400">
+                <div className="rounded-xl border border-dashed border-gray-200 p-4 text-center text-[16px] text-gray-600">
                   Nothing to submit right now.
                 </div>
               )}

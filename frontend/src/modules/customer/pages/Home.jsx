@@ -578,8 +578,8 @@ const Home = () => {
           <div onClick={() => navigate("/")} className="cursor-pointer shrink-0 flex items-center gap-1.5">
             <img src={LogoWhiteBike} alt="Athreya Delivery" className="h-8 sm:h-9 w-auto object-contain" />
             <div className="flex flex-col items-start leading-none font-sans">
-              <span className="text-[10.5px] sm:text-[12.5px] font-black text-white tracking-wide uppercase">ATHREYA</span>
-              <span className="text-[7.5px] sm:text-[8.5px] font-extrabold text-amber-400 tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
+              <span className="text-[12px] sm:text-[12.5px] font-black text-white tracking-wide uppercase">ATHREYA</span>
+              <span className="text-[10px] sm:text-[11px] font-extrabold text-amber-400 tracking-[0.12em] mt-0.5 uppercase">DELIVERY</span>
             </div>
           </div>
 
@@ -598,7 +598,7 @@ const Home = () => {
               <ChevronDown size={12} className="opacity-80 shrink-0" />
             </div>
             {getTeluguAreaName(currentLocation) && (
-              <span className="block text-[10px] font-semibold text-slate-355 ml-4 leading-tight mt-0.5 truncate max-w-full">
+              <span className="block text-[12px] font-semibold text-slate-355 ml-4 leading-tight mt-0.5 truncate max-w-full">
                 {getTeluguAreaName(currentLocation)}
               </span>
             )}
@@ -621,7 +621,7 @@ const Home = () => {
                 )}>
                   <Languages size={18} />
                 </div>
-                <span className="text-[9px] font-black text-slate-300 mt-1">
+                <span className="text-[11px] font-black text-slate-300 mt-1">
                   {LANGUAGES.find((l) => l.code === language)?.code.toUpperCase() || "EN"}
                 </span>
               </button>
@@ -635,11 +635,11 @@ const Home = () => {
           >
             <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/20 relative">
               <ShoppingCart size={18} />
-              <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[9px] font-black rounded-full h-4 w-4 flex items-center justify-center border border-[#042A0F]">
+              <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[11px] font-black rounded-full h-4 w-4 flex items-center justify-center border border-[#042A0F]">
                 {cartCount > 0 ? cartCount : 3}
               </span>
             </div>
-            <span className="text-[9px] font-black text-slate-300 mt-1">కార్ట్</span>
+            <span className="text-[11px] font-black text-slate-300 mt-1">కార్ట్</span>
           </button>
         </div>
 
@@ -752,8 +752,8 @@ const Home = () => {
                           <img src={applyCloudinaryTransform(shop.shopLogo || shop.shopBanner)} alt={shop.shopName} className="w-full h-full object-cover" />
                         </div>
                         <div>
-                          <h5 className="text-[11px] font-black text-slate-800 line-clamp-1">{shop.shopName}</h5>
-                          <p className="text-[9px] font-bold text-slate-500 line-clamp-1 mt-1">{shop.locality || "Aswapuram"}</p>
+                          <h5 className="text-[12.5px] font-black text-slate-800 line-clamp-1">{shop.shopName}</h5>
+                          <p className="text-[11px] font-bold text-slate-500 line-clamp-1 mt-1">{shop.locality || "Aswapuram"}</p>
                         </div>
                       </div>
                     ))}
@@ -777,7 +777,7 @@ const Home = () => {
                             <img src={applyCloudinaryTransform(cat.image)} alt={cat.name} className="w-full h-full object-cover" />
                           )}
                         </div>
-                        <span className="text-[10px] font-black text-white text-center line-clamp-2 leading-tight">{cat.name}</span>
+                        <span className="text-[12px] font-black text-white text-center line-clamp-2 leading-tight">{cat.name}</span>
                       </button>
                     ))}
                   </div>
@@ -817,8 +817,8 @@ const Home = () => {
                   )}
                 </div>
                 <div className="flex flex-col items-center leading-none text-center">
-                  <span className="text-[9.5px] font-black text-white">{cat.label}</span>
-                  <span className="text-[8.5px] font-bold text-slate-300 mt-0.5">{cat.teluguLabel}</span>
+                  <span className="text-[11.5px] font-black text-white">{cat.label}</span>
+                  <span className="text-[11px] font-bold text-slate-300 mt-0.5">{cat.teluguLabel}</span>
                 </div>
               </div>
             ))}
@@ -836,7 +836,7 @@ const Home = () => {
                 <h3 className="text-[12.5px] font-black text-[#A3E635] tracking-wide uppercase">
                   ATHREYA EXCLUSIVE PARTNERS (ప్రత్యేక భాగస్వాములు)
                 </h3>
-                <button onClick={() => navigate('/shops')} className="text-[10.5px] font-black text-[#A3E635] hover:underline">
+                <button onClick={() => navigate('/shops')} className="text-[12px] font-black text-[#A3E635] hover:underline">
                   See All
                 </button>
               </div>
@@ -850,7 +850,7 @@ const Home = () => {
                     <div className="w-full h-[95px] relative">
                       <img src={store.image} alt={store.name} className={`w-full h-full object-cover ${store.isOpen ? "" : "grayscale opacity-70"}`} />
                       <span
-                        className={`absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide shadow ${
+                        className={`absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wide shadow ${
                           store.isOpen ? "bg-emerald-500 text-white" : "bg-red-600 text-white"
                         }`}
                       >
@@ -859,16 +859,16 @@ const Home = () => {
                     </div>
                     <div className="p-2 flex flex-col justify-between flex-1 leading-none">
                       <div>
-                        <h4 className="text-[10.5px] font-black text-slate-800 line-clamp-1">{store.name}</h4>
+                        <h4 className="text-[12px] font-black text-slate-800 line-clamp-1">{store.name}</h4>
                         {store.teluguName && (
-                          <p className="text-[8.5px] font-bold text-slate-500 line-clamp-1 mt-0.5">{store.teluguName}</p>
+                          <p className="text-[11px] font-bold text-slate-500 line-clamp-1 mt-0.5">{store.teluguName}</p>
                         )}
                       </div>
                       <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-slate-100">
-                        <span className="text-[9px] font-black text-slate-700 flex items-center gap-0.5">
-                          {store.rating} <span className="text-yellow-500 text-[8px]">★</span>
+                        <span className="text-[11px] font-black text-slate-700 flex items-center gap-0.5">
+                          {store.rating} <span className="text-yellow-500 text-[10.5px]">★</span>
                         </span>
-                        <span className="text-[8.5px] font-bold text-slate-500">
+                        <span className="text-[11px] font-bold text-slate-500">
                           {store.time}
                         </span>
                       </div>
@@ -892,17 +892,17 @@ const Home = () => {
                     ATHREYA EXPRESS
                   </h3>
                 </div>
-                <p className="text-[10px] sm:text-[11px] font-black text-white leading-tight mt-0.5">
+                <p className="text-[13px] sm:text-[13.5px] font-black text-white leading-tight mt-0.5">
                   “Send anything, anywhere in Aswapuram instantly”
                 </p>
-                <p className="text-[8.5px] sm:text-[9.5px] font-bold text-slate-350 leading-tight">
+                <p className="text-[12px] sm:text-[12.5px] font-bold text-slate-350 leading-tight">
                   (అశ్వాపురంలో ఏదైనా, ఎక్కడికైనా తక్షణమే పంపండి)
                 </p>
               </div>
 
               <button 
                 onClick={() => navigate('/pickup-delivery')}
-                className="text-[10px] font-black text-[#A3E635] bg-[#021f0b] border border-[#0d4f1c] px-2.5 py-1 rounded-full flex items-center gap-1 hover:bg-[#042A0F] active:scale-95 transition-all shrink-0"
+                className="text-[13px] font-black text-[#A3E635] bg-[#021f0b] border border-[#0d4f1c] px-2.5 py-1 rounded-full flex items-center gap-1 hover:bg-[#042A0F] active:scale-95 transition-all shrink-0"
               >
                 <span>5 Services</span>
                 <ArrowRight size={11} />
@@ -922,19 +922,19 @@ const Home = () => {
                     <div className="w-7 h-7 rounded-xl bg-[#042A0F] text-[#A3E635] flex items-center justify-center shadow-xs">
                       <HomeIcon size={14} />
                     </div>
-                    <div className="w-6 h-6 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px] group-hover:translate-x-0.5 transition-transform">
+                    <div className="w-6 h-6 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px] group-hover:translate-x-0.5 transition-transform">
                       →
                     </div>
                   </div>
 
-                  <h4 className="text-[11px] sm:text-[12px] font-black text-slate-900 leading-tight">
+                  <h4 className="text-[13.5px] sm:text-[14px] font-black text-slate-900 leading-tight">
                     Home to Home <br />
                     <span className="text-emerald-800">Pickup</span>
                   </h4>
-                  <p className="text-[8px] font-bold text-emerald-900/80 leading-none mt-0.5">
+                  <p className="text-[11.5px] font-bold text-emerald-900/80 leading-none mt-0.5">
                     (ఇంటి నుండి ఇంటికి పార్సెల్)
                   </p>
-                  <p className="text-[8px] font-medium text-slate-600 line-clamp-2 mt-1 leading-tight">
+                  <p className="text-[11.5px] font-medium text-slate-600 line-clamp-2 mt-1 leading-tight">
                     Send parcels from your home to any home in Aswapuram.
                   </p>
                 </div>
@@ -958,19 +958,19 @@ const Home = () => {
                     <div className="w-7 h-7 rounded-xl bg-[#064e3b] text-[#A3E635] flex items-center justify-center shadow-xs">
                       <Store size={14} />
                     </div>
-                    <div className="w-6 h-6 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px] group-hover:translate-x-0.5 transition-transform">
+                    <div className="w-6 h-6 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px] group-hover:translate-x-0.5 transition-transform">
                       →
                     </div>
                   </div>
 
-                  <h4 className="text-[11px] sm:text-[12px] font-black text-slate-900 leading-tight">
+                  <h4 className="text-[13.5px] sm:text-[14px] font-black text-slate-900 leading-tight">
                     Shop to Home <br />
                     <span className="text-emerald-800">Pickup</span>
                   </h4>
-                  <p className="text-[8px] font-bold text-emerald-900/80 leading-none mt-0.5">
+                  <p className="text-[11.5px] font-bold text-emerald-900/80 leading-none mt-0.5">
                     (షాప్ నుండి ఇంటికి పార్సెల్)
                   </p>
-                  <p className="text-[8px] font-medium text-slate-600 line-clamp-2 mt-1 leading-tight">
+                  <p className="text-[11.5px] font-medium text-slate-600 line-clamp-2 mt-1 leading-tight">
                     Get items from local shops delivered to your home.
                   </p>
                 </div>
@@ -994,19 +994,19 @@ const Home = () => {
                     <div className="w-7 h-7 rounded-xl bg-[#042A0F] text-[#A3E635] flex items-center justify-center shadow-xs">
                       <Truck size={14} />
                     </div>
-                    <div className="w-6 h-6 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px] group-hover:translate-x-0.5 transition-transform">
+                    <div className="w-6 h-6 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px] group-hover:translate-x-0.5 transition-transform">
                       →
                     </div>
                   </div>
 
-                  <h4 className="text-[11px] sm:text-[12px] font-black text-slate-900 leading-tight">
+                  <h4 className="text-[13.5px] sm:text-[14px] font-black text-slate-900 leading-tight">
                     Cargo to Home <br />
                     <span className="text-emerald-800">Pickup</span>
                   </h4>
-                  <p className="text-[8px] font-bold text-emerald-900/80 leading-none mt-0.5">
+                  <p className="text-[11.5px] font-bold text-emerald-900/80 leading-none mt-0.5">
                     (కార్గో / బస్సు పార్సెల్)
                   </p>
-                  <p className="text-[8px] font-medium text-slate-600 line-clamp-2 mt-1 leading-tight">
+                  <p className="text-[11.5px] font-medium text-slate-600 line-clamp-2 mt-1 leading-tight">
                     Transport parcels & cargo from bus/transport points.
                   </p>
                 </div>
@@ -1030,19 +1030,19 @@ const Home = () => {
                     <div className="w-7 h-7 rounded-xl bg-[#042A0F] text-[#A3E635] flex items-center justify-center shadow-xs">
                       <Bike size={14} />
                     </div>
-                    <div className="w-6 h-6 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[10px] group-hover:translate-x-0.5 transition-transform">
+                    <div className="w-6 h-6 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px] group-hover:translate-x-0.5 transition-transform">
                       →
                     </div>
                   </div>
 
-                  <h4 className="text-[11px] sm:text-[12px] font-black text-slate-900 leading-tight">
+                  <h4 className="text-[13.5px] sm:text-[14px] font-black text-slate-900 leading-tight">
                     Rider Pickup <br />
                     <span className="text-emerald-800">Request</span>
                   </h4>
-                  <p className="text-[8px] font-bold text-emerald-900/80 leading-none mt-0.5">
+                  <p className="text-[11.5px] font-bold text-emerald-900/80 leading-none mt-0.5">
                     (రైడర్ ద్వారా పికప్ / డ్రాప్)
                   </p>
-                  <p className="text-[8px] font-medium text-slate-600 line-clamp-2 mt-1 leading-tight">
+                  <p className="text-[11.5px] font-medium text-slate-600 line-clamp-2 mt-1 leading-tight">
                     Need something picked up and dropped? Book a rider now.
                   </p>
                 </div>
@@ -1071,12 +1071,12 @@ const Home = () => {
                 </div>
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-1">
-                    <span className="text-amber-500 text-xs">✨</span>
-                    <h4 className="text-[12px] sm:text-[13px] font-black text-[#042A0F] tracking-tight truncate">
+                    <span className="text-amber-500 text-[13.5px]">✨</span>
+                    <h4 className="text-[14px] sm:text-[15px] font-black text-[#042A0F] tracking-tight truncate">
                       WhatsApp Direct Order
                     </h4>
                   </div>
-                  <span className="text-[9px] font-bold text-emerald-800 leading-tight">
+                  <span className="text-[12px] font-bold text-emerald-800 leading-tight">
                     (వాట్సాప్ ద్వారా నేరుగా ఆర్డర్ చేయండి)
                   </span>
                 </div>
@@ -1085,7 +1085,7 @@ const Home = () => {
               <div className="shrink-0">
                 <button
                   type="button"
-                  className="px-3 py-1.5 bg-[#042A0F] hover:bg-[#063A16] text-[#A3E635] rounded-full text-[10px] sm:text-[11px] font-black flex items-center gap-1 shadow-md active:scale-95 transition-transform"
+                  className="px-3 py-1.5 bg-[#042A0F] hover:bg-[#063A16] text-[#A3E635] rounded-full text-[13px] sm:text-[13.5px] font-black flex items-center gap-1 shadow-md active:scale-95 transition-transform"
                 >
                   <span>Order via WhatsApp</span>
                   <span>&gt;</span>

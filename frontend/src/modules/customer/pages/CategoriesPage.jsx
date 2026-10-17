@@ -111,11 +111,11 @@ const CategoriesPage = () => {
                                                 />
                                             </div>
                                             <div className="text-center w-full flex flex-col items-center justify-center leading-none pb-0.5">
-                                                <span className="text-[9.5px] md:text-[11.5px] font-extrabold text-slate-900 tracking-tight block truncate max-w-full font-sans uppercase">
+                                                <span className="text-[11.5px] md:text-[11.5px] font-extrabold text-slate-900 tracking-tight block truncate max-w-full font-sans uppercase">
                                                     {category.name}
                                                 </span>
                                                 {getTeluguCategoryName(category.name) && (
-                                                    <span className="text-[8px] md:text-[10px] font-semibold text-slate-500 mt-1 block truncate max-w-full font-sans">
+                                                    <span className="text-[10.5px] md:text-[12px] font-semibold text-slate-500 mt-1 block truncate max-w-full font-sans">
                                                         {getTeluguCategoryName(category.name)}
                                                     </span>
                                                 )}

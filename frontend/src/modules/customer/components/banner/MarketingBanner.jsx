@@ -51,7 +51,7 @@ const MarketingBanner = memo(({ videoData, offers = [] }) => {
                 {/* Top Section: Time of day badge and dynamic scrolling offer */}
                 <div className="flex justify-between items-start w-full">
                     {/* Time period indicator */}
-                    <span className="px-2.5 py-0.5 bg-[#A3E635] text-[#042A0F] text-[9px] font-black rounded-full uppercase tracking-wider shadow-sm">
+                    <span className="px-2.5 py-0.5 bg-[#A3E635] text-[#042A0F] text-[11px] font-black rounded-full uppercase tracking-wider shadow-sm">
                         {videoData?.timeOfDay || "Today's Specials"}
                     </span>
 
@@ -59,7 +59,7 @@ const MarketingBanner = memo(({ videoData, offers = [] }) => {
                     {activeOffer && (
                         <div className="flex items-center gap-1 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10 text-[#A3E635] max-w-[60%] animate-in fade-in slide-in-from-top-1 duration-300">
                             <Tag size={10} className="shrink-0" />
-                            <span className="text-[8.5px] font-black tracking-tight truncate">
+                            <span className="text-[11px] font-black tracking-tight truncate">
                                 {activeOffer.type}: {activeOffer.value}
                             </span>
                         </div>
@@ -71,7 +71,7 @@ const MarketingBanner = memo(({ videoData, offers = [] }) => {
                     <div className="flex-1 min-w-0">
                         {/* Offer message */}
                         {activeOffer && (
-                            <p className="text-[#A3E635] text-[10px] font-bold uppercase tracking-wider mb-1 line-clamp-1">
+                            <p className="text-[#A3E635] text-[12px] font-bold uppercase tracking-wider mb-1 line-clamp-1">
                                 {activeOffer.title}
                             </p>
                         )}
@@ -82,7 +82,7 @@ const MarketingBanner = memo(({ videoData, offers = [] }) => {
                         </h2>
                         
                         {/* Subtitle */}
-                        <p className="text-[10px] md:text-sm text-slate-200 mt-0.5 leading-tight truncate">
+                        <p className="text-[12px] md:text-sm text-slate-200 mt-0.5 leading-tight truncate">
                             {videoData?.subtitle || "Delivered fast & fresh to your home"}
                         </p>
                     </div>
@@ -90,7 +90,7 @@ const MarketingBanner = memo(({ videoData, offers = [] }) => {
                     {/* CTA button */}
                     <Button 
                         size="sm"
-                        className="shrink-0 bg-[#A3E635] hover:bg-[#b0f53c] active:scale-95 text-[#042A0F] font-black text-[10px] md:text-xs rounded-xl px-4 py-2 flex items-center gap-1 border-0 shadow-md transition-transform"
+                        className="shrink-0 bg-[#A3E635] hover:bg-[#b0f53c] active:scale-95 text-[#042A0F] font-black text-[12px] md:text-xs rounded-xl px-4 py-2 flex items-center gap-1 border-0 shadow-md transition-transform"
                         onClick={() => {
                             if (videoData?.redirectUrl) {
                                 if (videoData.redirectUrl.startsWith("http://") || videoData.redirectUrl.startsWith("https://")) {

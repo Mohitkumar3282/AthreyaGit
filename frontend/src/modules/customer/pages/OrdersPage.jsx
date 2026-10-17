@@ -183,7 +183,7 @@ const OrdersPage = () => {
                                             <h3 className="font-semibold text-slate-900 text-sm tracking-tight leading-snug">
                                                 Order #{order.orderId?.slice(-6)}
                                             </h3>
-                                            <p className="mt-0.5 text-[11px] text-slate-500 font-medium leading-tight">
+                                            <p className="mt-0.5 text-[12.5px] text-slate-500 font-medium leading-tight">
                                                 {new Date(order.createdAt).toLocaleDateString('en-IN', {
                                                     day: 'numeric',
                                                     month: 'short',
@@ -198,7 +198,7 @@ const OrdersPage = () => {
                                     </div>
                                     <div className="flex flex-col items-end gap-1 shrink-0 text-right">
                                         <span
-                                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${statusStyle.badge}`}
+                                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-semibold uppercase tracking-[0.12em] ${statusStyle.badge}`}
                                         >
                                             <span className={`flex h-4 w-4 items-center justify-center rounded-full ${statusStyle.iconBg}`}>
                                                 <StatusIcon
@@ -208,7 +208,7 @@ const OrdersPage = () => {
                                             </span>
                                             <span>{getOrderStatusLabel(order).toUpperCase()}</span>
                                         </span>
-                                        <span className="inline-flex items-center text-[10px] font-medium text-slate-400">
+                                        <span className="inline-flex items-center text-[12px] font-medium text-slate-400">
                                             <span className="h-1 w-1 rounded-full bg-slate-300 mr-1" />
                                             Tap to view details
                                         </span>
@@ -216,11 +216,11 @@ const OrdersPage = () => {
                                 </div>
 
                                 <div className="border-t border-slate-100 pt-3 flex justify-between items-center gap-3">
-                                    <div className="text-[11px] text-slate-500 font-medium truncate max-w-[200px] sm:max-w-[260px]">
+                                    <div className="text-[12.5px] text-slate-500 font-medium truncate max-w-[200px] sm:max-w-[260px]">
                                         {Array.isArray(order.items) ? order.items.map((i) => i.name).join(', ') : ''}
                                     </div>
                                     <div className="flex items-center gap-1.5 shrink-0">
-                                        <span className="text-[11px] font-medium text-slate-400">Total</span>
+                                        <span className="text-[12.5px] font-medium text-slate-400">Total</span>
                                         <span className="text-sm font-semibold text-slate-900">
                                             ₹{order.pricing?.total ?? order.pricing?.payableAmount ?? 0}
                                         </span>
@@ -233,21 +233,21 @@ const OrdersPage = () => {
                                     <div className="mt-3 pt-2.5 border-t border-dashed border-amber-200/90 flex items-center justify-between gap-2 bg-gradient-to-r from-amber-50/90 via-emerald-50/50 to-transparent -mx-4 -mb-4 px-4 py-2 rounded-b-2xl">
                                         <div className="flex items-center gap-1.5 min-w-0">
                                             <span className="text-xs leading-none">🪙</span>
-                                            <span className="text-[11px] font-bold text-amber-950 truncate">
+                                            <span className="text-[12.5px] font-bold text-amber-950 truncate">
                                                 {legacy === 'delivered' ? 'Earned' : 'You Earn'}{' '}
                                                 <span className="text-[#0d592e] font-extrabold">
                                                     +{coinsEarned.toLocaleString('en-IN')} Athreya Coins
                                                 </span>
                                             </span>
                                         </div>
-                                        <span className="text-[10px] font-bold text-[#0d592e] bg-white/95 px-2 py-0.5 rounded-full border border-emerald-200/80 shrink-0 shadow-2xs">
+                                        <span className="text-[12px] font-bold text-[#0d592e] bg-white/95 px-2 py-0.5 rounded-full border border-emerald-200/80 shrink-0 shadow-2xs">
                                             ₹{(coinsEarned * 0.001).toFixed(2)} value
                                         </span>
                                     </div>
                                 )}
 
                                 {coinsRedeemed > 0 && coinsEarned === 0 && (
-                                    <div className="mt-3 pt-2 border-t border-dashed border-emerald-200/60 flex items-center justify-between text-[11px] text-emerald-800 -mx-4 -mb-4 px-4 py-1.5 bg-emerald-50/40 rounded-b-2xl">
+                                    <div className="mt-3 pt-2 border-t border-dashed border-emerald-200/60 flex items-center justify-between text-[12.5px] text-emerald-800 -mx-4 -mb-4 px-4 py-1.5 bg-emerald-50/40 rounded-b-2xl">
                                         <span>🪙 Redeemed {coinsRedeemed.toLocaleString('en-IN')} Coins</span>
                                         <span className="font-bold">-₹{Number(order?.coins?.redeemedValue || 0).toFixed(2)}</span>
                                     </div>

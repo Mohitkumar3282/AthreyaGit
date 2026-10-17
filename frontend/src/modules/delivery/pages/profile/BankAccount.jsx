@@ -39,24 +39,24 @@ const BankAccount = () => {
           
           <div className="flex justify-between items-start mb-8 relative z-10">
             <Landmark size={32} className="text-white/80" />
-            <span className="bg-brand-500/20 text-brand-300 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border border-brand-500/30 flex items-center">
+            <span className="bg-brand-500/20 text-brand-300 px-2 py-1 rounded text-[13.5px] font-bold uppercase tracking-wider border border-brand-500/30 flex items-center">
               <CheckCircle2 size={12} className="mr-1" /> Active
             </span>
           </div>
 
           <div className="space-y-1 relative z-10">
-            <p className="text-brand-200 text-xs uppercase tracking-wider">Account Number</p>
+            <p className="text-brand-200 text-[14px] uppercase tracking-wider">Account Number</p>
             <p className="font-mono text-2xl tracking-widest">{bankDetails.accountNumber}</p>
           </div>
 
           <div className="flex justify-between items-end mt-8 relative z-10">
             <div>
-              <p className="text-brand-200 text-xs uppercase tracking-wider mb-1">Account Holder</p>
+              <p className="text-brand-200 text-[14px] uppercase tracking-wider mb-1">Account Holder</p>
               <p className="font-bold text-lg">{bankDetails.accountHolder}</p>
             </div>
             <div className="text-right">
               <p className="text-white font-bold">{bankDetails.bankName}</p>
-              <p className="text-brand-200 text-xs">{bankDetails.ifsc}</p>
+              <p className="text-brand-200 text-[14px]">{bankDetails.ifsc}</p>
             </div>
           </div>
         </div>
@@ -65,8 +65,8 @@ const BankAccount = () => {
         <div className="bg-yellow-50 border border-yellow-100 p-4 rounded-xl flex items-start">
           <AlertTriangle size={20} className="text-yellow-600 mr-3 flex-shrink-0 mt-0.5" />
           <div>
-            <h4 className="text-yellow-800 font-bold text-sm mb-1">Payment Information</h4>
-            <p className="text-xs text-yellow-700 leading-relaxed">
+            <h4 className="text-yellow-800 font-bold text-[16px] mb-1">Payment Information</h4>
+            <p className="text-[14px] text-yellow-700 leading-relaxed">
               Your weekly earnings will be deposited to this account every Tuesday. 
               Changes to bank details may delay your next payout by up to 7 days.
             </p>

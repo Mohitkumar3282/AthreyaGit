@@ -55,7 +55,7 @@ const VehicleInfo = () => {
         <Card className="p-5 bg-gradient-to-br from-gray-900 to-gray-800 text-white border-none shadow-xl">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <p className="text-gray-400 text-xs uppercase tracking-wider font-bold mb-1">Vehicle Details</p>
+              <p className="text-gray-600 text-[14px] uppercase tracking-wider font-bold mb-1">Vehicle Details</p>
               <h3 className="text-2xl font-bold">{vehicleDetails.plateNumber}</h3>
               <p className="text-gray-300">{vehicleDetails.model}</p>
             </div>
@@ -66,11 +66,11 @@ const VehicleInfo = () => {
 
           <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
             <div>
-              <p className="text-gray-400 text-xs">Color</p>
+              <p className="text-gray-600 text-[14px]">Color</p>
               <p className="font-medium">{vehicleDetails.color}</p>
             </div>
             <div>
-              <p className="text-gray-400 text-xs">Fuel Type</p>
+              <p className="text-gray-600 text-[14px]">Fuel Type</p>
               <p className="font-medium">{vehicleDetails.fuelType}</p>
             </div>
           </div>
@@ -88,19 +88,19 @@ const VehicleInfo = () => {
                       <FileText size={20} />
                     </div>
                     <div>
-                      <h4 className="font-bold text-gray-800 text-sm">{doc.title}</h4>
-                      <p className="text-xs text-gray-500 mt-0.5">{doc.number}</p>
-                      <p className={`text-xs mt-1 ${doc.alert ? 'text-orange-600 font-medium' : 'text-gray-400'}`}>
+                      <h4 className="font-bold text-gray-800 text-[16px]">{doc.title}</h4>
+                      <p className="text-[14px] text-gray-700 mt-0.5">{doc.number}</p>
+                      <p className={`text-[14px] mt-1 ${doc.alert ? 'text-orange-600 font-medium' : 'text-gray-600'}`}>
                         Expires: {doc.expiry}
                       </p>
                     </div>
                   </div>
                   {doc.alert ? (
-                    <Button size="sm" variant="outline" className="h-7 text-xs border-orange-200 text-orange-600 bg-orange-50 hover:bg-orange-100">
+                    <Button size="sm" variant="outline" className="h-7 text-[14px] border-orange-200 text-orange-600 bg-orange-50 hover:bg-orange-100">
                       Renew
                     </Button>
                   ) : (
-                    <div className="flex items-center text-brand-600 bg-brand-50 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
+                    <div className="flex items-center text-brand-600 bg-brand-50 px-2 py-1 rounded text-[13.5px] font-bold uppercase tracking-wider">
                       <ShieldCheck size={12} className="mr-1" /> Verified
                     </div>
                   )}
@@ -112,7 +112,7 @@ const VehicleInfo = () => {
 
         <div className="bg-brand-50 p-4 rounded-xl flex items-start">
           <AlertCircle size={20} className="text-brand-600 mr-3 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-brand-800">
+          <p className="text-[16px] text-brand-800">
             To change your vehicle details, please visit the nearest {appName} Partner Center with your original documents.
           </p>
         </div>

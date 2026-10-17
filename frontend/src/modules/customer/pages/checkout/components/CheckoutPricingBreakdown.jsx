@@ -36,7 +36,7 @@ function BillRow({ label, value, originalValue, hint, tone = "default", isBold =
           {label}
         </span>
         {hint && (
-          <span className="text-[11px] font-semibold text-slate-400 mt-0.5">
+          <span className="text-[12.5px] font-semibold text-slate-400 mt-0.5">
             {hint}
           </span>
         )}
@@ -133,7 +133,7 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
             <Heart size={16} className="text-[#1a6e2e] fill-[#1a6e2e]" />
             <h3 className="font-bold text-slate-800 text-sm">Tip your delivery partner</h3>
           </div>
-          <p className="text-[11px] text-slate-500 mb-3">100% of the tip goes directly to the partner</p>
+          <p className="text-[12.5px] text-slate-500 mb-3">100% of the tip goes directly to the partner</p>
           <div className="grid grid-cols-4 gap-2">
             {tipAmounts.map((tip) => (
               <button
@@ -167,7 +167,7 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
             onClick={() => setIsExpanded((v) => !v)}
             aria-expanded={isExpanded}
             aria-controls="bill-breakup"
-            className="text-[11px] font-bold text-[#1a6e2e] flex items-center gap-1 rounded-lg px-1.5 py-1 -mr-1.5 hover:bg-[#1a6e2e]/5 transition-colors">
+            className="text-[12.5px] font-bold text-[#1a6e2e] flex items-center gap-1 rounded-lg px-1.5 py-1 -mr-1.5 hover:bg-[#1a6e2e]/5 transition-colors">
             <span>{isExpanded ? "Hide Bill Breakup" : "View Detailed Bill Breakup"}</span>
             <ChevronDown size={14} className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
           </button>
@@ -240,7 +240,7 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
             <span className="font-[1000] text-slate-900 text-base md:text-lg uppercase tracking-tight">
               Total Bill
             </span>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+            <span className="text-[12px] text-slate-400 font-bold uppercase tracking-wider">
               Inclusive of all taxes
             </span>
           </div>
@@ -275,7 +275,7 @@ const CheckoutPricingBreakdown = React.memo(function CheckoutPricingBreakdown({
           animate={{ opacity: 1, y: 0 }}
           className="rounded-3xl bg-[#fefce8] border-2 border-[#fef08a] p-4 md:p-5 flex items-center justify-between gap-4 shadow-sm relative overflow-hidden">
           <div className="space-y-1.5 z-10 min-w-0">
-            <div className="inline-flex items-center gap-1.5 bg-[#fde047]/70 px-3 py-1 rounded-full text-[11px] font-[1000] text-amber-950 uppercase tracking-wider">
+            <div className="inline-flex items-center gap-1.5 bg-[#fde047]/70 px-3 py-1 rounded-full text-[12.5px] font-[1000] text-amber-950 uppercase tracking-wider">
               <span>🎉</span>
               <span>You Earned {coinsToEarn.toLocaleString("en-IN")} Athreya Coins on This Order</span>
             </div>

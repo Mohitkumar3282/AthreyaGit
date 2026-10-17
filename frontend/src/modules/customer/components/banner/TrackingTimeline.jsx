@@ -58,18 +58,18 @@ const TrackingTimeline = memo(({ currentStage }) => {
                                 {isCompleted ? (
                                     <Check size={12} className="stroke-[4]" />
                                 ) : (
-                                    <span className="text-[10px] font-black">{idx + 1}</span>
+                                    <span className="text-[12px] font-black">{idx + 1}</span>
                                 )}
                             </div>
 
                             {/* Label */}
                             <div className="flex flex-col items-center leading-none text-center">
-                                <span className={`text-[8.5px] font-black uppercase tracking-tight ${
+                                <span className={`text-[11px] font-black uppercase tracking-tight ${
                                     isActive ? "text-[#A3E635]" : isCompleted ? "text-white" : "text-white/40"
                                 }`}>
                                     {s.label}
                                 </span>
-                                <span className={`text-[7.5px] font-semibold mt-0.5 ${
+                                <span className={`text-[10px] font-semibold mt-0.5 ${
                                     isActive ? "text-[#A3E635]/80" : isCompleted ? "text-slate-300" : "text-white/25"
                                 }`}>
                                     {s.labelTe}

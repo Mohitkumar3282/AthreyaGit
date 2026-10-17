@@ -603,5 +603,39 @@ h1, h2, h3, h4, h5, h6 {
 */
 .pac-container {
   z-index: 9999 !important;
+  /* Radix modals set pointer-events:none on <body>; without this the
+     suggestions are visible but cannot be tapped. */
+  pointer-events: auto !important;
+}
+.pac-container .pac-item {
+  pointer-events: auto !important;
 }
 
+
+/* Delivery Partner app: larger, higher-contrast text (scoped so the Admin and
+   Seller apps keep their own design-system sizes). */
+.delivery-app .ds-caption {
+  font-size: 0.8125rem;
+  line-height: 1.1rem;
+  color: rgb(51 65 85);
+}
+.delivery-app .ds-body {
+  font-size: 0.9375rem;
+  line-height: 1.35rem;
+  color: rgb(31 41 55);
+}
+.delivery-app .ds-body-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: rgb(55 65 81);
+}
+.delivery-app .ds-label {
+  font-size: 0.9375rem;
+  line-height: 1.3rem;
+  color: rgb(31 41 55);
+}
+.delivery-app .ds-description {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: rgb(55 65 81);
+}

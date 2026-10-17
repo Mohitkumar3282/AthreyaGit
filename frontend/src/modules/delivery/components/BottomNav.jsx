@@ -21,7 +21,7 @@ const BottomNav = () => {
           to={path}
           className={({ isActive }) =>
             `relative flex flex-col items-center justify-center space-y-1 w-full h-14 transition-colors duration-300 ${
-              isActive ? "text-primary" : "text-gray-400 hover:text-gray-600"
+              isActive ? "text-primary" : "text-gray-600 hover:text-gray-600"
             }`
           }>
           {({ isActive }) => (
@@ -41,7 +41,7 @@ const BottomNav = () => {
                 <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
               </motion.div>
               <span
-                className={`text-[10px] font-bold ${isActive ? "opacity-100" : "opacity-80"}`}>
+                className={`text-[13.5px] font-bold ${isActive ? "opacity-100" : "opacity-80"}`}>
                 {label}
               </span>
             </>
