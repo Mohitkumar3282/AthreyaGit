@@ -1,4 +1,5 @@
 import Setting from "../../models/setting.js";
+import { calculateDeliveryEta } from "../deliveryEtaService.js";
 import Seller from "../../models/seller.js";
 import { distanceMeters } from "../../utils/geoUtils.js";
 import { roundCurrency, addMoney, ceilKm } from "../../utils/money.js";
@@ -52,12 +53,28 @@ export const DEFAULT_EXPRESS_FARE = {
   // Zero by default so switching the fare table on never silently reprices
   // parcels; admin opts in per band.
   weightSurcharge: { upTo1Kg: 0, kg1To3: 0, kg3To5: 0, kg5To10: 0, kg10Plus: 0, kg25Plus: 0 },
+  // Each service can override the global fare table. null = use the global value.
   services: {
-    home_to_home: { enabled: true, serviceFee: 0 },
-    shop_to_home: { enabled: true, serviceFee: 0 },
-    cargo_to_home: { enabled: true, serviceFee: 0 },
-    rider_delivery: { enabled: true, serviceFee: 0 },
+    home_to_home: { enabled: true, serviceFee: 0, baseFare: null, baseDistanceKm: null, perKmRate: null, minimumFare: null },
+    shop_to_home: { enabled: true, serviceFee: 0, baseFare: null, baseDistanceKm: null, perKmRate: null, minimumFare: null },
+    cargo_to_home: { enabled: true, serviceFee: 0, baseFare: null, baseDistanceKm: null, perKmRate: null, minimumFare: null },
+    rider_delivery: { enabled: true, serviceFee: 0, baseFare: null, baseDistanceKm: null, perKmRate: null, minimumFare: null },
   },
+  // Service area: farthest pickup -> drop distance Express will accept (0 = no limit).
+  maxDistanceKm: 0,
+  // Straight-line km x this = billed/shown km (1.3 approximates road distance).
+  distanceFactor: 1,
+  // Rider booking timing, controlled by admin.
+  schedule: {
+    instantEnabled: true,
+    scheduleEnabled: true,
+    minLeadMinutes: 30, // earliest a scheduled booking may be, from now
+    maxDaysAhead: 0, // 0 = today only
+    windowStart: "07:00", // scheduled pickups only between these India times
+    windowEnd: "22:00",
+  },
+  // Delivery-time promise for Express: minutes = base + km x minutesPerKm.
+  eta: { basePrepMinutes: 10, minutesPerKm: 3, rangeSpreadMinutes: 5, minMinutes: 10, maxMinutes: 180 },
   rider: { basePayout: 30, perKmPayout: 5, surchargeSharePercent: 100 },
 };
 
@@ -66,6 +83,8 @@ const num = (value, fallback, { min = 0, max = Number.MAX_SAFE_INTEGER } = {}) =
   if (!Number.isFinite(n)) return fallback;
   return Math.min(Math.max(n, min), max);
 };
+
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 const bool = (value, fallback) => (value === undefined || value === null ? fallback : !!value);
 
@@ -77,9 +96,15 @@ export function normalizeExpressFareSettings(raw = {}) {
   const services = {};
   for (const key of EXPRESS_SERVICE_KEYS) {
     const s = src.services?.[key] || {};
+    const opt = (v, round) =>
+      v === null || v === undefined || v === "" ? null : round ? roundCurrency(num(v, 0)) : num(v, 0);
     services[key] = {
       enabled: bool(s.enabled, d.services[key].enabled),
       serviceFee: roundCurrency(num(s.serviceFee, d.services[key].serviceFee)),
+      baseFare: opt(s.baseFare, true),
+      baseDistanceKm: opt(s.baseDistanceKm, false),
+      perKmRate: opt(s.perKmRate, true),
+      minimumFare: opt(s.minimumFare, true),
     };
   }
 
@@ -103,6 +128,23 @@ export function normalizeExpressFareSettings(raw = {}) {
     },
     weightSurcharge,
     services,
+    schedule: {
+      instantEnabled: bool(src.schedule?.instantEnabled, d.schedule.instantEnabled),
+      scheduleEnabled: bool(src.schedule?.scheduleEnabled, d.schedule.scheduleEnabled),
+      minLeadMinutes: Math.round(num(src.schedule?.minLeadMinutes, d.schedule.minLeadMinutes, { max: 1440 })),
+      maxDaysAhead: Math.round(num(src.schedule?.maxDaysAhead, d.schedule.maxDaysAhead, { max: 30 })),
+      windowStart: HHMM.test(src.schedule?.windowStart || "") ? src.schedule.windowStart : d.schedule.windowStart,
+      windowEnd: HHMM.test(src.schedule?.windowEnd || "") ? src.schedule.windowEnd : d.schedule.windowEnd,
+    },
+    maxDistanceKm: num(src.maxDistanceKm, d.maxDistanceKm, { max: 1000 }),
+    distanceFactor: num(src.distanceFactor, d.distanceFactor, { min: 1, max: 3 }),
+    eta: {
+      basePrepMinutes: num(src.eta?.basePrepMinutes, d.eta.basePrepMinutes, { max: 600 }),
+      minutesPerKm: num(src.eta?.minutesPerKm, d.eta.minutesPerKm, { max: 60 }),
+      rangeSpreadMinutes: Math.round(num(src.eta?.rangeSpreadMinutes, d.eta.rangeSpreadMinutes, { max: 240 })),
+      minMinutes: Math.max(1, Math.round(num(src.eta?.minMinutes, d.eta.minMinutes, { max: 1440 }))),
+      maxMinutes: Math.max(1, Math.round(num(src.eta?.maxMinutes, d.eta.maxMinutes, { max: 1440 }))),
+    },
     rider: {
       basePayout: roundCurrency(num(src.rider?.basePayout, d.rider.basePayout)),
       perKmPayout: roundCurrency(num(src.rider?.perKmPayout, d.rider.perKmPayout)),
@@ -138,6 +180,8 @@ export async function saveExpressFareSettings(patch = {}, { updatedBy = null } =
     nightCharge: { ...current.nightCharge, ...(patch.nightCharge || {}) },
     weightSurcharge: { ...current.weightSurcharge, ...(patch.weightSurcharge || {}) },
     rider: { ...current.rider, ...(patch.rider || {}) },
+    eta: { ...current.eta, ...(patch.eta || {}) },
+    schedule: { ...current.schedule, ...(patch.schedule || {}) },
     services: Object.fromEntries(
       EXPRESS_SERVICE_KEYS.map((k) => [
         k,
@@ -210,8 +254,15 @@ export function calculateExpressFare({
   const cfg = normalizeExpressFareSettings(settings);
   const dist = Math.max(0, Number(distanceKm) || 0);
 
-  const extraKm = dist > cfg.baseDistanceKm ? ceilKm(dist - cfg.baseDistanceKm) : 0;
-  const distanceFare = roundCurrency(extraKm * cfg.perKmRate);
+  // Per-service charges fall back to the global table when left blank.
+  const svc = cfg.services[service] || {};
+  const baseFareCfg = svc.baseFare ?? cfg.baseFare;
+  const baseDistanceCfg = svc.baseDistanceKm ?? cfg.baseDistanceKm;
+  const perKmCfg = svc.perKmRate ?? cfg.perKmRate;
+  const minimumFareCfg = svc.minimumFare ?? cfg.minimumFare;
+
+  const extraKm = dist > baseDistanceCfg ? ceilKm(dist - baseDistanceCfg) : 0;
+  const distanceFare = roundCurrency(extraKm * perKmCfg);
 
   const band = WEIGHT_APPLIES_TO.has(service) ? resolveWeightBand(weight) : null;
   const weightSurcharge = band ? cfg.weightSurcharge[band.key] : 0;
@@ -219,11 +270,11 @@ export function calculateExpressFare({
   const serviceFee = cfg.services[service]?.serviceFee || 0;
   const nightCharge = isNightHour(at, cfg.nightCharge) ? cfg.nightCharge.amount : 0;
 
-  const subtotal = addMoney(cfg.baseFare, distanceFare, weightSurcharge, serviceFee, nightCharge);
+  const subtotal = addMoney(baseFareCfg, distanceFare, weightSurcharge, serviceFee, nightCharge);
   const surgeAmount =
     cfg.surgeMultiplier > 1 ? roundCurrency(subtotal * (cfg.surgeMultiplier - 1)) : 0;
   const beforeMinimum = addMoney(subtotal, surgeAmount);
-  const total = Math.max(beforeMinimum, cfg.minimumFare);
+  const total = Math.max(beforeMinimum, minimumFareCfg);
   const minimumFareTopUp = roundCurrency(total - beforeMinimum);
 
   const surchargePool = addMoney(weightSurcharge, serviceFee, nightCharge, surgeAmount);
@@ -234,7 +285,7 @@ export function calculateExpressFare({
     service,
     distanceKm: Number(dist.toFixed(3)),
     extraKm,
-    baseFare: cfg.baseFare,
+    baseFare: baseFareCfg,
     distanceFare,
     weightBand: band ? band.label : null,
     weightSurcharge,
@@ -257,7 +308,13 @@ export function calculateExpressFare({
  * Falls back to seller -> drop when the pickup point has no coordinates. Shared
  * by the quote endpoint and placement so both bill the same distance.
  */
-export async function resolveExpressDistanceKm({ pickupAddress, address, sellerId } = {}) {
+export async function resolveExpressDistanceKm({ pickupAddress, address, sellerId, factor = 1 } = {}) {
+  const k = Math.max(Number(factor) || 1, 1);
+  const raw = await measureExpressDistanceKm({ pickupAddress, address, sellerId });
+  return Number((raw * k).toFixed(3));
+}
+
+async function measureExpressDistanceKm({ pickupAddress, address, sellerId } = {}) {
   const p = pickupAddress?.location;
   const a = address?.location;
   const valid = (x) =>
@@ -275,7 +332,56 @@ export async function resolveExpressDistanceKm({ pickupAddress, address, sellerI
   return Number((distanceMeters(Number(a.lat), Number(a.lng), Number(lat), Number(lng)) / 1000).toFixed(3));
 }
 
+/**
+ * Validates a rider booking's timing against the admin schedule rules.
+ * Returns an error message, or null when the booking is allowed.
+ */
+export function validateExpressTiming({ timing, scheduledAt, settings, now = new Date() } = {}) {
+  const sc = normalizeExpressFareSettings(settings).schedule;
+  if (timing !== "scheduled") {
+    return sc.instantEnabled ? null : "Instant rider booking is currently unavailable. Please schedule a time.";
+  }
+  if (!sc.scheduleEnabled) return "Scheduling is currently unavailable. Please book an instant rider.";
+  const when = new Date(scheduledAt);
+  if (!scheduledAt || Number.isNaN(when.getTime())) return "Please choose a valid pickup time.";
+  if (when.getTime() < now.getTime() + sc.minLeadMinutes * 60000) {
+    return `Pick a time at least ${sc.minLeadMinutes} minutes from now.`;
+  }
+  const istNow = new Date(now.getTime() + 5.5 * 3600000);
+  const istWhen = new Date(when.getTime() + 5.5 * 3600000);
+  const dayDiff = Math.round(
+    (Date.UTC(istWhen.getUTCFullYear(), istWhen.getUTCMonth(), istWhen.getUTCDate()) -
+      Date.UTC(istNow.getUTCFullYear(), istNow.getUTCMonth(), istNow.getUTCDate())) / 86400000,
+  );
+  if (dayDiff > sc.maxDaysAhead) {
+    return sc.maxDaysAhead === 0
+      ? "Scheduled pickups can only be booked for today."
+      : `Scheduled pickups can be booked up to ${sc.maxDaysAhead} day(s) ahead.`;
+  }
+  const toMin = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
+  const mins = istWhen.getUTCHours() * 60 + istWhen.getUTCMinutes();
+  if (mins < toMin(sc.windowStart) || mins > toMin(sc.windowEnd)) {
+    return `Scheduled pickups are available between ${sc.windowStart} and ${sc.windowEnd}.`;
+  }
+  return null;
+}
+
+/** Express delivery-time promise from the admin 'eta' settings (per-km timing). */
+export function estimateExpressEta(distanceKm, settings) {
+  const cfg = normalizeExpressFareSettings(settings);
+  return calculateDeliveryEta({ distanceKm, settings: cfg.eta });
+}
+
+/** Is this trip inside the admin-set service radius? (0 = unlimited) */
+export function isWithinExpressRadius(distanceKm, settings) {
+  const cfg = normalizeExpressFareSettings(settings);
+  return cfg.maxDistanceKm <= 0 || Number(distanceKm) <= cfg.maxDistanceKm;
+}
+
 export default {
+  validateExpressTiming,
+  estimateExpressEta,
+  isWithinExpressRadius,
   calculateExpressFare,
   getExpressFareSettings,
   saveExpressFareSettings,

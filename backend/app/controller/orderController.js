@@ -41,6 +41,9 @@ import {
   getExpressFareSettings,
   isExpressServiceEnabled,
   resolveExpressDistanceKm,
+  estimateExpressEta,
+  isWithinExpressRadius,
+  validateExpressTiming,
 } from "../services/finance/expressFareService.js";
 import { addMoney, subtractMoney } from "../utils/money.js";
 import { distanceMeters } from "../utils/geoUtils.js";
@@ -347,19 +350,36 @@ export const placeCustomPickupOrder = async (req, res) => {
 
     // Same distance + fare the booking screen quoted (services/finance/
     // expressFareService.js), so what the customer saw is what they are charged.
+    const fareSettings = await getExpressFareSettings();
     const distanceKm = await resolveExpressDistanceKm({
       pickupAddress,
       address,
       sellerId: seller._id,
+      factor: fareSettings.distanceFactor,
     });
-
-    const fareSettings = await getExpressFareSettings();
+    if (!isWithinExpressRadius(distanceKm, fareSettings)) {
+      return handleResponse(
+        res,
+        400,
+        `This location is outside the Athreya Express service area (maximum ${fareSettings.maxDistanceKm} km).`,
+      );
+    }
     if (!isExpressServiceEnabled(fareSettings, normalizedExpressService)) {
       return handleResponse(
         res,
         403,
         "This Athreya Express service is temporarily unavailable. Please try again later.",
       );
+    }
+
+    // Booking time rules set by admin (instant on/off, schedule window, lead time).
+    if (normalizedExpressService === "rider_delivery") {
+      const timingError = validateExpressTiming({
+        timing: expressMeta?.timing,
+        scheduledAt: expressMeta?.scheduledAt,
+        settings: fareSettings,
+      });
+      if (timingError) return handleResponse(res, 400, timingError);
     }
 
     // Admin can switch the express fare table off; bookings then fall back to
@@ -398,7 +418,7 @@ export const placeCustomPickupOrder = async (req, res) => {
     const isScheduledExpress = expressMeta?.timing === "scheduled";
     const quotedEta = isScheduledExpress
       ? null
-      : await estimateDeliveryEta({ distanceKm });
+      : estimateExpressEta(distanceKm, fareSettings);
 
     const billAmt = normalizedPickupType === "pay_and_collect" ? Number(billAmount || 0) : 0;
     const grandTotal = addMoney(deliveryFee, billAmt);

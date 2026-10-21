@@ -9,12 +9,19 @@ import {
   normalizeExpressFareSettings,
   resolveExpressDistanceKm,
   saveExpressFareSettings,
+  estimateExpressEta,
+  isWithinExpressRadius,
 } from "../services/finance/expressFareService.js";
 
 const money = Joi.number().min(0).max(100000);
+const optMoney = Joi.number().min(0).max(100000).allow(null);
 const serviceSchema = Joi.object({
   enabled: Joi.boolean(),
   serviceFee: money,
+  baseFare: optMoney,
+  baseDistanceKm: Joi.number().min(0).max(100).allow(null),
+  perKmRate: optMoney,
+  minimumFare: optMoney,
 }).unknown(false);
 
 /** Every field optional: the admin form may save one section at a time. */
@@ -25,6 +32,23 @@ const fareSettingsSchema = Joi.object({
   perKmRate: money,
   minimumFare: money,
   surgeMultiplier: Joi.number().min(1).max(5),
+  schedule: Joi.object({
+    instantEnabled: Joi.boolean(),
+    scheduleEnabled: Joi.boolean(),
+    minLeadMinutes: Joi.number().integer().min(0).max(1440),
+    maxDaysAhead: Joi.number().integer().min(0).max(30),
+    windowStart: Joi.string().pattern(/^([01]\d|2[0-3]):[0-5]\d$/),
+    windowEnd: Joi.string().pattern(/^([01]\d|2[0-3]):[0-5]\d$/),
+  }).unknown(false),
+  maxDistanceKm: Joi.number().min(0).max(1000),
+  distanceFactor: Joi.number().min(1).max(3),
+  eta: Joi.object({
+    basePrepMinutes: Joi.number().min(0).max(600),
+    minutesPerKm: Joi.number().min(0).max(60),
+    rangeSpreadMinutes: Joi.number().min(0).max(240),
+    minMinutes: Joi.number().min(1).max(1440),
+    maxMinutes: Joi.number().min(1).max(1440),
+  }).unknown(false),
   nightCharge: Joi.object({
     enabled: Joi.boolean(),
     startHour: Joi.number().integer().min(0).max(23),
@@ -106,7 +130,7 @@ export const quoteExpressFare = async (req, res) => {
     const distance =
       isAdmin && Number.isFinite(Number(distanceKm))
         ? Math.max(0, Number(distanceKm))
-        : await resolveExpressDistanceKm({ pickupAddress, address, sellerId });
+        : await resolveExpressDistanceKm({ pickupAddress, address, sellerId, factor: settings.distanceFactor });
 
     const serviceEnabled = settings.services[service]?.enabled !== false;
     // Admin calculator can simulate a time of day to preview the night charge.
@@ -117,7 +141,7 @@ export const quoteExpressFare = async (req, res) => {
     const fare = calculateExpressFare({ distanceKm: distance, service, weight, settings, at });
 
     // Scheduled rider bookings have no "arrives in N mins" promise.
-    const eta = timing === "scheduled" ? null : await estimateDeliveryEta({ distanceKm: distance });
+    const eta = timing === "scheduled" ? null : estimateExpressEta(distance, settings);
 
     // Riders' earnings are not the customer's business.
     const { rider, ...customerFare } = fare;
@@ -126,6 +150,9 @@ export const quoteExpressFare = async (req, res) => {
       service,
       serviceEnabled,
       distanceKm: fare.distanceKm,
+      maxDistanceKm: settings.maxDistanceKm,
+      schedule: settings.schedule,
+      withinRadius: isWithinExpressRadius(distance, settings),
       fare: isAdmin ? fare : customerFare,
       eta: eta ? { label: eta.label, minMinutes: eta.minMinutes, maxMinutes: eta.maxMinutes } : null,
     });

@@ -647,6 +647,7 @@ const PickupDelivery = () => {
   const [riderInstructions, setRiderInstructions] = useState("");
   const [riderTiming, setRiderTiming] = useState("instant"); // instant or scheduled
   const [riderScheduleTime, setRiderScheduleTime] = useState("");
+  const [riderScheduleDay, setRiderScheduleDay] = useState(0); // 0 = today
   // Drop point chosen via GPS / map pin (Rapido-style) instead of a saved address.
   const [riderMapDropAddress, setRiderMapDropAddress] = useState(null);
   const [isRiderMapOpen, setIsRiderMapOpen] = useState(false);
@@ -959,6 +960,36 @@ const PickupDelivery = () => {
   }, [quoteKey]);
 
   const serviceUnavailable = fareQuote?.serviceEnabled === false;
+  const outsideRadius = fareQuote?.withinRadius === false;
+  // Booking-time rules set by admin (Admin > Athreya Express > Fare Management).
+  const timingRules = {
+    instantEnabled: true,
+    scheduleEnabled: true,
+    minLeadMinutes: 30,
+    maxDaysAhead: 0,
+    windowStart: "07:00",
+    windowEnd: "22:00",
+    ...(fareQuote?.schedule || {}),
+  };
+  // If admin turned a mode off, start on the one that is available.
+  useEffect(() => {
+    if (!timingRules.instantEnabled && timingRules.scheduleEnabled && riderTiming === "instant") setRiderTiming("scheduled");
+    if (!timingRules.scheduleEnabled && riderTiming === "scheduled") setRiderTiming("instant");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timingRules.instantEnabled, timingRules.scheduleEnabled]);
+  const fmtClock = (hhmm) => {
+    const [h, m] = String(hhmm).split(":").map(Number);
+    return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+  };
+  const scheduleDayOptions = Array.from({ length: timingRules.maxDaysAhead + 1 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    return {
+      value: i,
+      label:
+        i === 0 ? "Today" : i === 1 ? "Tomorrow" : d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }),
+    };
+  });
   const calculatedDistance = fareQuote?.distanceKm ?? localDistance;
   const deliveryFee = fareQuote?.fare?.total ?? getDeliveryFee(calculatedDistance);
 
@@ -1221,6 +1252,36 @@ const PickupDelivery = () => {
         return;
       }
 
+      // Timing rules come from the admin panel (checked again on the server).
+      let riderScheduledAtIso;
+      if (riderTiming === "instant" && !timingRules.instantEnabled) {
+        toast.error("Instant rider is currently unavailable. Please schedule a time.");
+        return;
+      }
+      if (riderTiming === "scheduled") {
+        if (!timingRules.scheduleEnabled) {
+          toast.error("Scheduling is currently unavailable. Please choose Instant Rider.");
+          return;
+        }
+        if (!riderScheduleTime) {
+          toast.error("Please choose your preferred pickup time");
+          return;
+        }
+        const [hh, mm] = riderScheduleTime.split(":").map(Number);
+        const when = new Date();
+        when.setDate(when.getDate() + Number(riderScheduleDay || 0));
+        when.setHours(hh, mm, 0, 0);
+        if (when.getTime() < Date.now() + timingRules.minLeadMinutes * 60 * 1000) {
+          toast.error(`Pick a time at least ${timingRules.minLeadMinutes} minutes from now`);
+          return;
+        }
+        if (riderScheduleTime < timingRules.windowStart || riderScheduleTime > timingRules.windowEnd) {
+          toast.error(`Pickups are available between ${fmtClock(timingRules.windowStart)} and ${fmtClock(timingRules.windowEnd)}`);
+          return;
+        }
+        riderScheduledAtIso = when.toISOString();
+      }
+
       dropAddressData = selectedAddress ? {
         name: selectedAddress.name || user?.name || "Drop Contact",
         phone: riderReceiverPhone || selectedAddress.phone || user?.phone || "",
@@ -1254,7 +1315,8 @@ const PickupDelivery = () => {
         taskType: riderTaskType,
         instructions: riderInstructions,
         timing: riderTiming,
-        scheduledAt: riderTiming === "scheduled" && riderScheduleTime ? riderScheduleTime : undefined,
+        // Full date-time: a bare "14:30" is not a valid date on the server and was dropped.
+        scheduledAt: riderScheduledAtIso,
         distanceKm: calculatedDistance,
       };
     }
@@ -2096,6 +2158,7 @@ const PickupDelivery = () => {
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
+                disabled={!timingRules.instantEnabled}
                 onClick={() => setRiderTiming("instant")}
                 className={`p-2.5 rounded-xl border text-left transition-all ${
                   riderTiming === "instant"
@@ -2104,11 +2167,14 @@ const PickupDelivery = () => {
                 }`}
               >
                 <div className="text-[13.5px] font-black">⚡ Instant Rider</div>
-                <div className="text-[12px] text-slate-700 mt-0.5">Assign rider immediately for fast delivery.</div>
+                <div className="text-[12px] text-slate-700 mt-0.5">
+                  {timingRules.instantEnabled ? "Assign rider immediately for fast delivery." : "Currently unavailable."}
+                </div>
               </button>
 
               <button
                 type="button"
+                disabled={!timingRules.scheduleEnabled}
                 onClick={() => setRiderTiming("scheduled")}
                 className={`p-2.5 rounded-xl border text-left transition-all ${
                   riderTiming === "scheduled"
@@ -2117,19 +2183,43 @@ const PickupDelivery = () => {
                 }`}
               >
                 <div className="text-[13.5px] font-black">🕒 Schedule for Later</div>
-                <div className="text-[12px] text-slate-700 mt-0.5">Pick a convenient time today.</div>
+                <div className="text-[12px] text-slate-700 mt-0.5">
+                  {timingRules.scheduleEnabled
+                    ? `Pick a time between ${fmtClock(timingRules.windowStart)} and ${fmtClock(timingRules.windowEnd)}.`
+                    : "Currently unavailable."}
+                </div>
               </button>
             </div>
 
             {riderTiming === "scheduled" && (
               <div className="mt-2">
+                {scheduleDayOptions.length > 1 && (
+                  <div className="mb-2">
+                    <Label className="text-[13.5px] font-bold text-slate-700">Day</Label>
+                    <select
+                      value={riderScheduleDay}
+                      onChange={(e) => setRiderScheduleDay(Number(e.target.value))}
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13.5px] font-bold text-slate-800"
+                    >
+                      {scheduleDayOptions.map((d) => (
+                        <option key={d.value} value={d.value}>{d.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <Label className="text-[13.5px] font-bold text-slate-700">Preferred Time</Label>
                 <Input
                   type="time"
+                  min={timingRules.windowStart}
+                  max={timingRules.windowEnd}
                   value={riderScheduleTime}
                   onChange={(e) => setRiderScheduleTime(e.target.value)}
                   className="mt-1 text-[13.5px] bg-slate-50 rounded-xl"
                 />
+                <p className="mt-1 text-[12px] font-semibold text-slate-600">
+                  Available {fmtClock(timingRules.windowStart)} - {fmtClock(timingRules.windowEnd)}, at least {timingRules.minLeadMinutes} minutes from now
+                  {timingRules.maxDaysAhead === 0 ? " (today only)" : ""}.
+                </p>
               </div>
             )}
           </Card>
@@ -2190,53 +2280,9 @@ const PickupDelivery = () => {
                 </div>
               )}
 
-              {fareQuote?.fare ? (
-                <>
-                  <div className="py-1.5 flex justify-between items-center text-slate-600">
-                    <span>⚡ Base Fare</span>
-                    <span className="font-black text-slate-900">₹{fareQuote.fare.baseFare}</span>
-                  </div>
-                  {fareQuote.fare.distanceFare > 0 && (
-                  <div className="py-1.5 flex justify-between items-center text-slate-600">
-                    <span>📏 Distance ({calculatedDistance} km)</span>
-                    <span className="font-black text-slate-900">₹{fareQuote.fare.distanceFare}</span>
-                  </div>
-                  )}
-                  {fareQuote.fare.weightSurcharge > 0 && (
-                  <div className="py-1.5 flex justify-between items-center text-slate-600">
-                    <span>⚖️ Weight ({fareQuote.fare.weightBand})</span>
-                    <span className="font-black text-slate-900">₹{fareQuote.fare.weightSurcharge}</span>
-                  </div>
-                  )}
-                  {fareQuote.fare.serviceFee > 0 && (
-                  <div className="py-1.5 flex justify-between items-center text-slate-600">
-                    <span>🧾 Service Fee</span>
-                    <span className="font-black text-slate-900">₹{fareQuote.fare.serviceFee}</span>
-                  </div>
-                  )}
-                  {fareQuote.fare.nightCharge > 0 && (
-                  <div className="py-1.5 flex justify-between items-center text-slate-600">
-                    <span>🌙 Night Charge</span>
-                    <span className="font-black text-slate-900">₹{fareQuote.fare.nightCharge}</span>
-                  </div>
-                  )}
-                  {fareQuote.fare.surgeAmount > 0 && (
-                  <div className="py-1.5 flex justify-between items-center text-slate-600">
-                    <span>📈 High Demand</span>
-                    <span className="font-black text-slate-900">₹{fareQuote.fare.surgeAmount}</span>
-                  </div>
-                  )}
-                  {fareQuote.fare.minimumFareTopUp > 0 && (
-                  <div className="py-1.5 flex justify-between items-center text-slate-600">
-                    <span>Minimum Fare Adjustment</span>
-                    <span className="font-black text-slate-900">₹{fareQuote.fare.minimumFareTopUp}</span>
-                  </div>
-                  )}
-                </>
-              ) : (
-                <div className="py-1.5 flex justify-between items-center text-slate-600">
-                  <span>⚡ Express Delivery Fee ({calculatedDistance} km)</span>
-                  <span className="font-black text-slate-900">₹{deliveryFee}</span>
+              {outsideRadius && (
+                <div className="my-2 rounded-xl bg-rose-50 border border-rose-200 px-3 py-2 text-[13.5px] font-bold text-rose-700">
+                  This location is outside the Athreya Express service area (maximum {fareQuote?.maxDistanceKm} km). Please choose a closer location.
                 </div>
               )}
 
@@ -2247,18 +2293,9 @@ const PickupDelivery = () => {
                 </div>
               )}
 
-              {extraCollectionFee > 0 && (
-                <div className="py-1.5 flex justify-between items-center text-slate-600">
-                  <span>
-                    {activeTab === "shop_to_home" ? "🛒 Store Bill Amount (To Pay Shop)" : "📦 Cargo / Freight Charges"}
-                  </span>
-                  <span className="font-black text-slate-900">₹{extraCollectionFee}</span>
-                </div>
-              )}
-
-              <div className="pt-2 flex justify-between items-center font-black text-[15px] text-[#042A0F]">
-                <span>Total Payable Amount</span>
-                <span className="text-base text-emerald-800">₹{totalAmount}</span>
+              <div className="pt-3 flex justify-between items-center font-black text-[#042A0F]">
+                <span className="text-[16px]">Total Bill Amount</span>
+                <span className="text-[24px] text-emerald-800">₹{totalAmount}</span>
               </div>
             </div>
 
@@ -2296,7 +2333,7 @@ const PickupDelivery = () => {
           {/* Confirm & Book CTA */}
           <button
             type="button"
-            disabled={submitting || serviceUnavailable}
+            disabled={submitting || serviceUnavailable || outsideRadius}
             onClick={handleBookingSubmit}
             className="w-full py-3.5 bg-[#042A0F] hover:bg-[#063A16] disabled:opacity-70 text-white rounded-2xl font-black text-[15px] uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg active:scale-98 transition-all cursor-pointer"
           >

@@ -131,6 +131,19 @@ const ProductDetailSheet = () => {
     };
 
     const variantKey = String(selectedVariant?.sku || selectedVariant?.name || "").trim();
+
+    // Product names often start with a pack size ("500 g..Tomato"). When the
+    // customer picks another variant, show that variant's size in the title so
+    // the page never says 500 g while 1 KG is selected.
+    const displayName = React.useMemo(() => {
+        const name = String(selectedProduct?.name || "");
+        const variantName = String(selectedVariant?.name || "").trim();
+        if (!variantName) return name;
+        const sizePrefix = /^s*d+(?:.d+)?s*(?:kgs?|kilo(?:gram)?s?|gms?|grams?|g|ml|ltrs?|litres?|liters?|l|pcs?|pieces?)[s.-–:]*/i;
+        if (!sizePrefix.test(name)) return name;
+        const rest = name.replace(sizePrefix, "").trim();
+        return rest ? `${variantName} ${rest}` : name;
+    }, [selectedProduct?.name, selectedVariant?.name]);
     const cartItem = selectedProduct
         ? cart.find(
             (item) =>
@@ -442,7 +455,7 @@ const ProductDetailSheet = () => {
                                             transition={{ delay: 0.15 }}
                                         >
                                             <h1 className="text-[19px] lg:text-[22px] font-black text-[#111827] leading-[1.2] tracking-tight mb-1">
-                                                {selectedProduct.name}
+                                                {displayName}
                                             </h1>
                                             {selectedProduct.weight && (
                                                 <span className="text-[13px] text-gray-400 font-bold uppercase tracking-wider">{selectedProduct.weight}</span>
@@ -831,7 +844,7 @@ const ProductDetailSheet = () => {
                                 </div>
 
                                 <h2 className="text-xl font-black text-[#1A1A1A] leading-tight mb-2">
-                                    {selectedProduct.name}
+                                    {displayName}
                                 </h2>
 
                                 {/* Variants Selection (Mobile) */}

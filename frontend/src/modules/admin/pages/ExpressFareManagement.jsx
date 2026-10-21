@@ -258,28 +258,95 @@ const ExpressFareManagement = () => {
                         </div>
                     </Section>
 
-                    <Section icon={Zap} title="Services" subtitle="Turn a service off to stop new bookings, or add a flat fee on top of the fare.">
+                    <Section icon={Zap} title="Service charges (separate for each service)" subtitle="Set different charges for each Athreya Express service. Leave a charge blank to use the common Customer fare above. Turn a service off to stop new bookings.">
                         <div className="divide-y divide-slate-100">
                             {SERVICES.map(({ key, label, telugu, icon: Icon }) => {
                                 const s = draft.services[key];
+                                const blankToNull = (v) => (v === '' || v === undefined ? null : v);
                                 return (
-                                    <div key={key} className="py-3 flex flex-col sm:flex-row sm:items-center gap-3">
-                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <div key={key} className="py-4 space-y-3">
+                                        <div className="flex items-center gap-3">
                                             <div className={cn('h-9 w-9 rounded-xl flex items-center justify-center shrink-0', s.enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-400')}>
                                                 <Icon className="h-4 w-4" />
                                             </div>
-                                            <div className="min-w-0">
+                                            <div className="min-w-0 flex-1">
                                                 <p className="text-sm font-black text-slate-900 truncate">{label}</p>
                                                 <p className="text-[10px] text-slate-400">{telugu} · {s.enabled ? 'Accepting bookings' : 'Paused'}</p>
                                             </div>
+                                            <Toggle checked={s.enabled} onChange={(v) => set(`services.${key}.enabled`, v)} label={`${label} enabled`} />
                                         </div>
-                                        <div className="w-full sm:w-40">
-                                            <NumField label="Service fee" prefix="₹" value={s.serviceFee} onChange={(v) => set(`services.${key}.serviceFee`, v)} />
+                                        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                                            <NumField label="Base fare" prefix="₹" value={s.baseFare} onChange={(v) => set(`services.${key}.baseFare`, blankToNull(v))} hint={`Blank = ₹${draft.baseFare}`} />
+                                            <NumField label="Base distance" suffix="km" step="0.1" value={s.baseDistanceKm} onChange={(v) => set(`services.${key}.baseDistanceKm`, blankToNull(v))} hint={`Blank = ${draft.baseDistanceKm} km`} />
+                                            <NumField label="Per extra km" prefix="₹" value={s.perKmRate} onChange={(v) => set(`services.${key}.perKmRate`, blankToNull(v))} hint={`Blank = ₹${draft.perKmRate}`} />
+                                            <NumField label="Minimum fare" prefix="₹" value={s.minimumFare} onChange={(v) => set(`services.${key}.minimumFare`, blankToNull(v))} hint={`Blank = ₹${draft.minimumFare}`} />
+                                            <NumField label="Extra service fee" prefix="₹" value={s.serviceFee} onChange={(v) => set(`services.${key}.serviceFee`, v)} hint="Flat add-on" />
                                         </div>
-                                        <Toggle checked={s.enabled} onChange={(v) => set(`services.${key}.enabled`, v)} label={`${label} enabled`} />
                                     </div>
                                 );
                             })}
+                        </div>
+                    </Section>
+
+                    <Section icon={Zap} title="Service area (distance radius)" subtitle="Athreya Express will not accept a booking when pickup to drop is farther than this.">
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                            <NumField label="Maximum distance" suffix="km" step="0.5" value={draft.maxDistanceKm} onChange={(v) => set('maxDistanceKm', v)} hint="0 = no limit" />
+                            <NumField label="Road distance factor" suffix="×" step="0.05" min={1} max={3} value={draft.distanceFactor} onChange={(v) => set('distanceFactor', v)} hint="Map distance is a straight line. 1.3 = add 30% to match real road distance. 1 = off" />
+                        </div>
+                    </Section>
+
+                    <Section icon={Zap} title="Delivery time (per kilometre)" subtitle="Time shown to the customer = preparation time + km x minutes per km, then a range is shown.">
+                        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                            <NumField label="Pickup / prep time" suffix="min" value={draft.eta.basePrepMinutes} onChange={(v) => set('eta.basePrepMinutes', v)} hint="Rider reaching + handover" />
+                            <NumField label="Minutes per km" suffix="min/km" step="0.5" value={draft.eta.minutesPerKm} onChange={(v) => set('eta.minutesPerKm', v)} hint="3 = 20 km/h average" />
+                            <NumField label="Range width" suffix="min" value={draft.eta.rangeSpreadMinutes} onChange={(v) => set('eta.rangeSpreadMinutes', v)} hint="25 to 30 mins = 5" />
+                            <NumField label="Shortest promise" suffix="min" value={draft.eta.minMinutes} onChange={(v) => set('eta.minMinutes', v)} />
+                            <NumField label="Longest promise" suffix="min" value={draft.eta.maxMinutes} onChange={(v) => set('eta.maxMinutes', v)} />
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold text-slate-600">
+                            {[1, 3, 5, 10].map((km) => {
+                                const raw = Number(draft.eta.basePrepMinutes || 0) + km * Number(draft.eta.minutesPerKm || 0);
+                                const lo = Math.min(Math.max(Math.round(raw), Number(draft.eta.minMinutes || 1)), Number(draft.eta.maxMinutes || 180));
+                                const hi = Math.min(lo + Number(draft.eta.rangeSpreadMinutes || 0), Number(draft.eta.maxMinutes || 180));
+                                return (
+                                    <span key={km} className="rounded-full bg-slate-100 px-3 py-1">
+                                        {km} km: {lo === hi ? lo : lo + '-' + hi} mins
+                                    </span>
+                                );
+                            })}
+                        </div>
+                    </Section>
+
+                    <Section icon={Zap} title="Rider booking timing (Instant / Schedule)" subtitle="Controls the Timing & Schedule step of Rider Pickup Request. Changes apply to customers immediately.">
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
+                                <div>
+                                    <p className="text-sm font-black text-slate-900">Instant Rider</p>
+                                    <p className="text-[11px] text-slate-500">Customers can ask for a rider immediately.</p>
+                                </div>
+                                <Toggle checked={draft.schedule.instantEnabled} onChange={(v) => set('schedule.instantEnabled', v)} label="Instant rider" />
+                            </div>
+                            <div className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
+                                <div>
+                                    <p className="text-sm font-black text-slate-900">Schedule for Later</p>
+                                    <p className="text-[11px] text-slate-500">Customers can pick a pickup time.</p>
+                                </div>
+                                <Toggle checked={draft.schedule.scheduleEnabled} onChange={(v) => set('schedule.scheduleEnabled', v)} label="Schedule for later" />
+                            </div>
+                            <div className={cn('grid grid-cols-2 lg:grid-cols-4 gap-4 transition-opacity', !draft.schedule.scheduleEnabled && 'opacity-40 pointer-events-none')}>
+                                <NumField label="Earliest booking" suffix="min from now" value={draft.schedule.minLeadMinutes} onChange={(v) => set('schedule.minLeadMinutes', v)} hint="Customer must book at least this far ahead" />
+                                <NumField label="Days ahead" suffix="days" max={30} value={draft.schedule.maxDaysAhead} onChange={(v) => set('schedule.maxDaysAhead', v)} hint="0 = today only, 1 = today and tomorrow" />
+                                <label className="block">
+                                    <span className="text-[11px] font-bold text-slate-600">Pickups from</span>
+                                    <input type="time" value={draft.schedule.windowStart} onChange={(e) => set('schedule.windowStart', e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold" />
+                                    <span className="mt-1 block text-[10px] text-slate-400">India time</span>
+                                </label>
+                                <label className="block">
+                                    <span className="text-[11px] font-bold text-slate-600">Pickups until</span>
+                                    <input type="time" value={draft.schedule.windowEnd} onChange={(e) => set('schedule.windowEnd', e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold" />
+                                    <span className="mt-1 block text-[10px] text-slate-400">India time</span>
+                                </label>
+                            </div>
                         </div>
                     </Section>
 

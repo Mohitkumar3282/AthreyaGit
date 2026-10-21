@@ -11,9 +11,11 @@ import Button from "./ui/Button";
 import Input from "./ui/Input";
 import { GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_SCRIPT_ID } from "@/core/services/googleMapsLoader";
 
+// Fill the screen instead of a fixed 340px box.
 const mapContainerStyle = {
   width: "100%",
-  height: "340px",
+  height: "min(62vh, 560px)",
+  minHeight: "340px",
 };
 
 const defaultCenter = {
@@ -88,6 +90,7 @@ const MapPicker = ({
   const mapRef = useRef(null);
   const autocompleteRef = useRef(null);
   const circleRef = useRef(null);
+  const pickedPlaceRef = useRef(null); // last place chosen from suggestions
 
   const clearCircleOverlay = useCallback(() => {
     if (circleRef.current) {
@@ -106,12 +109,19 @@ const MapPicker = ({
     libraries: GOOGLE_MAPS_LIBRARIES,
   });
 
+  // Depend on the numbers, not the object: parents pass a new {lat,lng} every
+  // render, which used to reset the pin to the old spot after the user picked
+  // a new one.
+  const initLat = initialLocation?.lat;
+  const initLng = initialLocation?.lng;
+
   useEffect(() => {
-    if (initialLocation) {
-      setCenter(initialLocation);
-      setMarker(initialLocation);
+    if (Number.isFinite(initLat) && Number.isFinite(initLng)) {
+      setCenter({ lat: initLat, lng: initLng });
+      setMarker({ lat: initLat, lng: initLng });
     }
-  }, [initialLocation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initLat, initLng]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -123,14 +133,18 @@ const MapPicker = ({
       return;
     }
 
-    if (initialLocation) {
-      setCenter(initialLocation);
-      setMarker(initialLocation);
+    if (Number.isFinite(initLat) && Number.isFinite(initLng)) {
+      setCenter({ lat: initLat, lng: initLng });
+      setMarker({ lat: initLat, lng: initLng });
+    } else if (mode === "point") {
+      // No saved point: start from where the customer actually is.
+      getCurrentLocation({ silent: true });
     } else {
       setCenter(defaultCenter);
       setMarker(null);
     }
-  }, [isOpen, initialLocation, initialRadius, preferCurrentLocationOnOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, initLat, initLng, initialRadius, preferCurrentLocationOnOpen]);
 
   const onMapClick = useCallback((e) => {
     clearCircleOverlay();
@@ -150,6 +164,18 @@ const MapPicker = ({
     setMarker(newPos);
   }, [clearCircleOverlay]);
 
+  // Keep Google's suggestions centred on the map: nearby places rank first
+  // (not strict, so a farther address can still be found).
+  useEffect(() => {
+    if (!isLoaded || !autocompleteRef.current || !window.google?.maps) return;
+    try {
+      const bounds = new window.google.maps.Circle({ center, radius: 15000 }).getBounds();
+      if (bounds) autocompleteRef.current.setBounds(bounds);
+    } catch {
+      /* bias is best-effort */
+    }
+  }, [center, isLoaded]);
+
   const handlePlaceChanged = () => {
     if (autocompleteRef.current) {
       const place = autocompleteRef.current.getPlace();
@@ -159,9 +185,14 @@ const MapPicker = ({
           lat: place.geometry.location.lat(),
           lng: place.geometry.location.lng(),
         };
+        pickedPlaceRef.current = newPos;
         setCenter(newPos);
         setMarker(newPos);
-        setAddress(place.formatted_address || "");
+        setAddress(
+          [place.name, place.formatted_address].filter(Boolean).join(", ") ||
+            place.formatted_address ||
+            "",
+        );
       }
     }
   };
@@ -265,7 +296,15 @@ const MapPicker = ({
       onConfirm({
         ...marker,
         ...(showRadius ? { radius } : {}),
-        address: result.formatted_address,
+        // If the pin is still exactly where the searched place is, keep that
+        // place's own name/address; otherwise use the reverse-geocoded one.
+        address:
+          pickedPlaceRef.current &&
+          address &&
+          Math.abs(pickedPlaceRef.current.lat - marker.lat) < 1e-6 &&
+          Math.abs(pickedPlaceRef.current.lng - marker.lng) < 1e-6
+            ? address
+            : result.formatted_address,
         ...extractAddressDetails(result),
       });
       onClose();
@@ -298,7 +337,7 @@ const MapPicker = ({
       isOpen={isOpen}
       onClose={onClose}
       title={title || "Select Shop Location"}
-      size="md"
+      size={mode === "point" ? "full" : "lg"}
       footer={
         <div className="flex justify-between w-full items-center">
           <div className="text-sm text-gray-500">
@@ -328,7 +367,7 @@ const MapPicker = ({
                 onPlaceChanged={handlePlaceChanged}
                 options={{
                   componentRestrictions: { country: "IN" },
-                  fields: ["geometry", "formatted_address"],
+                  fields: ["geometry", "formatted_address", "name", "place_id"],
                 }}>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
