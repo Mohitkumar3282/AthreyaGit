@@ -639,6 +639,11 @@ const PickupDelivery = () => {
 
   // 4. Rider Delivery Request State
   const [riderPickupLoc, setRiderPickupLoc] = useState("");
+  // Real coordinates of the typed / GPS pickup. Without these the distance was
+  // always measured from the app's saved location, not from the pickup typed.
+  const [h2hPickupCoords, setH2hPickupCoords] = useState(null);
+  const [riderPickupCoords, setRiderPickupCoords] = useState(null);
+  const lastGeocodedRef = useRef({});
   const [riderSenderPhone, setRiderSenderPhone] = useState(user?.phone || user?.phoneNumber || "");
   const [riderDropLoc, setRiderDropLoc] = useState("");
   const [riderReceiverPhone, setRiderReceiverPhone] = useState("");
@@ -795,13 +800,44 @@ const PickupDelivery = () => {
   };
 
   // Helper to use current location
-  const handleUseCurrentLocationFor = async (setter) => {
+  // Turn a typed pickup address into coordinates (Google Geocoder), biased to
+  // the customer's area. Silent on failure: the previous point is kept.
+  const geocodePickup = async (text, key, setCoords) => {
+    const q = String(text || "").trim();
+    if (!q || lastGeocodedRef.current[key] === q) return;
+    if (!window.google?.maps?.Geocoder) return;
+    lastGeocodedRef.current[key] = q;
+    try {
+      const geocoder = new window.google.maps.Geocoder();
+      const bounds =
+        Number.isFinite(currentLocation?.latitude) && Number.isFinite(currentLocation?.longitude)
+          ? new window.google.maps.Circle({
+              center: { lat: currentLocation.latitude, lng: currentLocation.longitude },
+              radius: 20000,
+            }).getBounds()
+          : undefined;
+      const results = await new Promise((resolve) => {
+        geocoder.geocode({ address: q, region: "in", componentRestrictions: { country: "IN" }, ...(bounds ? { bounds } : {}) }, (r, status) =>
+          resolve(status === "OK" ? r : null),
+        );
+      });
+      const loc = results?.[0]?.geometry?.location;
+      if (loc) setCoords({ lat: loc.lat(), lng: loc.lng() });
+    } catch {
+      /* keep previous coordinates */
+    }
+  };
+
+  const handleUseCurrentLocationFor = async (setter, setCoords) => {
     const toastId = toast.loading("Fetching your GPS location...");
     try {
       const result = await refreshLocation();
       if (result?.ok && result.location) {
         const locName = result.location.name || result.location.address || "My Current Location, Aswapuram";
         setter(locName);
+        if (setCoords && Number.isFinite(result.location.latitude) && Number.isFinite(result.location.longitude)) {
+          setCoords({ lat: result.location.latitude, lng: result.location.longitude });
+        }
         toast.success("Location updated successfully", { id: toastId });
       } else if (currentLocAddress) {
         setter(currentLocAddress.fullAddress);
@@ -900,7 +936,7 @@ const PickupDelivery = () => {
 
     if (activeTab === "home_to_home") {
       const d = h2hDropAddressOptions.find((a) => a._id === h2hSelectedDropAddressId || a.id === h2hSelectedDropAddressId);
-      return { pickup: cur, drop: d ? d.location || DEFAULT_POINT : cur, weight: h2hWeight };
+      return { pickup: h2hPickupCoords || cur, drop: d ? d.location || DEFAULT_POINT : cur, weight: h2hWeight };
     }
     if (activeTab === "shop_to_home") {
       const shop = shops.find((x) => x._id === selectedShopId || x.id === selectedShopId);
@@ -917,7 +953,7 @@ const PickupDelivery = () => {
     }
     if (activeTab === "rider_delivery") {
       const d = riderDropAddressOptions.find((a) => a._id === riderSelectedAddressId || a.id === riderSelectedAddressId);
-      return { pickup: cur, drop: d ? d.location || DEFAULT_POINT : cur, timing: riderTiming };
+      return { pickup: riderPickupCoords || cur, drop: d ? d.location || DEFAULT_POINT : cur, timing: riderTiming };
     }
     return null;
   }, [
@@ -925,6 +961,7 @@ const PickupDelivery = () => {
     h2hDropAddressOptions, riderDropAddressOptions,
     h2hSelectedDropAddressId, h2hWeight, shopSelectedAddressId, shopWeight,
     cargoSelectedAddressId, cargoWeight, riderSelectedAddressId, riderTiming,
+    h2hPickupCoords, riderPickupCoords,
   ]);
 
   const [fareQuote, setFareQuote] = useState(null);
@@ -1096,7 +1133,7 @@ const PickupDelivery = () => {
         name: h2hSenderName || user?.name || "Sender",
         phone: h2hSenderPhone || user?.phone || "",
         address: h2hPickupAddress,
-        location: currentLocation?.latitude ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : { lat: 17.7833, lng: 80.8500 }
+        location: h2hPickupCoords || (currentLocation?.latitude ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : { lat: 17.7833, lng: 80.8500 })
       };
 
       parcelDetailsText = `🏠 [HOME TO HOME PICKUP]\n` +
@@ -1300,7 +1337,7 @@ const PickupDelivery = () => {
         name: user?.name || "Pickup Contact",
         phone: riderSenderPhone || user?.phone || "",
         address: riderPickupLoc,
-        location: currentLocation?.latitude ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : { lat: 17.7833, lng: 80.8500 }
+        location: riderPickupCoords || (currentLocation?.latitude ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : { lat: 17.7833, lng: 80.8500 })
       };
 
       parcelDetailsText = `🛵 [RIDER PICKUP REQUEST]\n` +
@@ -1512,7 +1549,7 @@ const PickupDelivery = () => {
                   <Label className="text-[13.5px] font-bold text-slate-700">Sender Pickup Address</Label>
                   <button 
                     type="button"
-                    onClick={() => handleUseCurrentLocationFor(setH2hPickupAddress)}
+                    onClick={() => handleUseCurrentLocationFor(setH2hPickupAddress, setH2hPickupCoords)}
                     className="text-[13px] font-black text-emerald-700 hover:underline flex items-center gap-0.5"
                   >
                     <Navigation size={10} /> Use GPS Location
@@ -1522,6 +1559,7 @@ const PickupDelivery = () => {
                   placeholder="E.g., House No 4-22, Near Ganesh Temple, Aswapuram"
                   value={h2hPickupAddress}
                   onChange={(e) => setH2hPickupAddress(e.target.value)}
+                  onBlur={() => geocodePickup(h2hPickupAddress, "h2h", setH2hPickupCoords)}
                   className="text-[13.5px] font-semibold rounded-xl bg-slate-50"
                 />
               </div>
@@ -1594,7 +1632,7 @@ const PickupDelivery = () => {
                 <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-100 rounded-xl">
                   <Navigation size={14} className="text-emerald-700 shrink-0" />
                   <span className="text-[13.5px] font-bold text-emerald-900">
-                    Estimated Distance: <span className="font-black">{calculatedDistance} km</span>
+                    Distance by road: <span className="font-black">{calculatedDistance} km</span>
                     {deliveryFee ? <span className="text-emerald-700"> · Fare ₹{deliveryFee}</span> : null}
                   </span>
                 </div>
@@ -2090,7 +2128,7 @@ const PickupDelivery = () => {
                   <Label className="text-[13.5px] font-bold text-slate-700">Pickup Location (ఎక్కడికి వెళ్ళాలి)</Label>
                   <button 
                     type="button"
-                    onClick={() => handleUseCurrentLocationFor(setRiderPickupLoc)}
+                    onClick={() => handleUseCurrentLocationFor(setRiderPickupLoc, setRiderPickupCoords)}
                     className="text-[13px] font-black text-emerald-700 hover:underline flex items-center gap-0.5"
                   >
                     <Navigation size={10} /> Use GPS
@@ -2100,6 +2138,7 @@ const PickupDelivery = () => {
                   placeholder="Where should rider pick up?"
                   value={riderPickupLoc}
                   onChange={(e) => setRiderPickupLoc(e.target.value)}
+                  onBlur={() => geocodePickup(riderPickupLoc, "rider", setRiderPickupCoords)}
                   className="text-[13.5px] rounded-xl bg-slate-50"
                 />
               </div>
@@ -2140,7 +2179,7 @@ const PickupDelivery = () => {
                 <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-100 rounded-xl">
                   <Navigation size={14} className="text-emerald-700 shrink-0" />
                   <span className="text-[13.5px] font-bold text-emerald-900">
-                    Estimated Trip Distance: <span className="font-black">{calculatedDistance} km</span>
+                    Trip distance by road: <span className="font-black">{calculatedDistance} km</span>
                     {deliveryFee ? <span className="text-emerald-700"> · Fare ₹{deliveryFee}</span> : null}
                   </span>
                 </div>

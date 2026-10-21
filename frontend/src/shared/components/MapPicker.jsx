@@ -5,7 +5,7 @@ import {
   Marker,
   Autocomplete,
 } from "@react-google-maps/api";
-import { Search, MapPin, Navigation, Loader2 } from "lucide-react";
+import { Search, MapPin, Navigation, Loader2, X } from "lucide-react";
 import Modal from "./ui/Modal";
 import Button from "./ui/Button";
 import Input from "./ui/Input";
@@ -153,6 +153,7 @@ const MapPicker = ({
       lng: e.latLng.lng(),
     };
     setMarker(newPos);
+    setAddress(""); // the pin moved: any previously searched address no longer applies
   }, [clearCircleOverlay]);
 
   const onMarkerDragEnd = useCallback((e) => {
@@ -162,6 +163,7 @@ const MapPicker = ({
       lng: e.latLng.lng(),
     };
     setMarker(newPos);
+    setAddress(""); // the pin moved: any previously searched address no longer applies
   }, [clearCircleOverlay]);
 
   // Keep Google's suggestions centred on the map: nearby places rank first
@@ -329,6 +331,130 @@ const MapPicker = ({
           Failed to load Google Maps. Please check your API key and connection.
         </div>
       </Modal>
+    );
+  }
+
+  // Drop-point picker: the map fills the WHOLE screen. Search and the
+  // confirm bar float over it, like Rapido / Uber.
+  if (mode === "point") {
+    if (!isOpen) return null;
+    return (
+      <div className="fixed inset-0 z-[600] bg-white">
+        {!isLoaded ? (
+          <div className="h-full w-full flex items-center justify-center bg-gray-50">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <GoogleMap
+            onLoad={handleMapLoad}
+            mapContainerStyle={{ width: "100%", height: "100%" }}
+            center={center}
+            zoom={16}
+            onClick={onMapClick}
+            options={{
+              disableDefaultUI: true,
+              zoomControl: false,
+              streetViewControl: false,
+              mapTypeControl: false,
+              fullscreenControl: false,
+              gestureHandling: "greedy",
+            }}>
+            {marker && (
+              <Marker
+                key={`${marker.lat.toFixed(6)}-${marker.lng.toFixed(6)}`}
+                position={marker}
+                draggable={true}
+                onDragEnd={onMarkerDragEnd}
+                animation={window.google.maps.Animation.DROP}
+              />
+            )}
+          </GoogleMap>
+        )}
+
+        {/* Top: title, close, search */}
+        <div className="absolute top-0 left-0 right-0 p-3 pt-4 space-y-2 bg-gradient-to-b from-white via-white/90 to-transparent pointer-events-none">
+          <div className="flex items-center justify-between pointer-events-auto">
+            <h2 className="text-lg font-black text-gray-900">{title || "Select Location"}</h2>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close map"
+              className="h-9 w-9 rounded-full bg-white shadow-md border border-gray-200 flex items-center justify-center">
+              <X className="w-5 h-5 text-gray-700" />
+            </button>
+          </div>
+          <div className="flex gap-2 pointer-events-auto">
+            <div className="relative flex-1">
+              {isLoaded && (
+                <Autocomplete
+                  onLoad={(ref) => (autocompleteRef.current = ref)}
+                  onPlaceChanged={handlePlaceChanged}
+                  options={{
+                    componentRestrictions: { country: "IN" },
+                    fields: ["geometry", "formatted_address", "name", "place_id"],
+                  }}>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input
+                      placeholder={searchPlaceholder || "Search for a place..."}
+                      className="pl-10 h-11 bg-white shadow-md"
+                    />
+                  </div>
+                </Autocomplete>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => getCurrentLocation()}
+              title="Use current location"
+              className="h-11 w-11 rounded-xl bg-white shadow-md border border-gray-200 flex items-center justify-center shrink-0">
+              <Navigation className="w-4 h-4 text-gray-800" />
+            </button>
+          </div>
+        </div>
+
+        {/* Zoom buttons */}
+        <div className="absolute right-3 bottom-40 flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => mapRef.current?.setZoom((mapRef.current.getZoom() || 16) + 1)}
+            className="h-10 w-10 rounded-xl bg-white shadow-md border border-gray-200 text-xl font-bold">
+            +
+          </button>
+          <button
+            type="button"
+            onClick={() => mapRef.current?.setZoom((mapRef.current.getZoom() || 16) - 1)}
+            className="h-10 w-10 rounded-xl bg-white shadow-md border border-gray-200 text-xl font-bold">
+            −
+          </button>
+        </div>
+
+        {/* Bottom: selected spot + confirm */}
+        <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.15)] p-4 pb-6 space-y-3">
+          <div className="flex items-start gap-2">
+            <MapPin className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-gray-900 truncate">
+                {address || (marker ? "Pinned location" : "Tap the map or search to choose a spot")}
+              </p>
+              {marker && (
+                <p className="text-xs text-gray-500">
+                  {marker.lat.toFixed(5)}, {marker.lng.toFixed(5)}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button className="flex-[2]" onClick={handleConfirm} disabled={!marker || isGeocoding}>
+              {isGeocoding ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              {confirmLabel}
+            </Button>
+          </div>
+        </div>
+      </div>
     );
   }
 

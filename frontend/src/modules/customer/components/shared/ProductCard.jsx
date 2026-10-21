@@ -58,6 +58,16 @@ const ProductCard = React.memo(
       };
     }, [product]);
 
+    // Pack size / quantity shown ON the image (500 g, 250 ml, 1 kg ...), so
+    // customers see it without opening the product. Prefers the variant that the
+    // displayed price belongs to, then the product's own weight field.
+    const quantityLabel = React.useMemo(() => {
+      const variantName = String(defaultVariant?.name || "").trim();
+      if (variantName) return variantName;
+      const w = String(product?.weight || "").trim();
+      return w && w.toLowerCase() !== "1 unit" ? w : "";
+    }, [defaultVariant, product]);
+
     const productId = product.id || product._id;
     const variantKey = String(defaultVariant?.key || "").trim();
     const cartKey = `${productId}::${variantKey || ""}`;
@@ -235,6 +245,17 @@ const ProductCard = React.memo(
               className="w-full h-full object-cover mix-blend-multiply"
             />
           </div>
+
+          {/* Quantity / size badge on the image */}
+          {quantityLabel && (
+            <span
+              className={cn(
+                "absolute z-10 left-2 bottom-2 max-w-[85%] truncate rounded-md bg-white/95 text-[#14532d] font-black shadow-sm border border-[#1a6e2e]/25",
+                compact ? "px-1.5 py-0.5 text-[11px]" : "px-2 py-0.5 text-[11px] sm:text-[12px]",
+              )}>
+              {quantityLabel}
+            </span>
+          )}
         </div>
 
         {/* Info Section */}

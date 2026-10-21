@@ -1,5 +1,6 @@
 import Setting from "../../models/setting.js";
 import { calculateDeliveryEta } from "../deliveryEtaService.js";
+import { getCachedRoute } from "../mapsRouteService.js";
 import Seller from "../../models/seller.js";
 import { distanceMeters } from "../../utils/geoUtils.js";
 import { roundCurrency, addMoney, ceilKm } from "../../utils/money.js";
@@ -308,10 +309,45 @@ export function calculateExpressFare({
  * Falls back to seller -> drop when the pickup point has no coordinates. Shared
  * by the quote endpoint and placement so both bill the same distance.
  */
-export async function resolveExpressDistanceKm({ pickupAddress, address, sellerId, factor = 1 } = {}) {
+export async function resolveExpressDistanceKm(args = {}) {
+  return (await resolveExpressDistance(args)).km;
+}
+
+/**
+ * Billed distance. Uses the real ROAD distance from Google Directions (what
+ * Google Maps shows) when both points are known and the API answers; otherwise
+ * falls back to the straight-line distance x the admin "road distance factor".
+ * Quote and placement both call this, so the customer is charged what was shown.
+ */
+export async function resolveExpressDistance({ pickupAddress, address, sellerId, factor = 1 } = {}) {
+  const valid = (x) =>
+    x && Number.isFinite(Number(x.lat)) && Number.isFinite(Number(x.lng));
+  const p = pickupAddress?.location;
+  const a = address?.location;
+  if (valid(p) && valid(a)) {
+    try {
+      const route = await Promise.race([
+        getCachedRoute(
+          { lat: Number(p.lat), lng: Number(p.lng) },
+          { lat: Number(a.lat), lng: Number(a.lng) },
+          "driving",
+        ),
+        new Promise((resolve) => setTimeout(() => resolve(null), 4000)),
+      ]);
+      if (route && !route.degraded && Number(route.distanceMeters) > 0) {
+        return {
+          km: Number((route.distanceMeters / 1000).toFixed(3)),
+          source: "road",
+          routeMinutes: route.duration ? Math.round(route.duration / 60) : null,
+        };
+      }
+    } catch {
+      /* fall back to straight line */
+    }
+  }
   const k = Math.max(Number(factor) || 1, 1);
   const raw = await measureExpressDistanceKm({ pickupAddress, address, sellerId });
-  return Number((raw * k).toFixed(3));
+  return { km: Number((raw * k).toFixed(3)), source: "straight", routeMinutes: null };
 }
 
 async function measureExpressDistanceKm({ pickupAddress, address, sellerId } = {}) {
@@ -379,6 +415,7 @@ export function isWithinExpressRadius(distanceKm, settings) {
 }
 
 export default {
+  resolveExpressDistance,
   validateExpressTiming,
   estimateExpressEta,
   isWithinExpressRadius,

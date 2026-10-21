@@ -8,6 +8,7 @@ import {
   getExpressFareSettings,
   normalizeExpressFareSettings,
   resolveExpressDistanceKm,
+  resolveExpressDistance,
   saveExpressFareSettings,
   estimateExpressEta,
   isWithinExpressRadius,
@@ -127,10 +128,15 @@ export const quoteExpressFare = async (req, res) => {
       settings = normalizeExpressFareSettings({ ...settings, ...req.body.settingsOverride });
     }
 
-    const distance =
-      isAdmin && Number.isFinite(Number(distanceKm))
-        ? Math.max(0, Number(distanceKm))
-        : await resolveExpressDistanceKm({ pickupAddress, address, sellerId, factor: settings.distanceFactor });
+    let distanceSource = "manual";
+    let distance;
+    if (isAdmin && Number.isFinite(Number(distanceKm))) {
+      distance = Math.max(0, Number(distanceKm));
+    } else {
+      const measured = await resolveExpressDistance({ pickupAddress, address, sellerId, factor: settings.distanceFactor });
+      distance = measured.km;
+      distanceSource = measured.source;
+    }
 
     const serviceEnabled = settings.services[service]?.enabled !== false;
     // Admin calculator can simulate a time of day to preview the night charge.
@@ -150,6 +156,7 @@ export const quoteExpressFare = async (req, res) => {
       service,
       serviceEnabled,
       distanceKm: fare.distanceKm,
+      distanceSource,
       maxDistanceKm: settings.maxDistanceKm,
       schedule: settings.schedule,
       withinRadius: isWithinExpressRadius(distance, settings),
