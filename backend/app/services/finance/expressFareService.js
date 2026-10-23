@@ -3,7 +3,7 @@ import { calculateDeliveryEta } from "../deliveryEtaService.js";
 import { getCachedRoute } from "../mapsRouteService.js";
 import Seller from "../../models/seller.js";
 import { distanceMeters } from "../../utils/geoUtils.js";
-import { roundCurrency, addMoney, ceilKm } from "../../utils/money.js";
+import { roundCurrency, addMoney } from "../../utils/money.js";
 
 /**
  * Athreya Express fare engine.
@@ -262,7 +262,9 @@ export function calculateExpressFare({
   const perKmCfg = svc.perKmRate ?? cfg.perKmRate;
   const minimumFareCfg = svc.minimumFare ?? cfg.minimumFare;
 
-  const extraKm = dist > baseDistanceCfg ? ceilKm(dist - baseDistanceCfg) : 0;
+  // Charged in proportion to the distance, not rounded up: 1.5 extra km at
+  // ₹10/km = ₹15 (previously 1.5 was billed as 2 km = ₹20).
+  const extraKm = dist > baseDistanceCfg ? Number((dist - baseDistanceCfg).toFixed(2)) : 0;
   const distanceFare = roundCurrency(extraKm * perKmCfg);
 
   const band = WEIGHT_APPLIES_TO.has(service) ? resolveWeightBand(weight) : null;
