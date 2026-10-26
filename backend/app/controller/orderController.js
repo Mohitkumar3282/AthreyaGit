@@ -36,6 +36,7 @@ import {
 import { getOrCreateFinanceSettings } from "../services/finance/financeSettingsService.js";
 import { generateUniquePublicOrderId } from "../services/orderIdService.js";
 import { estimateDeliveryEta } from "../services/deliveryEtaService.js";
+import { customerAddressList, manualOrderDistance, rankRidersForSeller } from "./manualOrderAssistController.js";
 import {
   calculateExpressFare,
   getExpressFareSettings,
@@ -2204,6 +2205,7 @@ export const createManualOrder = async (req, res) => {
       totalAmount,
       deliveryFee: customDeliveryFee,
       address,
+      addressIndex,
       paymentMode = "COD",
       notes,
     } = req.body || {};
@@ -2238,6 +2240,17 @@ export const createManualOrder = async (req, res) => {
       }
     }
 
+    // Admin picked one of the customer's saved addresses (with its map point).
+    let pickedSaved = null;
+    if (addressIndex !== undefined && addressIndex !== null && addressIndex !== "") {
+      pickedSaved = customerAddressList(customerDoc)[Number(addressIndex)] || null;
+      if (pickedSaved) {
+        userSavedAddress = pickedSaved.address || userSavedAddress;
+        if (pickedSaved.city) userSavedCity = pickedSaved.city;
+        if (pickedSaved.location) userLocation = pickedSaved.location;
+      }
+    }
+
     const inputAddr = typeof address === "string" ? address.trim() : (address?.address?.trim() || "");
     const fallbackNotes = (typeof notes === "string" && notes.trim().length > 5) ? notes.trim() : "";
     const finalAddressLine = inputAddr || userSavedAddress || fallbackNotes || "WhatsApp Order - Direct Delivery";
@@ -2250,7 +2263,9 @@ export const createManualOrder = async (req, res) => {
       location: (typeof address === "object" && address?.location) || userLocation,
     };
 
-    const distanceKm = await deriveDistanceKm({ sellerId, addressLocation: deliveryAddress.location });
+    // Real road distance (what Google Maps shows); straight line only if Google is unreachable.
+    const measured = await manualOrderDistance(sellerDoc, deliveryAddress.location);
+    const distanceKm = measured.km || (await deriveDistanceKm({ sellerId, addressLocation: deliveryAddress.location }));
     const financeSettings = await getOrCreateFinanceSettings();
     const deliveryPricing = calculateCustomerDeliveryFee(distanceKm, financeSettings);
     const riderPricing = calculateRiderPayout(distanceKm, financeSettings);
@@ -2304,7 +2319,16 @@ export const createManualOrder = async (req, res) => {
 
     let assignedRiderId = null;
 
-    if (deliveryBoyId) {
+    if (deliveryBoyId === "auto") {
+      // Smart assignment: nearest online rider to the shop, fewest running orders,
+      // skipping anyone whose cash limit this COD order would break.
+      const ranked = await rankRidersForSeller(sellerDoc, {
+        limit: 5,
+        codAmount: paymentMode === "COD" ? grandTotal : 0,
+      });
+      const best = ranked.find((r) => !r.cashLimitReached);
+      if (best) assignedRiderId = best.id;
+    } else if (deliveryBoyId) {
       const riderDoc = await Delivery.findById(deliveryBoyId).lean();
       if (riderDoc) {
         assignedRiderId = riderDoc._id;
@@ -2386,7 +2410,11 @@ export const createManualOrder = async (req, res) => {
       });
     }
 
-    return handleResponse(res, 201, "Manual WhatsApp order created successfully", { order: newOrder });
+    return handleResponse(res, 201, "Manual WhatsApp order created successfully", {
+      order: newOrder,
+      autoAssignedRider: deliveryBoyId === "auto" ? (assignedRiderId ? String(assignedRiderId) : null) : undefined,
+      distanceKm,
+    });
   } catch (error) {
     logger.error("Create Manual Order Error", { scope: "createManualOrder", error });
     return handleResponse(res, 500, error.message);

@@ -44,6 +44,7 @@ import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
 import { getAreaName, getTeluguAreaName } from "../components/shared/MainLocationHeader";
 import { getTeluguCategoryName } from "@shared/utils/categoryTranslations";
 import ProductCard from "../components/shared/ProductCard";
+import { openWhatsApp } from "@/shared/utils/whatsapp";
 import { getLegacyStatusFromOrder } from "@shared/utils/orderStatus";
 import LiveBanner from "../components/banner/LiveBanner";
 
@@ -558,13 +559,7 @@ const Home = () => {
     message += `\n\nDelivery Location:\n${customerAddress}`;
     message += `\n\nMy Order Details:\n${itemsText}`;
 
-    const encodedText = encodeURIComponent(message);
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile) {
-      window.location.href = `whatsapp://send?phone=${targetNumber}&text=${encodedText}`;
-    } else {
-      window.open(`https://web.whatsapp.com/send?phone=${targetNumber}&text=${encodedText}`, "_blank");
-    }
+    openWhatsApp(targetNumber, message);
   };
 
   return (

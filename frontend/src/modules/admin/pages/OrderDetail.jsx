@@ -41,6 +41,7 @@ const OrderDetail = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [availableRiders, setAvailableRiders] = useState([]);
     const [isAssigningRider, setIsAssigningRider] = useState(false);
+    const [suggestedRiders, setSuggestedRiders] = useState([]); // nearest + least busy first
     const invoiceRef = useRef(null);
 
     useEffect(() => {
@@ -49,6 +50,27 @@ const OrderDetail = () => {
             setAvailableRiders(Array.isArray(riders) ? riders : []);
         }).catch(() => {});
     }, []);
+
+    // Smart suggestions: riders online nearest to this order's shop, fewest running orders first.
+    const sellerIdForSuggest = order?.seller?._id || order?.seller?.id || (typeof order?.seller === 'string' ? order.seller : null);
+    useEffect(() => {
+        if (!sellerIdForSuggest) return undefined;
+        let cancelled = false;
+        adminApi
+            .getManualRiderSuggestions({ sellerId: sellerIdForSuggest, cod: order?.paymentMode === 'COD' ? Number(order?.pricing?.total || 0) : 0 })
+            .then((res) => {
+                if (!cancelled) setSuggestedRiders(Array.isArray(res.data?.result) ? res.data.result : []);
+            })
+            .catch(() => {});
+        return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sellerIdForSuggest, order?.paymentMode]);
+
+    const handleAutoAssign = () => {
+        const best = suggestedRiders.find((r) => !r.cashLimitReached);
+        if (!best) return showToast('No suitable rider is online right now', 'warning');
+        handleAssignRider(best.id);
+    };
 
     const handleAssignRider = async (deliveryBoyId) => {
         if (!deliveryBoyId) return;
@@ -393,12 +415,28 @@ const OrderDetail = () => {
                                     className="w-full text-xs font-bold text-slate-800 bg-white border border-slate-200 rounded-lg p-1 mt-1 outline-none focus:ring-2 focus:ring-emerald-500/20"
                                 >
                                     <option value="">-- {order.deliveryBoy ? "Change Rider" : "Assign Rider"} --</option>
-                                    {availableRiders.map((r) => (
-                                        <option key={r._id || r.id} value={r._id || r.id}>
-                                            {r.name} ({r.phone || 'Rider'})
-                                        </option>
-                                    ))}
+                                    {suggestedRiders.length > 0
+                                        ? suggestedRiders.map((r) => (
+                                            <option key={r.id} value={r.id} disabled={r.cashLimitReached}>
+                                                {r.recommended ? '★ ' : ''}{r.name} - {r.distanceKm != null ? r.distanceKm + ' km' : 'location unknown'}, {r.activeOrders} running{r.cashLimitReached ? ' (cash limit)' : ''}
+                                            </option>
+                                        ))
+                                        : availableRiders.map((r) => (
+                                            <option key={r._id || r.id} value={r._id || r.id}>
+                                                {r.name} ({r.phone || 'Rider'})
+                                            </option>
+                                        ))}
                                 </select>
+                                {suggestedRiders.length > 0 && (
+                                    <button
+                                        type="button"
+                                        disabled={isAssigningRider}
+                                        onClick={handleAutoAssign}
+                                        className="mt-1.5 w-full text-[11px] font-black text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg py-1.5 disabled:opacity-50"
+                                    >
+                                        ⚡ Auto-assign best rider
+                                    </button>
+                                )}
                                 {order.assignedAt && (
                                     <p className="text-[9px] text-slate-400 font-semibold mt-1">
                                         Assigned at {new Date(order.assignedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

@@ -13,6 +13,12 @@ export const adminOrdersApi = {
         axiosInstance.put(`/orders/status/${orderId}`, data),
     createManualOrder: (data) =>
         axiosInstance.post('/orders/manual', data),
+    lookupManualOrder: (params) =>
+        axiosInstance.get('/orders/manual/lookup', { params }),
+    quoteManualOrder: (data) =>
+        axiosInstance.post('/orders/manual/quote', data),
+    getManualRiderSuggestions: (params) =>
+        axiosInstance.get('/orders/manual/rider-suggestions', { params }),
     assignRiderToOrder: (orderId, data) =>
         axiosInstance.put(`/orders/${orderId}/assign-rider`, data),
 

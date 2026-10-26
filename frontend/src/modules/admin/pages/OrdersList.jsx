@@ -1,4 +1,5 @@
 // Comprehensive Order Management System
+import ManualOrderForm from '../components/ManualOrderForm';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Card from '@shared/components/ui/Card';
@@ -39,7 +40,10 @@ const OrdersList = () => {
     const navigate = useNavigate();
     const { showToast } = useToast();
     const [searchTerm, setSearchTerm] = useState('');
-    const [dateRange, setDateRange] = useState('All Time');
+    const [dateRange, setDateRange] = useState('All Time'); // label shown on the button
+    const [dateStart, setDateStart] = useState(''); // YYYY-MM-DD (India date), '' = no limit
+    const [dateEnd, setDateEnd] = useState('');
+    const [pickMode, setPickMode] = useState('day'); // day | month | year
     const [orders, setOrders] = useState([]);
     const [summary, setSummary] = useState({
         totalOrders: 0,
@@ -78,38 +82,7 @@ const OrdersList = () => {
         paymentMode: 'COD',
     });
 
-    const openCreateModal = async () => {
-        setIsCreateModalOpen(true);
-        setIsLoadingDropdowns(true);
-        try {
-            const [uRes, sRes, dRes] = await Promise.all([
-                adminApi.getUsers({ limit: 100 }).catch(() => ({ data: {} })),
-                adminApi.getSellers({ limit: 100 }).catch(() => ({ data: {} })),
-                adminApi.getDeliveryPartners({ limit: 100 }).catch(() => ({ data: {} })),
-            ]);
-
-            const extractArray = (res) => {
-                if (!res || !res.data) return [];
-                const payload = res.data.result || res.data.data || res.data.results || res.data;
-                if (Array.isArray(payload)) return payload;
-                if (payload && typeof payload === 'object') {
-                    if (Array.isArray(payload.items)) return payload.items;
-                    if (Array.isArray(payload.users)) return payload.users;
-                    if (Array.isArray(payload.sellers)) return payload.sellers;
-                    if (Array.isArray(payload.deliveryPartners)) return payload.deliveryPartners;
-                }
-                return [];
-            };
-
-            setCustomersList(extractArray(uRes));
-            setSellersList(extractArray(sRes));
-            setRidersList(extractArray(dRes));
-        } catch (err) {
-            console.error("Error fetching modal dropdowns:", err);
-        } finally {
-            setIsLoadingDropdowns(false);
-        }
-    };
+    const openCreateModal = () => setIsCreateModalOpen(true);
 
     const handleCreateManualOrder = async (e) => {
         e.preventDefault();
@@ -182,15 +155,55 @@ const OrdersList = () => {
         }
     };
 
+    // India calendar date helpers (the shop runs on IST regardless of the browser).
+    const istYmd = (d = new Date()) => d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    const addDays = (ymd, n) => {
+        const d = new Date(`${ymd}T12:00:00+05:30`);
+        d.setDate(d.getDate() + n);
+        return istYmd(d);
+    };
+    const lastDayOfMonth = (y, m) => new Date(y, m, 0).getDate(); // m is 1-12
+    const prettyDay = (ymd) =>
+        new Date(`${ymd}T12:00:00+05:30`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
+    const applyRange = (label, start, end) => {
+        setDateRange(label);
+        setDateStart(start);
+        setDateEnd(end);
+        setPage(1);
+        setIsDateMenuOpen(false);
+    };
+
+    const applyPreset = (range) => {
+        const today = istYmd();
+        if (range === 'All Time') return applyRange('All Time', '', '');
+        if (range === 'Today') return applyRange('Today', today, today);
+        if (range === 'Yesterday') return applyRange('Yesterday', addDays(today, -1), addDays(today, -1));
+        if (range === 'Last 7 Days') return applyRange('Last 7 Days', addDays(today, -6), today);
+        if (range === 'This Month') {
+            const [y, m] = today.split('-').map(Number);
+            return applyRange('This Month', `${y}-${String(m).padStart(2, '0')}-01`, `${y}-${String(m).padStart(2, '0')}-${lastDayOfMonth(y, m)}`);
+        }
+        return null;
+    };
+
+    const applyDay = (ymd) => ymd && applyRange(prettyDay(ymd), ymd, ymd);
+    const applyMonth = (ym) => {
+        if (!ym) return;
+        const [y, m] = ym.split('-').map(Number);
+        const label = new Date(y, m - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+        applyRange(label, `${ym}-01`, `${ym}-${lastDayOfMonth(y, m)}`);
+    };
+    const applyYear = (y) => y && applyRange(String(y), `${y}-01-01`, `${y}-12-31`);
+
     const fetchOrders = async (requestedPage = 1) => {
         setIsLoading(true);
         try {
             const params = { page: requestedPage, limit: pageSize };
             if (status !== 'all') params.status = status;
             if (searchTerm.trim()) params.search = searchTerm.trim();
-            if (dateRange !== 'All Time') {
-                params.dateFilter = dateRange.toLowerCase().replace(/ /g, '_');
-            }
+            if (dateStart) params.startDate = dateStart;
+            if (dateEnd) params.endDate = dateEnd;
             const response = await adminApi.getOrders(params);
             if (response.data.success) {
                 const payload = response.data.result || {};
@@ -271,7 +284,7 @@ const OrdersList = () => {
             fetchOrders(1);
         }, 500);
         return () => clearTimeout(timer);
-    }, [pageSize, status, searchTerm, dateRange]);
+    }, [pageSize, status, searchTerm, dateStart, dateEnd]);
 
     const safeOrders = useMemo(
         () => (Array.isArray(orders) ? orders : []),
@@ -400,15 +413,12 @@ const OrdersList = () => {
                                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                        className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl ring-1 ring-slate-100 p-2 z-20"
+                                        className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl ring-1 ring-slate-100 p-2 z-20"
                                     >
                                         {['All Time', 'Today', 'Yesterday', 'Last 7 Days', 'This Month'].map((range) => (
                                             <button
                                                 key={range}
-                                                onClick={() => {
-                                                    setDateRange(range);
-                                                    setIsDateMenuOpen(false);
-                                                }}
+                                                onClick={() => applyPreset(range)}
                                                 className={cn(
                                                     "w-full text-left px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all",
                                                     dateRange === range ? "bg-brand-50 text-brand-600" : "text-slate-500 hover:bg-slate-50"
@@ -417,6 +427,54 @@ const OrdersList = () => {
                                                 {range}
                                             </button>
                                         ))}
+
+                                        <div className="mt-2 pt-2 border-t border-slate-100 px-2 pb-1">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Pick a specific</p>
+                                            <div className="grid grid-cols-3 gap-1 mb-2">
+                                                {['day', 'month', 'year'].map((m) => (
+                                                    <button
+                                                        key={m}
+                                                        type="button"
+                                                        onClick={() => setPickMode(m)}
+                                                        className={cn(
+                                                            "py-1.5 rounded-lg text-[10px] font-black uppercase",
+                                                            pickMode === m ? "bg-brand-500 text-white" : "bg-slate-100 text-slate-500"
+                                                        )}
+                                                    >
+                                                        {m}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            {pickMode === 'day' && (
+                                                <input
+                                                    type="date"
+                                                    max={istYmd()}
+                                                    value={dateStart && dateStart === dateEnd ? dateStart : ''}
+                                                    onChange={(e) => applyDay(e.target.value)}
+                                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700"
+                                                />
+                                            )}
+                                            {pickMode === 'month' && (
+                                                <input
+                                                    type="month"
+                                                    max={istYmd().slice(0, 7)}
+                                                    onChange={(e) => applyMonth(e.target.value)}
+                                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700"
+                                                />
+                                            )}
+                                            {pickMode === 'year' && (
+                                                <select
+                                                    defaultValue=""
+                                                    onChange={(e) => applyYear(e.target.value)}
+                                                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700"
+                                                >
+                                                    <option value="">-- Select year --</option>
+                                                    {Array.from({ length: 6 }, (_, i) => Number(istYmd().slice(0, 4)) - i).map((y) => (
+                                                        <option key={y} value={y}>{y}</option>
+                                                    ))}
+                                                </select>
+                                            )}
+                                        </div>
                                     </motion.div>
                                 </>
                             )}
@@ -424,6 +482,29 @@ const OrdersList = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Orders placed in the selected period */}
+            {dateStart && (
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl bg-brand-50 ring-1 ring-brand-100 px-5 py-4">
+                    <div>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Orders placed · {dateRange}</p>
+                        <p className="text-3xl font-black text-slate-900 leading-tight">{summary.totalOrders}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-[11px] font-bold">
+                        <span className="px-3 py-1 rounded-full bg-white text-emerald-700 ring-1 ring-emerald-100">Delivered {summary.delivered}</span>
+                        <span className="px-3 py-1 rounded-full bg-white text-blue-700 ring-1 ring-blue-100">Active {summary.activeOrders}</span>
+                        <span className="px-3 py-1 rounded-full bg-white text-rose-700 ring-1 ring-rose-100">Cancelled {summary.cancelled}</span>
+                        {summary.returned > 0 && <span className="px-3 py-1 rounded-full bg-white text-amber-700 ring-1 ring-amber-100">Returned {summary.returned}</span>}
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => applyPreset('All Time')}
+                        className="ml-auto text-[11px] font-black text-brand-600 hover:underline"
+                    >
+                        Clear date filter
+                    </button>
+                </div>
+            )}
 
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -660,7 +741,7 @@ const OrdersList = () => {
                                     </div>
                                     <div>
                                         <h3 className="text-lg font-black tracking-tight">Create WhatsApp Order</h3>
-                                        <p className="text-xs text-emerald-100 font-medium">Record order & assign seller and rider</p>
+                                        <p className="text-xs text-emerald-100 font-medium">Search customer & shop, automatic delivery charge, smart rider assignment</p>
                                     </div>
                                 </div>
                                 <button
@@ -671,145 +752,14 @@ const OrdersList = () => {
                                 </button>
                             </div>
 
-                            <form onSubmit={handleCreateManualOrder} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-                                {isLoadingDropdowns ? (
-                                    <div className="py-12 flex flex-col items-center justify-center gap-2">
-                                        <div className="h-8 w-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
-                                        <p className="text-xs font-bold text-slate-400">Loading Sellers & Riders...</p>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div>
-                                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
-                                                Customer <span className="text-red-500">*</span>
-                                            </label>
-                                            <select
-                                                required
-                                                value={manualFormData.customerId}
-                                                onChange={(e) => setManualFormData({ ...manualFormData, customerId: e.target.value })}
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20"
-                                            >
-                                                <option value="">-- Select Customer --</option>
-                                                {customersList.map((c) => (
-                                                    <option key={c._id || c.id} value={c._id || c.id}>
-                                                        {c.name || "Customer"} ({c.phone || "No phone"})
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
-                                                Seller / Shop <span className="text-red-500">*</span>
-                                            </label>
-                                            <select
-                                                required
-                                                value={manualFormData.sellerId}
-                                                onChange={(e) => setManualFormData({ ...manualFormData, sellerId: e.target.value })}
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20"
-                                            >
-                                                <option value="">-- Select Seller --</option>
-                                                {sellersList.map((s) => (
-                                                    <option key={s._id || s.id} value={s._id || s.id}>
-                                                        {s.shopName || s.name || "Shop"} ({s.locality || s.phone || "Local"})
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
-                                                Assign Delivery Partner / Rider (Optional)
-                                            </label>
-                                            <select
-                                                value={manualFormData.deliveryBoyId}
-                                                onChange={(e) => setManualFormData({ ...manualFormData, deliveryBoyId: e.target.value })}
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20"
-                                            >
-                                                <option value="">-- Assign Later / Broadcast --</option>
-                                                {ridersList.map((r) => (
-                                                    <option key={r._id || r.id} value={r._id || r.id}>
-                                                        {r.name || "Rider"} ({r.phone || "No phone"})
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
-                                                    Item Subtotal (₹) <span className="text-red-500">*</span>
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    required
-                                                    placeholder="e.g. 450"
-                                                    value={manualFormData.totalAmount}
-                                                    onChange={(e) => setManualFormData({ ...manualFormData, totalAmount: e.target.value })}
-                                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
-                                                    Delivery Fee (₹)
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    placeholder="Auto / e.g. 30"
-                                                    value={manualFormData.deliveryFee}
-                                                    onChange={(e) => setManualFormData({ ...manualFormData, deliveryFee: e.target.value })}
-                                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
-                                                Payment Mode
-                                            </label>
-                                            <select
-                                                value={manualFormData.paymentMode}
-                                                onChange={(e) => setManualFormData({ ...manualFormData, paymentMode: e.target.value })}
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20"
-                                            >
-                                                <option value="COD">Cash on Delivery (COD)</option>
-                                                <option value="ONLINE">Paid Online / UPI</option>
-                                            </select>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
-                                                Order Notes / Items List
-                                            </label>
-                                            <textarea
-                                                rows="2"
-                                                placeholder="e.g. 1kg Mutton, 2 Packets Milk"
-                                                value={manualFormData.notes}
-                                                onChange={(e) => setManualFormData({ ...manualFormData, notes: e.target.value })}
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20"
-                                            />
-                                        </div>
-
-                                        <div className="pt-2 flex justify-end gap-3">
-                                            <button
-                                                type="button"
-                                                onClick={() => setIsCreateModalOpen(false)}
-                                                className="px-5 py-3 bg-slate-100 text-slate-600 rounded-2xl text-xs font-bold hover:bg-slate-200 transition-all"
-                                            >
-                                                Cancel
-                                            </button>
-                                            <button
-                                                type="submit"
-                                                disabled={isSubmittingManual}
-                                                className="px-6 py-3 bg-emerald-600 text-white rounded-2xl text-xs font-black hover:bg-emerald-700 transition-all shadow-md shadow-emerald-200 disabled:opacity-50 flex items-center gap-2"
-                                            >
-                                                {isSubmittingManual && <div className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-                                                CREATE & ASSIGN ORDER
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
-                            </form>
+                            <ManualOrderForm
+                                showToast={showToast}
+                                onCancel={() => setIsCreateModalOpen(false)}
+                                onCreated={() => {
+                                    setIsCreateModalOpen(false);
+                                    fetchOrders(page);
+                                }}
+                            />
                         </motion.div>
                     </div>
                 )}

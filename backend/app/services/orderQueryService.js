@@ -63,14 +63,23 @@ function appendDateRange(query, { startDate, endDate }) {
     return query;
   }
 
+  // A plain "YYYY-MM-DD" is a calendar day in India (IST), not a UTC day:
+  // an order placed at 1 AM IST belongs to that day, not the previous one.
+  const PLAIN_DAY = /^\d{4}-\d{2}-\d{2}$/;
   const range = {};
   if (startDate) {
-    range.$gte = new Date(startDate);
+    range.$gte = PLAIN_DAY.test(String(startDate))
+      ? new Date(`${startDate}T00:00:00.000+05:30`)
+      : new Date(startDate);
   }
   if (endDate) {
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
-    range.$lte = end;
+    if (PLAIN_DAY.test(String(endDate))) {
+      range.$lte = new Date(`${endDate}T23:59:59.999+05:30`);
+    } else {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      range.$lte = end;
+    }
   }
 
   return {

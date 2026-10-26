@@ -1,5 +1,10 @@
 import express from "express";
 import {
+  lookupForManualOrder,
+  quoteManualOrder,
+  suggestRidersForManualOrder,
+} from "../controller/manualOrderAssistController.js";
+import {
   placeOrder,
   placeCustomPickupOrder,
   getMyOrders,
@@ -128,6 +133,9 @@ router.post("/:orderId/returns", verifyToken, requestReturn);
 router.get("/:orderId/returns", verifyToken, getReturnDetails);
 
 // Admin/Seller routes
+router.get("/manual/lookup", verifyToken, allowRoles("admin", "seller"), lookupForManualOrder);
+router.post("/manual/quote", verifyToken, allowRoles("admin", "seller"), quoteManualOrder);
+router.get("/manual/rider-suggestions", verifyToken, allowRoles("admin", "seller"), suggestRidersForManualOrder);
 router.post(
   "/manual",
   verifyToken,

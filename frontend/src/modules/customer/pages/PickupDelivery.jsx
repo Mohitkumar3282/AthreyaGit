@@ -34,6 +34,7 @@ import { useAuth } from "@core/context/AuthContext";
 import axiosInstance from "@core/api/axios";
 import Card from "@/shared/components/ui/Card";
 import MapPicker from "@/shared/components/MapPicker";
+import { openWhatsApp } from "@/shared/utils/whatsapp";
 import {
   homeToHomeImg,
   shopToHomeImg,
@@ -635,7 +636,7 @@ const PickupDelivery = () => {
   const [cargoUnpaidFreight, setCargoUnpaidFreight] = useState("");
   const [cargoSelectedAddressId, setCargoSelectedAddressId] = useState("");
   const [cargoItemsCount, setCargoItemsCount] = useState("1");
-  const [cargoWeight, setCargoWeight] = useState("3-5 kg");
+  const [cargoWeight, setCargoWeight] = useState("Up to 1 kg");
 
   // 4. Rider Delivery Request State
   const [riderPickupLoc, setRiderPickupLoc] = useState("");
@@ -1079,13 +1080,7 @@ const PickupDelivery = () => {
       `📝 *Details:* I need assistance with an express pickup/delivery in Aswapuram.\n\n` +
       `Please confirm rider availability and fare.`;
 
-    const encodedText = encodeURIComponent(message);
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile) {
-      window.location.href = `whatsapp://send?phone=${targetNumber}&text=${encodedText}`;
-    } else {
-      window.open(`https://web.whatsapp.com/send?phone=${targetNumber}&text=${encodedText}`, "_blank");
-    }
+    openWhatsApp(targetNumber, message);
   };
 
   // Submit Handler for all 4 flows
