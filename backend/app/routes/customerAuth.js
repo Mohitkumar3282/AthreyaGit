@@ -10,6 +10,7 @@ import {
     getCustomerCoinTransactions,
     getCustomerWallet,
     getCustomerWalletTransactions,
+    deleteCustomerAccount,
 } from "../controller/customerAuthController.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
 import {
@@ -30,6 +31,7 @@ router.post("/verify-otp", authRouteRateLimiter, otpRouteRateLimiter, smallAuthP
 // Profile routes
 router.get("/profile", verifyToken, getCustomerProfile);
 router.put("/profile", verifyToken, updateCustomerProfile);
+router.delete("/account", verifyToken, smallAuthPayload, deleteCustomerAccount);
 
 // Wallet
 // `/transactions` is the legacy Transaction-collection view, kept for older

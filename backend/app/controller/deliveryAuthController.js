@@ -1,4 +1,5 @@
 import Delivery from "../models/delivery.js";
+import { deleteRiderAccount } from "../services/accountDeletionService.js";
 import jwt from "jsonwebtoken";
 import handleResponse from "../utils/helper.js";
 import { sendSmsIndiaHubOtp } from "../services/smsIndiaHubService.js";
@@ -211,7 +212,7 @@ export const verifyDeliveryOTP = async (req, res) => {
 export const getDeliveryProfile = async (req, res) => {
     try {
         const delivery = await Delivery.findById(req.user.id);
-        if (!delivery) {
+        if (!delivery || delivery.deletedAt) {
             return handleResponse(res, 404, "Delivery partner not found");
         }
         return handleResponse(res, 200, "Profile fetched successfully", delivery);
@@ -254,6 +255,17 @@ export const updateDeliveryProfile = async (req, res) => {
         }
 
         return handleResponse(res, 200, "Profile updated successfully", delivery);
+    } catch (error) {
+        return handleResponse(res, 500, error.message);
+    }
+};
+
+/* DELETE MY ACCOUNT (delivery partner) */
+export const deleteMyDeliveryAccount = async (req, res) => {
+    try {
+        const result = await deleteRiderAccount(req.user.id, req.body?.confirm);
+        if (!result.ok) return handleResponse(res, result.status, result.message);
+        return handleResponse(res, 200, "Your account has been deleted");
     } catch (error) {
         return handleResponse(res, 500, error.message);
     }

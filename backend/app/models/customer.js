@@ -126,6 +126,9 @@ const userSchema = new mongoose.Schema(
         },
 
         lastLogin: Date,
+
+        // Set when the customer deletes their own account (data anonymised).
+        deletedAt: { type: Date, default: null },
     },
     {
         timestamps: true,

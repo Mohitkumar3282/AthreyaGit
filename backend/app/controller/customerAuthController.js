@@ -1,5 +1,9 @@
 import Customer from "../models/customer.js";
 import Transaction from "../models/transaction.js";
+import Order from "../models/order.js";
+import Cart from "../models/cart.js";
+import Wishlist from "../models/wishlist.js";
+import PushToken from "../modules/notifications/token.model.js";
 import jwt from "jsonwebtoken";
 import handleResponse from "../utils/helper.js";
 import {
@@ -101,7 +105,7 @@ export const verifyCustomerOTP = async (req, res) => {
 export const getCustomerProfile = async (req, res) => {
     try {
         const customer = await Customer.findById(req.user.id);
-        if (!customer) {
+        if (!customer || customer.deletedAt) {
             return handleResponse(res, 404, "Customer not found");
         }
 
@@ -241,6 +245,64 @@ export const getCustomerTransactions = async (req, res) => {
             page: parseInt(page, 10),
             totalPages: Math.ceil(total / perPage) || 1,
         });
+    } catch (error) {
+        return handleResponse(res, 500, error.message);
+    }
+};
+
+/* ===============================
+   DELETE MY ACCOUNT (customer)
+   Anonymises the account instead of erasing rows: orders, payments and ledger
+   entries must be kept for accounting, but nothing in them identifies the
+   person any more. The phone number is freed so they can sign up again.
+================================ */
+export const deleteCustomerAccount = async (req, res) => {
+    try {
+        if (String(req.body?.confirm || "").trim().toUpperCase() !== "DELETE") {
+            return handleResponse(res, 400, 'Type DELETE to confirm account deletion');
+        }
+
+        const customer = await Customer.findById(req.user.id).select("_id deletedAt");
+        if (!customer || customer.deletedAt) {
+            return handleResponse(res, 404, "Account not found");
+        }
+
+        const inProgress = await Order.countDocuments({
+            customer: customer._id,
+            status: { $in: ["pending", "confirmed", "packed", "out_for_delivery"] },
+        });
+        if (inProgress > 0) {
+            return handleResponse(
+                res,
+                409,
+                `You have ${inProgress} order${inProgress === 1 ? "" : "s"} in progress. Please wait until ${inProgress === 1 ? "it is" : "they are"} delivered or cancelled before deleting your account.`,
+            );
+        }
+
+        const id = String(customer._id);
+        await Customer.updateOne(
+            { _id: customer._id },
+            {
+                $set: {
+                    name: "Deleted User",
+                    phone: `deleted_${id}`,
+                    isActive: false,
+                    isVerified: false,
+                    addresses: [],
+                    walletBalance: 0,
+                    deletedAt: new Date(),
+                },
+                $unset: { email: "", address: "", password: "", profileImage: "" },
+            },
+        );
+
+        await Promise.allSettled([
+            Cart.deleteMany({ customerId: customer._id }),
+            Wishlist.deleteMany({ customerId: customer._id }),
+            PushToken.deleteMany({ userId: customer._id }),
+        ]);
+
+        return handleResponse(res, 200, "Your account has been deleted");
     } catch (error) {
         return handleResponse(res, 500, error.message);
     }

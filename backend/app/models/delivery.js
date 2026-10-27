@@ -70,6 +70,9 @@ const deliverySchema = new mongoose.Schema(
             trim: true,
         },
 
+        // Set when the rider deletes their own account (data anonymised).
+        deletedAt: { type: Date, default: null },
+
         // While in the future the rider is on a break: no orders offered/accepted.
         breakUntil: { type: Date, default: null },
 

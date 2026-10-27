@@ -211,6 +211,9 @@ const sellerSchema = new mongoose.Schema(
       lastMonthlyFeeFor: { type: String, default: "" }, // "YYYY-MM"
     },
 
+    // Set when the seller deletes their own account (data anonymised).
+    deletedAt: { type: Date, default: null },
+
     isActive: {
       type: Boolean,
       default: false,

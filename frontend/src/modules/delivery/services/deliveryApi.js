@@ -7,6 +7,7 @@ export const deliveryApi = {
   verifyOtp: (data) => axiosInstance.post("/delivery/verify-otp", data),
   getProfile: () => axiosInstance.get("/delivery/profile"),
   updateProfile: (data) => axiosInstance.put("/delivery/profile", data),
+  deleteAccount: (confirm) => axiosInstance.delete("/delivery/account", { data: { confirm } }),
   getStats: () => axiosInstance.get("/delivery/stats"),
   getIncentives: () => axiosInstance.get("/delivery/incentives"),
   startBreak: (minutes) => axiosInstance.post("/delivery/break", { minutes }),

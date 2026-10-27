@@ -23,6 +23,8 @@ import {
   Image
 } from "lucide-react";
 import { sellerApi } from "../services/sellerApi";
+import { useAuth } from "@core/context/AuthContext";
+import DeleteAccountSection from "@shared/components/DeleteAccountSection";
 import { toast } from "sonner";
 import Card from "@shared/components/ui/Card";
 import Button from "@shared/components/ui/Button";
@@ -48,6 +50,8 @@ const splitTimings = (text) => {
 };
 
 const SellerProfile = () => {
+  const { logout } = useAuth();
+  const [isPhotoOpen, setIsPhotoOpen] = useState(false);
   const [profile, setProfile] = useState(null);
   const [shopStatus, setShopStatus] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -258,19 +262,19 @@ const SellerProfile = () => {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-8 font-['Outfit'] space-y-8">
+    <div className="max-w-5xl mx-auto px-3 py-4 md:p-8 font-['Outfit'] space-y-5 md:space-y-8 overflow-x-hidden">
       {/* Header Section */}
-      <div className="relative mb-24 px-4">
+      <div className="relative mb-2 md:mb-24 md:px-4">
         {/* Banner Background */}
         <div 
-          className="bg-cover bg-center h-64 rounded-lg shadow-2xl relative overflow-hidden group"
+          className="bg-cover bg-center h-32 sm:h-44 md:h-64 rounded-2xl md:rounded-lg shadow-xl md:shadow-2xl relative overflow-hidden group"
           style={{ 
             backgroundImage: formData.shopBanner ? `url(${formData.shopBanner})` : 'linear-gradient(to right, #0f172a, #020617, #000000)' 
           }}
         >
           <div className="absolute inset-0 bg-black/30" />
           {isEditing && (
-            <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity">
+            <label className="absolute inset-0 bg-black/50 md:bg-black/60 opacity-100 md:opacity-0 md:group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity">
               <Camera size={32} />
               <span className="text-xs font-bold uppercase mt-2 tracking-wider">Change Shop Banner</span>
               <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, "shopBanner")} />
@@ -279,20 +283,22 @@ const SellerProfile = () => {
         </div>
 
         {/* Profile Info Row */}
-        <div className="absolute bottom-8 left-4 right-4 md:left-8 md:right-8 lg:left-12 lg:right-12 grid grid-cols-1 md:grid-cols-[176px_minmax(0,1fr)_auto] items-center md:items-end gap-6 md:gap-8">
+        <div className="relative -mt-14 md:mt-0 md:absolute md:bottom-8 md:left-8 md:right-8 lg:left-12 lg:right-12 grid grid-cols-1 md:grid-cols-[176px_minmax(0,1fr)_auto] items-center md:items-end gap-3 md:gap-8">
           {/* Avatar Container */}
-          <div className="h-44 w-44 rounded-full bg-white p-2 shadow-[0_30px_70px_rgba(0,0,0,0.15)] flex-shrink-0 mx-auto md:mx-0 relative group">
+          <div
+            onClick={() => { if (!isEditing && formData.shopLogo) setIsPhotoOpen(true); }}
+            className={`h-28 w-28 sm:h-32 sm:w-32 md:h-44 md:w-44 rounded-full bg-white p-1.5 md:p-2 shadow-[0_20px_50px_rgba(0,0,0,0.2)] flex-shrink-0 mx-auto md:mx-0 relative group ${!isEditing && formData.shopLogo ? "cursor-zoom-in" : ""}`}>
             <div className="h-full w-full rounded-full bg-slate-50 flex items-center justify-center border-4 border-slate-50 overflow-hidden">
               {formData.shopLogo ? (
                 <img src={formData.shopLogo} alt="Shop Logo" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-7xl font-black text-slate-900">
+                <span className="text-5xl md:text-7xl font-black text-slate-900">
                   {profile?.name?.charAt(0)}
                 </span>
               )}
             </div>
             {isEditing && (
-              <label className="absolute inset-2 bg-black/70 rounded-full opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity">
+              <label className="absolute inset-2 bg-black/60 md:bg-black/70 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity">
                 <Camera size={24} />
                 <span className="text-[10px] font-bold uppercase mt-1 tracking-wider">Change Logo</span>
                 <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, "shopLogo")} />
@@ -301,8 +307,8 @@ const SellerProfile = () => {
           </div>
 
           {/* Info Block */}
-          <div className="min-w-0 pb-2 md:pb-4 text-center md:text-left">
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mb-3">
+          <div className="min-w-0 md:pb-4 text-center md:text-left rounded-2xl bg-slate-900 md:bg-transparent px-4 pt-4 pb-3 md:p-0 md:pb-4 shadow-lg md:shadow-none">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 md:gap-4 mb-2 md:mb-3">
               <span className="px-4 py-1.5 bg-white/10 backdrop-blur-xl text-white text-[10px] font-black uppercase tracking-[2px] rounded-full border border-white/20">
                 {profile?.role}
               </span>
@@ -321,20 +327,20 @@ const SellerProfile = () => {
                 {profile?.isActive ? "Active" : "Inactive"}
               </button>
             </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tighter drop-shadow-sm mb-1 break-words">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-tight md:tracking-tighter drop-shadow-sm mb-1 break-words">
               {profile?.name}
             </h1>
-            <p className="text-white/60 font-black tracking-[1px] text-lg">
+            <p className="text-white/70 font-black tracking-[1px] text-sm md:text-lg break-words">
               {profile?.shopName}
             </p>
           </div>
 
           {/* Action Button */}
-          <div className="pb-2 md:pb-4 w-full md:w-auto">
+          <div className="md:pb-4 w-full md:w-auto">
             {!isEditing ? (
               <Button
                 onClick={() => setIsEditing(true)}
-                className="w-full md:w-auto bg-white/10 backdrop-blur-md text-white border border-white/20 hover:bg-white hover:text-slate-950 transition-all rounded-lg px-6 lg:px-12 py-4 md:py-5 flex items-center justify-center gap-3 md:gap-4 font-black tracking-[2px] md:tracking-[3px] text-xs shadow-[0_20px_40px_rgba(0,0,0,0.1)] hover:scale-[1.03] active:scale-[0.95] whitespace-nowrap">
+                className="w-full md:w-auto bg-slate-900 md:bg-white/10 backdrop-blur-md text-white border border-slate-300/40 md:border-white/20 hover:bg-white hover:text-slate-950 transition-all rounded-xl md:rounded-lg px-6 lg:px-12 py-3 md:py-5 flex items-center justify-center gap-3 md:gap-4 font-black tracking-[2px] md:tracking-[3px] text-xs shadow-[0_20px_40px_rgba(0,0,0,0.1)] hover:scale-[1.03] active:scale-[0.95] whitespace-nowrap">
                 <Edit2 size={18} /> EDIT PROFILE
               </Button>
             ) : (
@@ -363,17 +369,17 @@ const SellerProfile = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8">
         {/* Main Info Columns */}
         <div className="md:col-span-2 space-y-8">
           {/* Business Profile Details */}
-          <Card className="p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-lg">
+          <Card className="p-1 sm:p-4 md:p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-lg">
             <h3 className="text-xl font-black text-slate-900 mb-8 border-b border-slate-50 pb-4">
               Business Profile
             </h3>
 
             <div className="space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
                 <div className="space-y-3">
                   <label className="text-xs font-black uppercase tracking-widest text-slate-600 ml-1">
                     Seller Identity
@@ -510,11 +516,11 @@ const SellerProfile = () => {
           </Card>
 
           {/* Delivery & Fee Configurations */}
-          <Card className="p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-lg">
+          <Card className="p-1 sm:p-4 md:p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-lg">
             <h3 className="text-xl font-black text-slate-900 mb-8 border-b border-slate-50 pb-4">
               Order & Delivery Settings
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8">
               <div className="space-y-3">
                 <label className="text-xs font-black uppercase tracking-widest text-slate-600 ml-1">
                   Min Order Amount (₹)
@@ -555,7 +561,7 @@ const SellerProfile = () => {
           </Card>
 
           {/* Visuals, Front, Interior and Gallery uploads */}
-          <Card className="p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-lg space-y-8">
+          <Card className="p-1 sm:p-4 md:p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-lg space-y-8">
             <h3 className="text-xl font-black text-slate-900 border-b border-slate-50 pb-4">
               Store Media & Gallery
             </h3>
@@ -658,7 +664,7 @@ const SellerProfile = () => {
           </Card>
 
           {/* Location & Radius Settings Card */}
-          <Card className="p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-lg">
+          <Card className="p-1 sm:p-4 md:p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-lg">
             <div className="flex justify-between items-center mb-8 border-b border-slate-50 pb-4">
               <h3 className="text-xl font-black text-slate-900">
                 Location & Service Settings
@@ -707,7 +713,7 @@ const SellerProfile = () => {
                 </div>
 
                 {formData.lat && (
-                  <div className="pt-6 border-t border-slate-200/60 flex flex-wrap gap-8">
+                  <div className="pt-6 border-t border-slate-200/60 flex flex-wrap gap-4 md:gap-8">
                     <div className="space-y-2">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
                         Service Radius
@@ -767,7 +773,7 @@ const SellerProfile = () => {
         {/* Sidebar Card */}
         <div className="space-y-8">
           {/* Shop Opening Hours / Open State Toggle */}
-          <Card className="p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-lg bg-slate-50">
+          <Card className="p-1 sm:p-4 md:p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-lg bg-slate-50">
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 mb-6">
               Shop Status Settings
             </h4>
@@ -795,7 +801,7 @@ const SellerProfile = () => {
             </div>
           </Card>
 
-          <Card className="p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[40px] bg-gradient-to-br from-slate-900 via-slate-900/95 to-slate-800 text-white">
+          <Card className="p-1 sm:p-4 md:p-8 border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-3xl md:rounded-[40px] bg-gradient-to-br from-slate-900 via-slate-900/95 to-slate-800 text-white">
             <h4 className="text-[10px] font-black uppercase tracking-[4px] text-white/40 mb-6">
               Security & Trust
             </h4>
@@ -840,6 +846,35 @@ const SellerProfile = () => {
             </div>
           </Card>
         </div>
+      </div>
+
+      {isPhotoOpen && formData.shopLogo && (
+        <div
+          className="fixed inset-0 z-[800] bg-black/85 flex items-center justify-center p-4"
+          onClick={() => setIsPhotoOpen(false)}
+        >
+          <img src={formData.shopLogo} alt="Shop Logo" className="max-h-[80vh] max-w-full rounded-2xl object-contain" />
+          <button
+            type="button"
+            onClick={() => setIsPhotoOpen(false)}
+            className="absolute top-4 right-4 h-10 w-10 rounded-full bg-white text-slate-900 font-black text-xl"
+            aria-label="Close photo"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      <div className="mt-8 max-w-xl">
+        <DeleteAccountSection
+          consequences={[
+            "Your shop, owner details and products will be removed from the app (products are switched off).",
+            "Past orders and payments are kept for records but no longer linked to you.",
+            "You must first complete or cancel running orders and withdraw your wallet balance.",
+          ]}
+          onDelete={(confirmText) => sellerApi.deleteAccount(confirmText)}
+          onDeleted={logout}
+        />
       </div>
 
       {isMapOpen && (

@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import Button from "@/shared/components/ui/Button";
 import Card from "@/shared/components/ui/Card";
 import { useAuth } from "@core/context/AuthContext";
+import DeleteAccountSection from "@shared/components/DeleteAccountSection";
 import { useSettings } from "@core/context/SettingsContext";
 import axiosInstance from '@core/api/axios';
 import { useEffect } from 'react';
@@ -271,6 +272,16 @@ const Profile = () => {
             className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 py-6">
             <LogOut size={20} className="mr-2" /> Logout
           </Button>
+          <DeleteAccountSection
+            className="mt-3"
+            consequences={[
+              "Your profile, documents and bank details will be removed.",
+              "Past deliveries are kept for payment records but no longer linked to you.",
+              "You must first finish running deliveries, withdraw your wallet balance and deposit any customer cash you hold.",
+            ]}
+            onDelete={(confirmText) => deliveryApi.deleteAccount(confirmText)}
+            onDeleted={logout}
+          />
         </motion.div>
       </motion.div>
 

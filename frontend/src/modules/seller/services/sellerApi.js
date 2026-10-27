@@ -24,6 +24,7 @@ export const sellerApi = {
     getWalletSummary: () => axiosInstance.get('/seller/wallet/summary'),
     getProfile: () => axiosInstance.get('/seller/profile'),
     updateProfile: (data) => axiosInstance.put('/seller/profile', data),
+    deleteAccount: (confirm) => axiosInstance.delete('/seller/account', { data: { confirm } }),
 
     // Stock
     adjustStock: (data) => axiosInstance.post('/products/adjust-stock', data),

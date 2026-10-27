@@ -1,3 +1,4 @@
+import OtpBoxes from "@shared/components/OtpBoxes";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -757,19 +758,14 @@ const DeliveryAuth = () => {
                     <label className="text-[14px] font-black text-gray-600 uppercase tracking-widest">
                       Enter Security Code
                     </label>
-                    <div className="flex justify-center gap-3 pt-1">
-                      {otp.map((digit, index) => (
-                        <input
-                          key={index}
-                          id={`otp-${index}`}
-                          type="tel"
-                          maxLength={1}
-                          value={digit}
-                          onChange={(e) => handleOtpChange(index, e.target.value)}
-                          onKeyDown={(e) => handleKeyDown(index, e)}
-                          className="w-14 h-14 text-center text-2xl font-black border-2 border-gray-100 rounded-2xl focus:border-brand-500 focus:ring-4 focus:ring-brand-100 outline-none transition-all bg-gray-50 text-gray-900"
-                        />
-                      ))}
+                    <div className="pt-1">
+                      <OtpBoxes
+                        value={otp.join("")}
+                        onChange={(v) => setOtp(Array.from({ length: 4 }, (_, i) => v[i] || ""))}
+                        autoFocus
+                        boxClassName="w-14 h-14 text-center text-2xl font-black border-2 border-gray-100 rounded-2xl bg-gray-50 text-gray-900 transition-colors"
+                        activeBorderColor="#1a6e2e"
+                      />
                     </div>
                   </div>
 

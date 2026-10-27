@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
     User, MapPin, Package, CreditCard, Wallet, ChevronRight,
-    LogOut, ShieldCheck, Heart, HelpCircle, Info, Edit2, ChevronLeft, Bell
+    LogOut, ShieldCheck, Heart, HelpCircle, Info, Edit2, ChevronLeft, Bell, Trash2
 } from 'lucide-react';
 import { useAuth } from '@core/context/AuthContext';
 import { useSettings } from '@core/context/SettingsContext';
@@ -25,6 +25,25 @@ const ProfilePage = () => {
     const logoUrl = settings?.logoUrl || LogoTransparent;
     const appName = settings?.appName || 'App';
     const [isTestingPush, setIsTestingPush] = React.useState(false);
+    // Delete account flow
+    const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+    const [deleteText, setDeleteText] = React.useState('');
+    const [isDeleting, setIsDeleting] = React.useState(false);
+    const [walletLeft, setWalletLeft] = React.useState(0);
+
+    const handleDeleteAccount = async () => {
+        setIsDeleting(true);
+        try {
+            await customerApi.deleteAccount(deleteText.trim());
+            toast.success('Your account has been deleted');
+            setIsDeleteOpen(false);
+            logout();
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Could not delete your account. Please try again.');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
     // Coin balance shown inline on the profile menu, so the customer can see
     // what they have to spend without opening the wallet screen.
     const [coinSummary, setCoinSummary] = React.useState(null);
@@ -254,6 +273,73 @@ const ProfilePage = () => {
                     <LogOut size={20} />
                     Sign out
                 </button>
+
+                {role !== 'admin' && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setDeleteText('');
+                            setIsDeleteOpen(true);
+                            // show the wallet balance that would be lost
+                            customerApi.getProfile()
+                                .then((res) => setWalletLeft(Number(res.data?.result?.walletBalance || 0)))
+                                .catch(() => {});
+                        }}
+                        className="w-full py-3 text-red-600 font-bold bg-white border border-red-200 rounded-xl flex items-center justify-center gap-2 mt-3 hover:bg-red-50 transition-colors"
+                    >
+                        <Trash2 size={18} />
+                        Delete account
+                    </button>
+                )}
+
+                {isDeleteOpen && (
+                    <div className="fixed inset-0 z-[700] flex items-center justify-center p-4 bg-black/60">
+                        <div className="w-full max-w-sm bg-white rounded-3xl p-5 space-y-4 shadow-2xl">
+                            <div className="flex items-center gap-2 text-red-600">
+                                <Trash2 size={22} />
+                                <h3 className="text-lg font-black">Delete your account?</h3>
+                            </div>
+                            <ul className="text-[13.5px] text-slate-700 font-medium list-disc pl-5 space-y-1.5">
+                                <li>Your profile, saved addresses, cart and wishlist will be removed.</li>
+                                <li>You will be signed out and will not be able to log back in to this account.</li>
+                                <li>Past orders are kept for billing records, but no longer linked to you.</li>
+                                {walletLeft > 0 && (
+                                    <li className="text-red-600 font-bold">Your wallet balance of ₹{walletLeft} will be lost.</li>
+                                )}
+                            </ul>
+                            <div>
+                                <label className="block text-[12.5px] font-bold text-slate-700 mb-1">
+                                    Type <span className="text-red-600">DELETE</span> to confirm
+                                </label>
+                                <input
+                                    type="text"
+                                    value={deleteText}
+                                    onChange={(e) => setDeleteText(e.target.value)}
+                                    autoCapitalize="characters"
+                                    className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-bold outline-none focus:ring-2 focus:ring-red-300"
+                                />
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsDeleteOpen(false)}
+                                    disabled={isDeleting}
+                                    className="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleDeleteAccount}
+                                    disabled={isDeleting || deleteText.trim().toUpperCase() !== 'DELETE'}
+                                    className="flex-1 py-2.5 rounded-xl bg-red-600 text-white font-black disabled:opacity-40"
+                                >
+                                    {isDeleting ? 'Deleting...' : 'Delete forever'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="text-center pb-8">
                     <p className="text-[12px] text-slate-400 font-medium">Version 2.4.0 - {appName}</p>

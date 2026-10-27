@@ -4,6 +4,7 @@ import { handleResponse, calculateDistance } from "../utils/helper.js";
 import mongoose from "mongoose";
 import { invalidateSellerName } from "../services/entityNameCache.js";
 import { getShopStatus } from "../services/shopHoursService.js";
+import { deleteSellerAccount } from "../services/accountDeletionService.js";
 import { buildKey, getOrSet, getTTL, delPattern } from "../services/cacheService.js";
 
 // Shops stay listed when closed; status is computed live from store timings
@@ -165,7 +166,7 @@ export const requestWithdrawal = async (req, res) => {
 export const getSellerProfile = async (req, res) => {
   try {
     const seller = await Seller.findById(req.user.id);
-    if (!seller) {
+    if (!seller || seller.deletedAt) {
       return handleResponse(res, 404, "Seller not found");
     }
     return handleResponse(
@@ -269,6 +270,17 @@ export const updateSellerProfile = async (req, res) => {
     if (error.code === 11000) {
       return handleResponse(res, 400, "Phone number already in use");
     }
+    return handleResponse(res, 500, error.message);
+  }
+};
+
+/* DELETE MY ACCOUNT (seller) */
+export const deleteMySellerAccount = async (req, res) => {
+  try {
+    const result = await deleteSellerAccount(req.user.id, req.body?.confirm);
+    if (!result.ok) return handleResponse(res, result.status, result.message);
+    return handleResponse(res, 200, "Your account has been deleted");
+  } catch (error) {
     return handleResponse(res, 500, error.message);
   }
 };

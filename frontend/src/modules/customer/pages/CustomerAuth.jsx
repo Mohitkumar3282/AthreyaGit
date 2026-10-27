@@ -1,3 +1,4 @@
+import OtpBoxes from '@shared/components/OtpBoxes';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -427,31 +428,14 @@ const CustomerAuth = () => {
                                     </div>
 
                                     <form onSubmit={handleVerifyOtp} className="space-y-10">
-                                        <div className="flex justify-between gap-3 px-1">
-                                            {[...Array(4)].map((_, i) => (
-                                                <input
-                                                    key={i}
-                                                    type="tel"
-                                                    maxLength={1}
-                                                    className="w-14 h-16 bg-white border-2 border-[#1a6e2e]/20 rounded-3xl text-center text-2xl font-black outline-none focus:bg-white focus:border-[var(--theme-color)] transition-all"
-                                                    style={{ color: activeCategory.theme }}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Backspace' && !e.target.value && i > 0) {
-                                                            e.target.previousElementSibling.focus();
-                                                        }
-                                                    }}
-                                                    onChange={(e) => {
-                                                        const val = e.target.value;
-                                                        if (val && i < 3) (e.target.nextElementSibling).focus();
-                                                        const otpArr = formData.otp.split('');
-                                                        otpArr[i] = val;
-                                                        setFormData({ ...formData, otp: otpArr.join('') });
-                                                    }}
-                                                    onFocus={(e) => e.target.style.borderColor = activeCategory.theme}
-                                                    onBlur={(e) => e.target.style.borderColor = ''}
-                                                />
-                                            ))}
-                                        </div>
+                                        <OtpBoxes
+                                            value={formData.otp}
+                                            onChange={(v) => setFormData({ ...formData, otp: v })}
+                                            autoFocus
+                                            activeBorderColor={activeCategory.theme}
+                                            boxStyle={{ color: activeCategory.theme }}
+                                            boxClassName="w-14 h-16 bg-white border-2 border-[#1a6e2e]/20 rounded-3xl text-center text-2xl font-black transition-colors"
+                                        />
 
                                         <div className="space-y-4">
                                             <button

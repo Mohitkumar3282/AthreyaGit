@@ -9,7 +9,8 @@ import {
     Wallet,
     MoreHorizontal,
     ChevronDown,
-    X
+    X,
+    UserCircle
 } from 'lucide-react';
 
 import { useAuth } from '@core/context/AuthContext';
@@ -29,6 +30,7 @@ const BottomNav = ({ navItems }) => {
         { label: 'Orders', path: '/seller/orders', icon: ClipboardList },
         { label: 'Products', path: '/seller/products', icon: Box },
         { label: 'Earnings', path: '/seller/earnings', icon: Wallet },
+        { label: 'Profile', path: '/seller/profile', icon: UserCircle },
     ];
 
     return (
@@ -39,7 +41,7 @@ const BottomNav = ({ navItems }) => {
                     to={item.path}
                     end={item.end}
                     className={({ isActive }) => cn(
-                        "flex flex-col items-center justify-center space-y-1 w-16 transition-all duration-300",
+                        "flex flex-col items-center justify-center space-y-1 w-14 sm:w-16 transition-all duration-300",
                         isActive ? "text-primary" : "text-gray-500 hover:text-gray-300"
                     )}
                 >
