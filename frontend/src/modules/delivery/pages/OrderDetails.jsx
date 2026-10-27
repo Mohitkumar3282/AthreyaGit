@@ -866,38 +866,58 @@ const OrderDetails = () => {
           </motion.div>
         )}
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-[#FFF8E8] rounded-3xl p-4 shadow-sm border border-[#F4D98B] flex items-center justify-between gap-4"
-        >
-          <div className="flex items-center gap-3">
-            <div className="h-11 w-11 bg-[#F6E7BF] rounded-xl flex items-center justify-center text-[#C87400]">
-              <Navigation size={20} />
+        {publicStatusStage === 3 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-emerald-50 rounded-3xl p-4 shadow-sm border border-emerald-200 flex items-center gap-3"
+          >
+            <div className="h-11 w-11 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
+              <CheckCircle size={22} />
             </div>
             <div>
-              <p className="text-[14px] font-bold text-[#C85D00] uppercase tracking-wider">
-                Estimated Time
+              <p className="text-xl font-black text-emerald-800 leading-tight">
+                {isReturn ? "Return completed" : "Order delivered"}
               </p>
-              <p className="text-xl font-black text-[#8B3F00] leading-none">
-                {summary.arrivalTimeText}
-              </p>
-            </div>
-          </div>
-          <div className="text-right flex flex-col items-end gap-2">
-            <div>
-              <p className="text-[14px] font-bold text-[#C85D00] uppercase tracking-wider">
-                Arriving in
-              </p>
-              <p className="text-xl font-black text-[#8B3F00] leading-none">
-                {summary.arrivingInText}
+              <p className="text-[14px] font-semibold text-emerald-700">
+                {(order.deliveredAt || order.delivered_at) ? new Date(order.deliveredAt || order.delivered_at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}
               </p>
             </div>
-            <div className="inline-flex items-center rounded-full bg-white/80 px-3 py-1.5 text-[14px] font-bold text-[#C87400] ring-1 ring-[#F4D98B]">
-              Total distance: {summary.totalDistanceText}
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-[#FFF8E8] rounded-3xl p-4 shadow-sm border border-[#F4D98B] flex items-center justify-between gap-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 bg-[#F6E7BF] rounded-xl flex items-center justify-center text-[#C87400]">
+                <Navigation size={20} />
+              </div>
+              <div>
+                <p className="text-[14px] font-bold text-[#C85D00] uppercase tracking-wider">
+                  Estimated Time
+                </p>
+                <p className="text-xl font-black text-[#8B3F00] leading-none">
+                  {summary.arrivalTimeText}
+                </p>
+              </div>
             </div>
-          </div>
-        </motion.div>
+            <div className="text-right flex flex-col items-end gap-2">
+              <div>
+                <p className="text-[14px] font-bold text-[#C85D00] uppercase tracking-wider">
+                  Arriving in
+                </p>
+                <p className="text-xl font-black text-[#8B3F00] leading-none">
+                  {summary.arrivingInText}
+                </p>
+              </div>
+              <div className="inline-flex items-center rounded-full bg-white/80 px-3 py-1.5 text-[14px] font-bold text-[#C87400] ring-1 ring-[#F4D98B]">
+                Total distance: {summary.totalDistanceText}
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         <Card className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
           <div className="flex justify-between items-center px-2 mb-2 relative">
@@ -1124,10 +1144,12 @@ const OrderDetails = () => {
                   <p className="text-gray-700 text-[16px] mb-4">
                     {isReturn ? order.seller?.address : order.address?.city}
                   </p>
-                  <Button onClick={handleNavigate} className="w-full bg-black  hover:bg-brand-700 text-primary-foreground border-none">
-                    <Navigation size={18} className="mr-2" />{" "}
-                    {isReturn ? "Navigate to Seller" : "Navigate to Customer"}
-                  </Button>
+                  {publicStatusStage !== 3 && (
+                    <Button onClick={handleNavigate} className="w-full bg-black  hover:bg-brand-700 text-primary-foreground border-none">
+                      <Navigation size={18} className="mr-2" />{" "}
+                      {isReturn ? "Navigate to Seller" : "Navigate to Customer"}
+                    </Button>
+                  )}
                 </div>
               </Card>
             </motion.div>
