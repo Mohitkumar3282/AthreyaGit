@@ -81,8 +81,24 @@ async function computeDistanceKmForSeller({ sellerId, addressLocation, address =
       .toLowerCase();
 
     let matchedArea = null;
-    if (addrPincode || addrText) {
+    if (addrPincode || addrText || normalizedLocation) {
       matchedArea = activeAreas.find((a) => {
+        // Radius: the customer's map point is within the area's "Max Range" of its
+        // centre. This is the rule the admin screen describes and the app's
+        // location gate already uses; matching only on pincode/name text rejected
+        // customers who are inside the range but whose address text differs.
+        const areaLat = Number(a.latitude);
+        const areaLng = Number(a.longitude);
+        const areaRadiusKm = Number(a.radiusKm) || 0;
+        if (
+          normalizedLocation &&
+          areaRadiusKm > 0 &&
+          Number.isFinite(areaLat) &&
+          Number.isFinite(areaLng) &&
+          distanceMeters(normalizedLocation.lat, normalizedLocation.lng, areaLat, areaLng) <= areaRadiusKm * 1000
+        ) {
+          return true;
+        }
         if (addrPincode && a.pincode && a.pincode.trim() === addrPincode) return true;
         if (a.name && addrText.includes(a.name.toLowerCase().trim())) return true;
         return false;
