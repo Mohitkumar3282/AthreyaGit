@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import axiosInstance from '@core/api/axios';
 import { getJSON, setJSON, STORAGE_KEYS } from '@core/utils/storage';
+import { useAuth } from '@core/context/AuthContext';
 
 const FAQ_CACHE_KEY = STORAGE_KEYS.FAQ_CACHE;
 const FAQ_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -17,6 +18,16 @@ const SupportPage = () => {
     const navigate = useNavigate();
     const { showToast } = useToast();
     const { settings } = useSettings();
+    const { isAuthenticated } = useAuth();
+    // Page is public (FAQs, contact details). Tickets and chat need an account.
+    const requireLogin = (action) => () => {
+        if (!isAuthenticated) {
+            showToast('Please log in to continue', 'info');
+            navigate('/login', { state: { from: { pathname: '/support' } } });
+            return;
+        }
+        action();
+    };
     const supportEmail = settings?.supportEmail || '';
     const supportEmailShort = supportEmail ? (supportEmail.length > 12 ? supportEmail.slice(0, 12) + '...' : supportEmail) : 'support@...';
     const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
@@ -96,7 +107,7 @@ const SupportPage = () => {
                         icon={PlusCircle}
                         label="Raise Ticket"
                         sub="Formal Request"
-                        onClick={() => setIsTicketModalOpen(true)}
+                        onClick={requireLogin(() => setIsTicketModalOpen(true))}
                     />
                     <ContactCard icon={Phone} label="Call Us" sub="+91 98765..." />
                     <ContactCard icon={Mail} label="Email Us" sub={supportEmailShort} />
