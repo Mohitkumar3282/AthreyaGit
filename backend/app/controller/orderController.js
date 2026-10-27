@@ -183,6 +183,9 @@ export const placeOrder = async (req, res) => {
       tipAmount: Number(req.body?.tipAmount || 0),
     });
 
+    const onlineBlocked = await assertOnlinePaymentAllowed(payload.paymentMode);
+    if (onlineBlocked) return handleResponse(res, 400, onlineBlocked);
+
     const idempotencyKey = String(req.headers?.["idempotency-key"] || "").trim() || null;
     const placement = await placeOrderAtomic({
       customerId,
@@ -269,6 +272,20 @@ const EXPRESS_META_FIELDS = [
   "distanceKm",
 ];
 
+/**
+ * Admin can switch online payment off (Fees & Charges -> Online payment). While
+ * it is off, every order channel must refuse ONLINE so nobody can pay by a
+ * route the app no longer shows.
+ */
+async function assertOnlinePaymentAllowed(paymentMode) {
+  if (String(paymentMode || "").toUpperCase() !== "ONLINE") return null;
+  const settings = await getOrCreateFinanceSettings();
+  if (settings.onlineEnabled === false) {
+    return "Online payment is currently unavailable. Please choose Cash on Delivery.";
+  }
+  return null;
+}
+
 function sanitizeExpressMeta(meta) {
   if (!meta || typeof meta !== "object") return {};
   const out = {};
@@ -333,6 +350,9 @@ export const placeCustomPickupOrder = async (req, res) => {
     if (!parcelDetails && !parcelImage) return handleResponse(res, 400, "Parcel details or image is required");
     const normalizedPickupType = pickupType && ["pay_and_collect", "prepaid"].includes(pickupType) ? pickupType : "prepaid";
     if (!address || !address.location) return handleResponse(res, 400, "Delivery address is required");
+
+    const expressOnlineBlocked = await assertOnlinePaymentAllowed(req.body?.paymentMode);
+    if (expressOnlineBlocked) return handleResponse(res, 400, expressOnlineBlocked);
 
     const normalizedExpressService = EXPRESS_SERVICES.includes(expressService)
       ? expressService
@@ -2212,6 +2232,8 @@ export const createManualOrder = async (req, res) => {
 
     if (!sellerId) return handleResponse(res, 400, "Seller is required");
     if (!customerId) return handleResponse(res, 400, "Customer is required");
+    const manualOnlineBlocked = await assertOnlinePaymentAllowed(paymentMode);
+    if (manualOnlineBlocked) return handleResponse(res, 400, manualOnlineBlocked);
 
     const sellerDoc = await Seller.findById(sellerId).lean();
     if (!sellerDoc) return handleResponse(res, 400, "Invalid Seller ID");

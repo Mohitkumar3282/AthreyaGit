@@ -111,6 +111,18 @@ const ManualOrderForm = ({ onCreated, onCancel, showToast }) => {
     const [riders, setRiders] = useState([]);
     const [riderChoice, setRiderChoice] = useState('later'); // later | auto | <id>
     const [submitting, setSubmitting] = useState(false);
+    const [onlineOn, setOnlineOn] = useState(true); // admin switch for online payment
+
+    useEffect(() => {
+        adminApi
+            .getSettings()
+            .then((res) => {
+                const on = res.data?.result?.onlineEnabled !== false;
+                setOnlineOn(on);
+                if (!on) setPaymentMode('COD');
+            })
+            .catch(() => {});
+    }, []);
 
     const fetchCustomers = useCallback(
         async (q) => unwrap(await adminApi.lookupManualOrder({ type: 'customer', q })),
@@ -357,7 +369,7 @@ const ManualOrderForm = ({ onCreated, onCancel, showToast }) => {
                 <label className={labelCls}>Payment mode</label>
                 <select value={paymentMode} onChange={(e) => setPaymentMode(e.target.value)} className={inputCls}>
                     <option value="COD">Cash on Delivery (COD)</option>
-                    <option value="ONLINE">Paid Online / UPI</option>
+                    {onlineOn && <option value="ONLINE">Paid Online / UPI</option>}
                 </select>
             </div>
 

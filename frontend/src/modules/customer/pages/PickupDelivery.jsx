@@ -999,6 +999,12 @@ const PickupDelivery = () => {
 
   const serviceUnavailable = fareQuote?.serviceEnabled === false;
   const outsideRadius = fareQuote?.withinRadius === false;
+  // Admin switch (Fees & Charges): online payment hidden, cash on delivery only.
+  const onlinePaymentOn = settings?.onlineEnabled !== false;
+  useEffect(() => {
+    if (!onlinePaymentOn && paymentMode === "ONLINE") setPaymentMode("COD");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onlinePaymentOn]);
   // Booking-time rules set by admin (Admin > Athreya Express > Fare Management).
   const timingRules = {
     instantEnabled: true,
@@ -2336,7 +2342,7 @@ const PickupDelivery = () => {
             {/* Payment Mode Selector */}
             <div className="pt-2 border-t border-slate-100">
               <Label className="text-[13.5px] font-bold text-slate-700 mb-1.5 block">Payment Mode</Label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className={`grid gap-2 ${onlinePaymentOn ? "grid-cols-2" : "grid-cols-1"}`}>
                 <button
                   type="button"
                   onClick={() => setPaymentMode("COD")}
@@ -2349,6 +2355,7 @@ const PickupDelivery = () => {
                   💵 Cash on Delivery (COD)
                 </button>
 
+                {onlinePaymentOn && (
                 <button
                   type="button"
                   onClick={() => setPaymentMode("ONLINE")}
@@ -2360,6 +2367,7 @@ const PickupDelivery = () => {
                 >
                   💳 UPI / Online Payment
                 </button>
+                )}
               </div>
             </div>
           </Card>
