@@ -371,27 +371,7 @@ const ShopDetails = () => {
             </div>
           </div>
 
-          {/* Dynamic Badges & Specs Bar */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 border-t border-slate-100 pt-5 mt-5 text-[12.5px] md:text-xs font-semibold text-slate-600">
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 bg-[#1a6e2e]/10 text-[#1a6e2e] rounded-lg"><Clock size={14} /></span>
-              <span>Radius: {shop.deliveryRadius || shop.serviceRadius || 5} km</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 bg-[#1a6e2e]/10 text-[#1a6e2e] rounded-lg"><Tag size={14} /></span>
-              <span>Min. Order: ₹{shop.minimumOrderAmount || 0}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 bg-[#1a6e2e]/10 text-[#1a6e2e] rounded-lg"><Tag size={14} /></span>
-              <span>Delivery Fee: ₹{shop.deliveryFee || 30}</span>
-            </div>
-            {shop.freeDeliveryAbove > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg"><CheckCircle size={14} /></span>
-                <span>Free Above: ₹{shop.freeDeliveryAbove}</span>
-              </div>
-            )}
-          </div>
+
         </div>
 
         {/* 3. Top Filter Panel & Category Pills */}

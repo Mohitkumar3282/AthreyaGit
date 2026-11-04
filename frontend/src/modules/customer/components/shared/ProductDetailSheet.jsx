@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence, useAnimation, useDragControls } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { X, ChevronDown, Share2, Heart, Search, Clock, Minus, Plus, ShoppingBag, Star, MessageSquare, ArrowLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronDown, Share2, Heart, Clock, Minus, Plus, ShoppingBag, Star, MessageSquare, ArrowLeft, ChevronRight } from 'lucide-react';
 import { useProductDetail } from '../../context/ProductDetailContext';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
@@ -618,27 +618,6 @@ const ProductDetailSheet = () => {
                                                 </AccordionItem>
                                             )}
 
-                                            {/* Product Details */}
-                                            <AccordionItem 
-                                                id="details" 
-                                                title="Product Details" 
-                                                icon={<Search size={16} />}
-                                            >
-                                                <div className="grid grid-cols-2 gap-3 mt-1">
-                                                    {[
-                                                        { label: 'Shelf Life', value: '3 Days', emoji: '📅' },
-                                                        { label: 'Country of Origin', value: 'India', emoji: '🇮🇳' },
-                                                        { label: 'FSSAI License', value: '1001234567890', emoji: '🛡️' },
-                                                        { label: 'Customer Care', value: supportEmail, emoji: '📧' }
-                                                    ].map((d) => (
-                                                        <div key={d.label} className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 group hover:bg-white transition-all">
-                                                            <span className="text-[12px] text-slate-400 block mb-0.5 font-bold uppercase tracking-wider">{d.label}</span>
-                                                            <span className="font-black text-slate-800 text-[12px]">{d.value}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </AccordionItem>
-
                                             {/* Customer Reviews */}
                                             <AccordionItem 
                                                 id="reviews" 
@@ -889,27 +868,6 @@ const ProductDetailSheet = () => {
                                             />
                                         </AccordionItem>
                                     )}
-
-                                    {/* Product Details */}
-                                    <AccordionItem 
-                                        id="details" 
-                                        title="Product Details" 
-                                        icon={<Search size={18} strokeWidth={2.5} />}
-                                    >
-                                        <div className="grid grid-cols-2 gap-3 mt-1">
-                                            {[
-                                                { label: 'Shelf Life', value: '3 Days' },
-                                                { label: 'Country of Origin', value: 'India' },
-                                                { label: 'FSSAI License', value: '1001234567890' },
-                                                { label: 'Customer Care', value: supportEmail }
-                                            ].map((d) => (
-                                                <div key={d.label} className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                                    <span className="text-gray-400 block mb-0.5 text-[12px] font-bold uppercase tracking-wider">{d.label}</span>
-                                                    <span className="font-black text-slate-800 text-xs">{d.value}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </AccordionItem>
 
                                     {/* Customer Reviews */}
                                     <AccordionItem 
