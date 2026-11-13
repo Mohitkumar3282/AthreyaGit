@@ -1246,6 +1246,26 @@ const OrderDetailPage = () => {
 
         {/* Bill Summary matching Screen 1 */}
         {(() => {
+          const isExpressOrder = order.orderType === "custom_pickup";
+          const rideHasStarted = ["out_for_delivery", "delivered"].includes(status);
+          if (isExpressOrder && !rideHasStarted) return null;
+
+          if (isExpressOrder) {
+            const rideFare = Number(order.pricing?.deliveryFee ?? order.expressFare?.total ?? 0);
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-3xl p-5 border border-emerald-100 shadow-xs"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <h3 className="text-base font-[1000] text-slate-800 uppercase tracking-tight">Ride Fare</h3>
+                  <span className="text-2xl font-[1000] text-emerald-800">₹{rideFare.toFixed(2).replace(/\.00$/, "")}</span>
+                </div>
+              </motion.div>
+            );
+          }
+
           const orderMrpTotal = order.items?.reduce((acc, i) => acc + (Number(i.mrp || i.originalPrice || i.price || 0) * Math.max(1, Number(i.quantity || 1))), 0) || 0;
           const subtotalNum = Number(order.pricing?.subtotal || 0);
           const hasOrderMrpSavings = orderMrpTotal > subtotalNum;

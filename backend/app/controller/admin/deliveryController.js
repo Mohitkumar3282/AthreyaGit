@@ -10,7 +10,7 @@ import { OWNER_TYPE, LEDGER_TRANSACTION_TYPE } from "../../constants/finance.js"
 export const getDeliveryPartners = async (req, res) => {
   try {
     const { status, verified } = req.query;
-    const query = {};
+    const query = { deletedAt: null };
 
     if (status === "online") {
       query.isOnline = true;
@@ -103,6 +103,40 @@ export const rejectDeliveryPartner = async (req, res) => {
       200,
       "Rider application rejected and removed",
     );
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};
+
+export const setDeliveryPartnerActive = async (req, res) => {
+  try {
+    const { isActive } = req.body || {};
+    if (typeof isActive !== "boolean") {
+      return handleResponse(res, 400, "isActive must be a boolean");
+    }
+    const update = { isActive };
+    if (!isActive) update.isOnline = false;
+    const rider = await Delivery.findOneAndUpdate(
+      { _id: req.params.id, deletedAt: null },
+      { $set: update },
+      { new: true, runValidators: true },
+    ).select("name isActive isOnline");
+    if (!rider) return handleResponse(res, 404, "Delivery partner not found");
+    return handleResponse(res, 200, `Delivery partner ${isActive ? "activated" : "deactivated"}`, rider);
+  } catch (error) {
+    return handleResponse(res, 500, error.message);
+  }
+};
+
+export const deleteDeliveryPartner = async (req, res) => {
+  try {
+    const rider = await Delivery.findOneAndUpdate(
+      { _id: req.params.id, deletedAt: null },
+      { $set: { deletedAt: new Date(), isActive: false, isOnline: false } },
+      { new: true },
+    ).select("_id");
+    if (!rider) return handleResponse(res, 404, "Delivery partner not found");
+    return handleResponse(res, 200, "Delivery partner deleted successfully");
   } catch (error) {
     return handleResponse(res, 500, error.message);
   }

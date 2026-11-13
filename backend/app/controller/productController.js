@@ -1,5 +1,6 @@
 import Product from "../models/product.js";
 import Category from "../models/category.js";
+import Admin from "../models/admin.js";
 import mongoose from "mongoose";
 import { handleResponse } from "../utils/helper.js";
 import { slugify } from "../utils/slugify.js";
@@ -26,6 +27,37 @@ import {
   resolveProductApprovalStatus,
 } from "../services/productModerationService.js";
 import { buildSearchRegex } from "../utils/regex.js";
+import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
+import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
+
+async function notifyAdminsProductNeedsReview(product) {
+  try {
+    const admins = await Admin.find().select("_id").lean();
+    emitNotificationEvent(NOTIFICATION_EVENTS.PRODUCT_SUBMITTED_FOR_REVIEW, {
+      adminIds: admins.map((admin) => admin._id),
+      productId: product._id,
+      productName: product.name,
+      sellerId: product.sellerId,
+      approvalRequestedAt: product.approvalRequestedAt,
+    });
+  } catch (error) {
+    logger.warn("Could not notify admins about pending product review", {
+      productId: String(product?._id || ""),
+      message: error.message,
+    });
+  }
+}
+
+function notifySellerProductReviewed(product, approvalStatus) {
+  emitNotificationEvent(NOTIFICATION_EVENTS.PRODUCT_REVIEWED, {
+    sellerId: product.sellerId?._id || product.sellerId,
+    productId: product._id,
+    productName: product.name,
+    approvalStatus,
+    approvalNote: product.approvalNote,
+    approvalReviewedAt: product.approvalReviewedAt,
+  });
+}
 
 // Phase 3 P3-5: when search term is reasonably specific and the env flag
 // is enabled, prefer Mongo's `name + tags` text index over case-insensitive
@@ -778,6 +810,10 @@ export const createProduct = async (req, res) => {
     Object.assign(productData, moderationUpdate);
 
     const product = await Product.create(productData);
+
+    if (product?.approvalStatus === PRODUCT_APPROVAL_STATUS.PENDING) {
+      await notifyAdminsProductNeedsReview(product);
+    }
     
     if (product && product._id) {
       // Enqueue search indexing asynchronously
@@ -809,6 +845,9 @@ export const createProduct = async (req, res) => {
         productData.slug = `${slugify(productData.name || "product")}-${uniqueTag}`;
         productData.sku = `${makeProductSku(productData.name, 1)}-${uniqueTag}`;
         const retryProduct = await Product.create(productData);
+        if (retryProduct?.approvalStatus === PRODUCT_APPROVAL_STATUS.PENDING) {
+          await notifyAdminsProductNeedsReview(retryProduct);
+        }
         if (retryProduct && retryProduct._id) {
           await enqueueProductIndex(retryProduct._id.toString());
           await invalidate(`cache:catalog:product:${retryProduct._id.toString()}`);
@@ -988,6 +1027,10 @@ export const updateProduct = async (req, res) => {
       { $set: productData },
       { new: true, runValidators: true },
     );
+
+    if (updatedProduct?.approvalStatus === PRODUCT_APPROVAL_STATUS.PENDING && role !== "admin") {
+      await notifyAdminsProductNeedsReview(updatedProduct);
+    }
     
     // Enqueue search indexing asynchronously
     await enqueueProductIndex(id);
@@ -1287,6 +1330,8 @@ export const approveProduct = async (req, res) => {
       return handleResponse(res, 404, "Product not found");
     }
 
+    notifySellerProductReviewed(updated, PRODUCT_APPROVAL_STATUS.APPROVED);
+
     await enqueueProductIndex(id);
     await invalidate(`cache:catalog:product:${id}`);
     await invalidate(buildKey("catalog", "productList", "*"));
@@ -1326,6 +1371,8 @@ export const rejectProduct = async (req, res) => {
     if (!updated) {
       return handleResponse(res, 404, "Product not found");
     }
+
+    notifySellerProductReviewed(updated, PRODUCT_APPROVAL_STATUS.REJECTED);
 
     await enqueueProductIndex(id);
     await invalidate(`cache:catalog:product:${id}`);

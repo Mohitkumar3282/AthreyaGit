@@ -1,4 +1,5 @@
 import Seller from "../models/seller.js";
+import Admin from "../models/admin.js";
 import jwt from "jsonwebtoken";
 import handleResponse from "../utils/helper.js";
 import {
@@ -7,6 +8,8 @@ import {
     verifySellerVerificationToken,
 } from "../services/sellerVerificationService.js";
 import { uploadToCloudinary } from "../services/mediaService.js";
+import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
+import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
 
 /* ===============================
    Utils
@@ -212,6 +215,17 @@ export const signupSeller = async (req, res) => {
         }
 
         seller = await Seller.create(sellerData);
+
+        Admin.find().select("_id").lean().then((admins) => {
+            emitNotificationEvent(NOTIFICATION_EVENTS.SELLER_APPLICATION_SUBMITTED, {
+                adminIds: admins.map((admin) => admin._id),
+                sellerId: seller._id,
+                sellerName: seller.name,
+                shopName: seller.shopName,
+            });
+        }).catch((error) => {
+            console.warn("Could not notify admins about seller application:", error.message);
+        });
 
         return handleResponse(res, 201, "Seller registered successfully", {
             seller,

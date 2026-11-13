@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Card from '@shared/components/ui/Card';
 import Badge from '@shared/components/ui/Badge';
 import PageHeader from '@shared/components/ui/PageHeader';
@@ -11,6 +12,9 @@ import {
     Phone,
     ShoppingBag,
     MoreVertical,
+    UserRoundCheck,
+    UserRoundX,
+    Trash2,
     UserPlus,
     RotateCw,
     Activity,
@@ -32,6 +36,9 @@ const CustomerManagement = () => {
     const [pageSize, setPageSize] = useState(25);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [activeDropdownId, setActiveDropdownId] = useState(null);
+    const [dropdownPosition, setDropdownPosition] = useState(null);
+    const [updatingCustomerId, setUpdatingCustomerId] = useState(null);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -100,6 +107,41 @@ const CustomerManagement = () => {
             setIsExporting(false);
             toast.success('Customer database exported successfully!');
         }, 1500);
+    };
+
+    const handleCustomerStatus = async (customer, isActive) => {
+        const id = customer.id || customer._id;
+        try {
+            setUpdatingCustomerId(id);
+            await adminApi.updateUser(id, { isActive });
+            toast.success(`Customer ${isActive ? 'activated' : 'deactivated'}`);
+            await fetchCustomers(page);
+        } catch (error) {
+            console.error('Failed to update customer status:', error);
+            toast.error(error.response?.data?.message || 'Failed to update customer status');
+        } finally {
+            setUpdatingCustomerId(null);
+            setActiveDropdownId(null);
+            setDropdownPosition(null);
+        }
+    };
+
+    const handleDeleteCustomer = async (customer) => {
+        const id = customer.id || customer._id;
+        if (!window.confirm(`Delete ${customer.name || 'this customer'}? This will remove them from the customer list.`)) return;
+        try {
+            setUpdatingCustomerId(id);
+            await adminApi.deleteUser(id);
+            toast.success('Customer deleted');
+            await fetchCustomers(page);
+        } catch (error) {
+            console.error('Failed to delete customer:', error);
+            toast.error(error.response?.data?.message || 'Failed to delete customer');
+        } finally {
+            setUpdatingCustomerId(null);
+            setActiveDropdownId(null);
+            setDropdownPosition(null);
+        }
     };
 
     const getTimeAgo = (date) => {
@@ -284,13 +326,39 @@ const CustomerManagement = () => {
                                             <div className="flex items-center justify-end gap-2">
                                                 <button
                                                     onClick={() => navigate(`/admin/customers/${cust.id}`)}
+                                                    aria-label={`View ${cust.name}`}
                                                     className="p-2 bg-primary/10 text-primary rounded-lg hover:bg-primary hover:text-white transition-all"
                                                 >
                                                     <Eye className="ds-icon-sm" />
                                                 </button>
-                                                <button className="p-2 bg-gray-50 text-gray-400 rounded-lg hover:bg-gray-900 hover:text-white transition-all">
-                                                    <MoreVertical className="ds-icon-sm" />
-                                                </button>
+                                                <div className="relative">
+                                                    <button
+                                                        type="button"
+                                                        aria-label={`More actions for ${cust.name}`}
+                                                        aria-haspopup="menu"
+                                                        aria-expanded={activeDropdownId === (cust.id || cust._id)}
+                                                        disabled={updatingCustomerId === (cust.id || cust._id)}
+                                                        onClick={(event) => {
+                                                            const id = cust.id || cust._id;
+                                                            if (activeDropdownId === id) {
+                                                                setActiveDropdownId(null);
+                                                                setDropdownPosition(null);
+                                                                return;
+                                                            }
+                                                            const rect = event.currentTarget.getBoundingClientRect();
+                                                            const menuHeight = 104;
+                                                            const opensAbove = rect.bottom + menuHeight > window.innerHeight;
+                                                            setDropdownPosition({
+                                                                top: opensAbove ? Math.max(8, rect.top - menuHeight - 8) : rect.bottom + 8,
+                                                                right: Math.max(8, window.innerWidth - rect.right),
+                                                            });
+                                                            setActiveDropdownId(id);
+                                                        }}
+                                                        className="p-2 bg-gray-50 text-gray-400 rounded-lg hover:bg-gray-900 hover:text-white transition-all disabled:opacity-50"
+                                                    >
+                                                        <MoreVertical className="ds-icon-sm" />
+                                                    </button>
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>
@@ -299,6 +367,47 @@ const CustomerManagement = () => {
                         </tbody>
                     </table>
                 </div>
+                {activeDropdownId && dropdownPosition && createPortal(
+                    <>
+                        <button
+                            type="button"
+                            aria-label="Close actions menu"
+                            className="fixed inset-0 z-[99] cursor-default"
+                            onClick={() => { setActiveDropdownId(null); setDropdownPosition(null); }}
+                        />
+                        <div
+                            role="menu"
+                            style={{ top: dropdownPosition.top, right: dropdownPosition.right }}
+                            className="fixed z-[100] w-48 rounded-xl border border-gray-100 bg-white p-1.5 text-left shadow-xl"
+                        >
+                            {(() => {
+                                const customer = customers.find((item) => (item.id || item._id) === activeDropdownId);
+                                if (!customer) return null;
+                                return <>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        onClick={() => handleCustomerStatus(customer, customer.status !== 'active')}
+                                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                    >
+                                        {customer.status === 'active' ? <UserRoundX className="h-4 w-4" /> : <UserRoundCheck className="h-4 w-4" />}
+                                        {customer.status === 'active' ? 'Deactivate' : 'Activate'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        onClick={() => handleDeleteCustomer(customer)}
+                                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                        Delete customer
+                                    </button>
+                                </>;
+                            })()}
+                        </div>
+                    </>,
+                    document.body,
+                )}
                 <div className="px-6 py-3 border-t border-gray-100">
                     <Pagination
                         page={page}

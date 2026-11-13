@@ -19,6 +19,12 @@ import {
 import { notify } from "./notification.service.js";
 import { NOTIFICATION_EVENTS } from "./notification.constants.js";
 import { deliverNotificationById } from "./notification.worker.js";
+import {
+  emitToAdmin,
+  emitToSeller,
+  emitToCustomer,
+  emitToDelivery,
+} from "../../services/orderSocketEmitter.js";
 
 function resolveRole(req) {
   return normalizeNotificationRole(req?.user?.role);
@@ -35,10 +41,39 @@ const BROADCAST_AUDIENCES = Object.freeze({
   delivery: [NOTIFICATION_ROLES.DELIVERY],
 });
 
+function emitBroadcastDelta(notification) {
+  const payload = {
+    notificationId: notification?._id?.toString?.() || null,
+    eventType: notification?.type || "system",
+    role: notification?.role,
+    title: notification?.title,
+    body: notification?.body || notification?.message || "",
+    data: notification?.data || {},
+    createdAt: notification?.createdAt?.toISOString?.() || new Date().toISOString(),
+  };
+  const userId = notification?.userId?.toString?.() || String(notification?.userId || "");
+  if (!userId) return;
+  const target = { event: "notification:new", payload };
+  if (notification.role === NOTIFICATION_ROLES.ADMIN) emitToAdmin(userId, target);
+  else if (notification.role === NOTIFICATION_ROLES.SELLER) emitToSeller(userId, target);
+  else if (notification.role === NOTIFICATION_ROLES.CUSTOMER) emitToCustomer(userId, target);
+  else if (notification.role === NOTIFICATION_ROLES.DELIVERY) emitToDelivery(userId, target);
+}
+
 function resolveNotificationFilter(req) {
   const userId = req?.user?.id;
+  const role = resolveRole(req);
+  const modelsByRole = {
+    [NOTIFICATION_ROLES.CUSTOMER]: ["Customer", "User"],
+    [NOTIFICATION_ROLES.SELLER]: ["Seller"],
+    [NOTIFICATION_ROLES.DELIVERY]: ["Delivery", "DeliveryBoy", "Rider"],
+    [NOTIFICATION_ROLES.ADMIN]: ["Admin"],
+  };
   return {
-    $or: [{ userId }, { recipient: userId }],
+    $or: [
+      ...(role ? [{ userId, role }] : [{ userId }]),
+      { recipient: userId, recipientModel: { $in: modelsByRole[role] || [] } },
+    ],
   };
 }
 
@@ -280,12 +315,13 @@ export const markNotificationsRead = async (req, res) => {
     const validIds = candidateIds.filter((id) => mongoose.Types.ObjectId.isValid(id));
     const markAll = String(req.body?.markAll || "").toLowerCase() === "true";
 
+    const ownerFilter = resolveNotificationFilter(req);
     const filter =
       markAll || (!notificationId && notificationIds.length === 0)
-        ? { $or: [{ userId }, { recipient: userId }], isRead: false }
+        ? { ...ownerFilter, isRead: false }
         : {
             _id: { $in: validIds },
-            $or: [{ userId }, { recipient: userId }],
+            ...ownerFilter,
           };
 
     const result = await Notification.updateMany(filter, {
@@ -533,6 +569,7 @@ export const broadcastNotification = async (req, res) => {
     });
 
     const created = await Notification.insertMany(docs, { ordered: false });
+    created.forEach(emitBroadcastDelta);
     const notificationIds = created.map((item) => item?._id).filter(Boolean);
     const deliveryResults = await Promise.allSettled(
       notificationIds.map((notificationId) => deliverNotificationById(notificationId)),

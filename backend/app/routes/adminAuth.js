@@ -12,6 +12,8 @@ import {
     getDeliveryPartners,
     approveDeliveryPartner,
     rejectDeliveryPartner,
+    setDeliveryPartnerActive,
+    deleteDeliveryPartner,
     reviewRiderCancellations,
     awardRiderIncentive,
     getActiveFleet,
@@ -36,6 +38,8 @@ import {
     getCashSettlementHistory,
     getUsers,
     getUserById,
+    updateUser,
+    removeUser,
     getSellers,
     getSellerById,
     updateSellerByAdmin,
@@ -157,6 +161,8 @@ router.put(
     updatePlatformSettings
 );
 router.get("/users", verifyToken, allowRoles("admin"), getUsers);
+router.patch("/users/:id", verifyToken, allowRoles("admin"), updateUser);
+router.delete("/users/:id", verifyToken, allowRoles("admin"), removeUser);
 router.get("/users/:id", verifyToken, allowRoles("admin"), getUserById);
 router.get("/sellers", verifyToken, allowRoles("admin"), getSellers);
 router.get("/sellers/locations", verifyToken, allowRoles("admin"), getSellerLocations);
@@ -167,6 +173,8 @@ router.put("/sellers/:id", verifyToken, allowRoles("admin"), updateSellerByAdmin
 router.patch("/sellers/approve/:id", verifyToken, allowRoles("admin"), approveSellerApplication);
 router.put("/sellers/:id/commission", verifyToken, allowRoles("admin"), updateSellerCommission);
 router.put("/delivery-partners/:id/cash-limit", verifyToken, allowRoles("admin"), updateRiderCashLimit);
+router.patch("/delivery-partners/:id/status", verifyToken, allowRoles("admin"), setDeliveryPartnerActive);
+router.delete("/delivery-partners/:id", verifyToken, allowRoles("admin"), deleteDeliveryPartner);
 router.delete("/sellers/:id", verifyToken, allowRoles("admin"), deleteSellerByAdmin);
 router.delete("/sellers/reject/:id", verifyToken, allowRoles("admin"), rejectSellerApplication);
 

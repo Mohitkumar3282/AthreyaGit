@@ -94,6 +94,11 @@ const deliverySchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
+        // Admin controlled account switch, separate from a rider's online presence.
+        isActive: {
+            type: Boolean,
+            default: true,
+        },
         location: {
             type: {
                 type: String,

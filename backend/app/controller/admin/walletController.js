@@ -10,6 +10,8 @@ import {
   settleDeliveryTransactionById,
   updateWithdrawalStatusById,
 } from "../../services/admin/walletAdminService.js";
+import { emitNotificationEvent } from "../../modules/notifications/notification.emitter.js";
+import { NOTIFICATION_EVENTS } from "../../modules/notifications/notification.constants.js";
 
 export const getAdminWalletData = async (req, res) => {
   try {
@@ -92,6 +94,16 @@ export const updateWithdrawalStatus = async (req, res) => {
 
     if (!transaction) {
       return handleResponse(res, 404, "Transaction not found");
+    }
+
+    if (transaction.userModel === "Seller" && transaction.type === "Withdrawal") {
+      emitNotificationEvent(NOTIFICATION_EVENTS.SELLER_WITHDRAWAL_UPDATED, {
+        sellerId: transaction.user?._id || transaction.user,
+        transactionId: transaction._id,
+        amount: transaction.amount,
+        status: transaction.status,
+        reason: transaction.notes || reason,
+      });
     }
 
     return handleResponse(res, 200, `Withdrawal ${status} successfully`);

@@ -5,6 +5,8 @@ import {
   getPendingSellerApplications,
   rejectSellerApplicationById,
 } from "../../services/admin/sellerApplicationService.js";
+import { emitNotificationEvent } from "../../modules/notifications/notification.emitter.js";
+import { NOTIFICATION_EVENTS } from "../../modules/notifications/notification.constants.js";
 
 export const getPendingSellers = async (req, res) => {
   try {
@@ -40,6 +42,13 @@ export const approveSellerApplication = async (req, res) => {
       return handleResponse(res, 404, "Seller not found");
     }
 
+    emitNotificationEvent(NOTIFICATION_EVENTS.SELLER_APPLICATION_REVIEWED, {
+      sellerId: id,
+      shopName: seller.shopName,
+      applicationStatus: "approved",
+      reviewedAt: new Date().toISOString(),
+    });
+
     return handleResponse(res, 200, "Seller approved successfully", seller);
   } catch (error) {
     return handleResponse(res, 500, error.message);
@@ -59,6 +68,14 @@ export const rejectSellerApplication = async (req, res) => {
     if (!seller) {
       return handleResponse(res, 404, "Seller not found");
     }
+
+    emitNotificationEvent(NOTIFICATION_EVENTS.SELLER_APPLICATION_REVIEWED, {
+      sellerId: id,
+      shopName: seller.shopName,
+      applicationStatus: "rejected",
+      reason,
+      reviewedAt: new Date().toISOString(),
+    });
 
     return handleResponse(res, 200, "Seller application rejected", seller);
   } catch (error) {

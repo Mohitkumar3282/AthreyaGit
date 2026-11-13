@@ -184,6 +184,14 @@ const Topbar = ({ onMenuClick }) => {
         }
     };
 
+    const handleNotificationClick = (notification) => {
+        const id = notification?._id || notification?.id;
+        if (id && !notification?.isRead) handleMarkAsRead(id);
+        setShowNotifications(false);
+        const link = String(notification?.data?.link || "").trim();
+        if (link.startsWith("/")) navigate(link);
+    };
+
     const handleLogout = () => {
         logout();
     };
@@ -285,6 +293,7 @@ const Topbar = ({ onMenuClick }) => {
                                 notifications={notifications}
                                 onMarkAsRead={handleMarkAsRead}
                                 onMarkAllAsRead={handleMarkAllAsRead}
+                                onNotificationClick={handleNotificationClick}
                                 onClose={() => setShowNotifications(false)}
                             />
                         )}

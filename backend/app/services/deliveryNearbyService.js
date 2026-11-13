@@ -40,6 +40,8 @@ const ACTIVE_ORDER_STATUSES = [
 function buildDeliveryFilter() {
   const q = {
     isOnline: true,
+    isActive: { $ne: false },
+    deletedAt: null,
     $or: [{ breakUntil: null }, { breakUntil: { $lte: new Date() } }],
   };
   if (requireVerifiedForBroadcast()) {

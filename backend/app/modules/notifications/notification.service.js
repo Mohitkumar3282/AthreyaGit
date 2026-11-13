@@ -28,7 +28,7 @@ const localDedupeStore = new Map();
 let listenerRegistered = false;
 
 function dedupeKeyForNotification(eventType, notification, payload = {}) {
-  const orderRef =
+  let orderRef =
     payload.messageId ||
     payload.messageCreatedAt ||
     payload.ticketId ||
@@ -42,6 +42,17 @@ function dedupeKeyForNotification(eventType, notification, payload = {}) {
     payload.userId ||
     notification?.userId ||
     "unknown";
+  if (eventType === NOTIFICATION_EVENTS.LOW_STOCK_ALERT) {
+    orderRef = `${payload.productId || "product"}:${payload.variantSku || payload.variantName || "default"}:${payload.triggeredAt || payload.currentStock || "alert"}`;
+  } else if (eventType === NOTIFICATION_EVENTS.PRODUCT_SUBMITTED_FOR_REVIEW) {
+    orderRef = `${payload.productId || "product"}:${payload.approvalRequestedAt || "submitted"}`;
+  } else if (eventType === NOTIFICATION_EVENTS.PRODUCT_REVIEWED) {
+    orderRef = `${payload.productId || "product"}:${payload.approvalStatus || "reviewed"}:${payload.approvalReviewedAt || "reviewed"}`;
+  } else if (eventType === NOTIFICATION_EVENTS.SELLER_WITHDRAWAL_UPDATED) {
+    orderRef = `${payload.transactionId || "withdrawal"}:${payload.status || "updated"}`;
+  } else if (eventType === NOTIFICATION_EVENTS.SELLER_APPLICATION_REVIEWED) {
+    orderRef = `${notification?.userId || "seller"}:${payload.applicationStatus || "reviewed"}:${payload.reviewedAt || "reviewed"}`;
+  }
   return [
     "notify",
     String(eventType || "UNKNOWN"),

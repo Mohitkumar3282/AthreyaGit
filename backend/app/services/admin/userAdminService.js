@@ -4,7 +4,7 @@ import Order from "../../models/order.js";
 
 export async function getUsersData({ page, limit, skip }) {
   const pipeline = [
-    { $match: { role: "user" } },
+    { $match: { role: "user", deletedAt: null } },
     {
       $lookup: {
         from: "orders",
@@ -59,12 +59,31 @@ export async function getUsersData({ page, limit, skip }) {
   };
 }
 
+export async function updateCustomerStatus(id, isActive) {
+  if (!mongoose.isValidObjectId(id)) return null;
+  return User.findOneAndUpdate(
+    { _id: id, role: "user", deletedAt: null },
+    { $set: { isActive } },
+    { new: true, runValidators: true },
+  );
+}
+
+export async function deleteCustomer(id) {
+  if (!mongoose.isValidObjectId(id)) return null;
+  return User.findOneAndUpdate(
+    { _id: id, role: "user", deletedAt: null },
+    { $set: { isActive: false, deletedAt: new Date() } },
+    { new: true },
+  );
+}
+
 export async function getUserByIdData(id) {
   const user = await User.aggregate([
     {
       $match: {
         _id: new mongoose.Types.ObjectId(id),
         role: "user",
+        deletedAt: null,
       },
     },
     {

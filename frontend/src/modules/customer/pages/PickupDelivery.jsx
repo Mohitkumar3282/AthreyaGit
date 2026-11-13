@@ -58,14 +58,6 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return Number((R * c).toFixed(2));
 };
 
-const getDeliveryFee = (distance) => {
-  const baseDistance = 1.0;
-  const baseFee = 30;
-  const surchargePerKm = 10;
-  if (distance <= baseDistance) return baseFee;
-  return baseFee + Math.ceil(distance - baseDistance) * surchargePerKm;
-};
-
 const CARGO_POINTS = [
   { id: "apsrtc_asw", name: "APSRTC Bus Stand Parcel Counter", loc: "Aswapuram Main Bus Stand" },
   { id: "tsrtc_asw", name: "TSRTC Cargo / Parcel Center", loc: "Aswapuram Bus Station" },
@@ -925,9 +917,7 @@ const PickupDelivery = () => {
   ]);
 
   // ---- Server fare quote -------------------------------------------------
-  // The fare is set by admin (Express Fare Management) and computed on the
-  // server from the same coordinates placement uses, so the number shown here
-  // is the number charged. getDeliveryFee() below is only an offline fallback.
+  // The server quote remains available for booking validation and payment.
   const quoteInput = useMemo(() => {
     const DEFAULT_POINT = { lat: 17.7833, lng: 80.8500 };
     const cur = currentLocation?.latitude
@@ -1035,36 +1025,6 @@ const PickupDelivery = () => {
     };
   });
   const calculatedDistance = fareQuote?.distanceKm ?? localDistance;
-  const deliveryFee = fareQuote?.fare?.total ?? getDeliveryFee(calculatedDistance);
-
-  // Extra collection fees depending on active service
-  const extraCollectionFee = useMemo(() => {
-    if (activeTab === "shop_to_home" && shopPickupType === "pay_and_collect") {
-      return Number(shopBillAmount || 0);
-    }
-    if (activeTab === "cargo_to_home" && cargoUnpaidFreight) {
-      return Number(cargoUnpaidFreight || 0);
-    }
-    return 0;
-  }, [activeTab, shopPickupType, shopBillAmount, cargoUnpaidFreight]);
-
-  const totalAmount = deliveryFee + extraCollectionFee;
-
-  // Delivery-time promise for this booking. Same model the server freezes on the
-  // order (services/deliveryEtaService.js), driven by the admin-tunable
-  // settings.deliveryEta so the number here matches the one on the order page.
-  const localEta = useMemo(() => {
-    const cfg = { basePrepMinutes: 10, minutesPerKm: 3, minMinutes: 10, maxMinutes: 180, rangeSpreadMinutes: 5, ...(settings?.deliveryEta || {}) };
-    if (settings?.deliveryEta?.enabled === false) return null;
-    const base = Math.min(
-      Math.max(Math.round(Number(cfg.basePrepMinutes) + calculatedDistance * Number(cfg.minutesPerKm)), Number(cfg.minMinutes)),
-      Number(cfg.maxMinutes),
-    );
-    const max = Math.min(base + Number(cfg.rangeSpreadMinutes), Number(cfg.maxMinutes));
-    return max > base ? `${base}-${max} mins` : `${base} mins`;
-  }, [calculatedDistance, settings?.deliveryEta]);
-  const expressEta = fareQuote ? fareQuote.eta?.label || null : localEta;
-
   // WhatsApp Order Trigger Helper
   const triggerWhatsAppOrder = (customMsg) => {
     const numberCandidate = settings?.whatsappNumber || settings?.supportPhone || "919000000000";
@@ -1634,7 +1594,6 @@ const PickupDelivery = () => {
                   <Navigation size={14} className="text-emerald-700 shrink-0" />
                   <span className="text-[13.5px] font-bold text-emerald-900">
                     Distance by road: <span className="font-black">{calculatedDistance} km</span>
-                    {deliveryFee ? <span className="text-emerald-700"> · Fare ₹{deliveryFee}</span> : null}
                   </span>
                 </div>
               )}
@@ -2181,7 +2140,6 @@ const PickupDelivery = () => {
                   <Navigation size={14} className="text-emerald-700 shrink-0" />
                   <span className="text-[13.5px] font-bold text-emerald-900">
                     Trip distance by road: <span className="font-black">{calculatedDistance} km</span>
-                    {deliveryFee ? <span className="text-emerald-700"> · Fare ₹{deliveryFee}</span> : null}
                   </span>
                 </div>
               )}
@@ -2307,10 +2265,10 @@ const PickupDelivery = () => {
       ======================================================== */}
       {activeTab !== "whatsapp" && (
         <div className="mt-5 space-y-4">
-          {/* Fare Summary Card */}
+          {/* Payment mode is selected now; fare appears once the Express ride starts. */}
           <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
             <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide">
-              Fare & Payment Details (ధర వివరాలు)
+              Payment Details
             </h3>
 
             <div className="divide-y divide-slate-100 text-[13.5px]">
@@ -2325,18 +2283,9 @@ const PickupDelivery = () => {
                   This location is outside the Athreya Express service area (maximum {fareQuote?.maxDistanceKm} km). Please choose a closer location.
                 </div>
               )}
-
-              {expressEta && !(activeTab === "rider_delivery" && riderTiming === "scheduled") && (
-                <div className="py-1.5 flex justify-between items-center text-slate-600">
-                  <span>⏱️ Estimated Time (అంచనా సమయం)</span>
-                  <span className="font-black text-slate-900">{expressEta}</span>
-                </div>
-              )}
-
-              <div className="pt-3 flex justify-between items-center font-black text-[#042A0F]">
-                <span className="text-[16px]">Total Bill Amount</span>
-                <span className="text-[24px] text-emerald-800">₹{totalAmount}</span>
-              </div>
+              <p className="py-2 text-[12px] font-medium text-slate-500">
+                Ride fare will be shown after your ride starts.
+              </p>
             </div>
 
             {/* Payment Mode Selector */}

@@ -11,19 +11,28 @@ async function getAdminIds() {
     return (admins || []).map((a) => a?._id).filter(Boolean);
 }
 
+function ticketUserType(role) {
+    const normalized = String(role || "").toLowerCase();
+    if (normalized === "seller") return "Seller";
+    if (normalized === "delivery" || normalized === "delivery_boy") return "Delivery";
+    if (normalized === "admin") return "Admin";
+    return "Customer";
+}
+
 // Create a new ticket (Customer/Seller/Rider)
 export const createTicket = async (req, res) => {
     try {
-        const { subject, description, priority, userType, mediaUrl, mediaType, mimeType } = req.body;
+        const { subject, description, priority, mediaUrl, mediaType, mimeType } = req.body;
         const userId = req.user.id; // From verifyToken middleware
 
         const safeMediaUrl = String(mediaUrl || "").trim();
         const safeMediaType = String(mediaType || "").trim();
         const safeMimeType = String(mimeType || "").trim();
 
+        const senderRole = String(req.user.role || "customer").toLowerCase();
         const newTicket = new Ticket({
             userId,
-            userType: userType || "Customer",
+            userType: ticketUserType(senderRole),
             subject,
             description,
             priority,
@@ -48,7 +57,8 @@ export const createTicket = async (req, res) => {
             const savedMessage = newTicket.messages?.[newTicket.messages.length - 1];
             const adminIds = await getAdminIds();
             emitNotificationEvent(NOTIFICATION_EVENTS.SUPPORT_TICKET_MESSAGE, {
-                fromRole: "customer",
+                fromRole: senderRole,
+                recipientRole: senderRole,
                 ticketId: newTicket._id,
                 messageId: savedMessage?._id,
                 messageCreatedAt: savedMessage?.createdAt,
@@ -105,8 +115,9 @@ export const getAllTickets = async (req, res) => {
 // Admin/User: Reply to a ticket
 export const replyToTicket = async (req, res) => {
     try {
-        const { text, isAdmin, mediaUrl, mediaType, mimeType } = req.body;
+        const { text, mediaUrl, mediaType, mimeType } = req.body;
         const { id } = req.params;
+        const isAdmin = String(req.user.role || "").toLowerCase() === "admin";
 
         const ticket = await Ticket.findById(id);
         if (!ticket) return handleResponse(res, 404, "Ticket not found");
@@ -146,9 +157,11 @@ export const replyToTicket = async (req, res) => {
         });
 
         try {
-            const fromRole = isAdmin ? "admin" : "customer";
+            const fromRole = isAdmin ? "admin" : String(req.user.role || "customer").toLowerCase();
+            const recipientRole = String(ticket.userType || "Customer").toLowerCase();
             const payload = {
                 fromRole,
+                recipientRole,
                 ticketId: ticket._id,
                 messageId: savedMessage?._id,
                 messageCreatedAt: savedMessage?.createdAt,

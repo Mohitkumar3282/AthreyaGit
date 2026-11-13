@@ -20,6 +20,7 @@ import {
     XCircle,
     Pencil,
     Trash2,
+    Power,
     Eye,
     X
 } from 'lucide-react';
@@ -71,6 +72,7 @@ const ActiveDeliveryBoys = () => {
                 ratingCount: r.ratingCount || 0,
                 totalOrders: r.totalOrders || 0,
                 isVerified: !!r.isVerified,
+                isActive: r.isActive !== false,
                 cancellationCount: r.cancellationCount || 0,
                 flaggedForReview: !!r.flaggedForReview,
                 cashLimit: r.cashLimit ?? null,
@@ -110,7 +112,7 @@ const filteredRiders = useMemo(() => {
     });
 }, [riders, searchTerm, statusFilter]);
 
-const handleAction = (type, rider) => {
+const handleAction = async (type, rider) => {
     if (type === 'view') {
         setViewingRider(rider);
     } else if (type === 'edit') {
@@ -118,9 +120,26 @@ const handleAction = (type, rider) => {
         setSelectedRider(rider);
         setIsEditModalOpen(true);
     } else if (type === 'delete') {
-        if (window.confirm(`Are you sure you want to deactivate ${rider.name}?`)) {
-            setRiders(riders.filter(r => r.id !== rider.id));
+        if (window.confirm(`Delete ${rider.name}? They will be removed from the delivery partners list.`)) {
+            try {
+                await adminApi.deleteDeliveryPartner(rider.id);
+                toast.success(`${rider.name} deleted`);
+                await fetchRiders(page);
+            } catch (error) {
+                toast.error(error.response?.data?.message || 'Failed to delete delivery partner');
+            }
         }
+    }
+};
+
+const handleToggleActivation = async (rider) => {
+    const isActive = !rider.isActive;
+    try {
+        await adminApi.setDeliveryPartnerActive(rider.id, isActive);
+        setRiders((current) => current.map((item) => item.id === rider.id ? { ...item, isActive } : item));
+        toast.success(`${rider.name} ${isActive ? 'activated' : 'deactivated'}`);
+    } catch (error) {
+        toast.error(error.response?.data?.message || `Failed to ${isActive ? 'activate' : 'deactivate'} delivery partner`);
     }
 };
 
@@ -435,6 +454,15 @@ return (
                                         >
                                             <Eye className="h-3.5 w-3.5" />
                                             VIEW PROFILE
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleToggleActivation(rider)}
+                                            title={rider.isActive ? 'Deactivate rider' : 'Activate rider'}
+                                            aria-label={rider.isActive ? `Deactivate ${rider.name}` : `Activate ${rider.name}`}
+                                            className={`p-2.5 rounded-xl transition-all ${rider.isActive ? 'bg-emerald-50 text-emerald-700 hover:bg-amber-50 hover:text-amber-700' : 'bg-amber-50 text-amber-700 hover:bg-emerald-50 hover:text-emerald-700'}`}
+                                        >
+                                            <Power className="h-4 w-4" />
                                         </button>
                                         <button
                                             onClick={() => handleAction('edit', rider)}

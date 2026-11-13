@@ -69,6 +69,7 @@ export function createLowStockAlertCandidate({
       currentStock: normalizeStock(currentVariantStock),
       threshold,
       imageUrl: normalizeImageUrl(product),
+      triggeredAt: new Date().toISOString(),
     };
   }
 
@@ -86,6 +87,7 @@ export function createLowStockAlertCandidate({
       currentStock: normalizeStock(currentStock),
       threshold,
       imageUrl: normalizeImageUrl(product),
+      triggeredAt: new Date().toISOString(),
     };
   }
 

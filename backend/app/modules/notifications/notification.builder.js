@@ -35,9 +35,14 @@ function getFrontendBaseUrl() {
   return String(explicit).trim().replace(/\/+$/, "");
 }
 
-function buildOrderLink(orderId) {
+function buildOrderLink(orderId, role) {
   const id = String(orderId || "").trim();
   const baseUrl = getFrontendBaseUrl();
+  if (role === NOTIFICATION_ROLES.SELLER) return `${baseUrl}/seller/orders`;
+  if (role === NOTIFICATION_ROLES.ADMIN) return `${baseUrl}/admin/orders/all`;
+  if (role === NOTIFICATION_ROLES.DELIVERY) {
+    return id ? `${baseUrl}/delivery/order-details/${encodeURIComponent(id)}` : `${baseUrl}/delivery/dashboard`;
+  }
   if (!id) return `${baseUrl}/orders`;
   return `${baseUrl}/orders/${encodeURIComponent(id)}`;
 }
@@ -45,7 +50,7 @@ function buildOrderLink(orderId) {
 function buildCustomerSupportLink(ticketId) {
   const baseUrl = getFrontendBaseUrl();
   const id = String(ticketId || "").trim();
-  return id ? `${baseUrl}/chat?ticketId=${encodeURIComponent(id)}` : `${baseUrl}/chat`;
+  return id ? `${baseUrl}/support?ticketId=${encodeURIComponent(id)}` : `${baseUrl}/support`;
 }
 
 function buildAdminSupportLink(ticketId) {
@@ -54,6 +59,10 @@ function buildAdminSupportLink(ticketId) {
   return id
     ? `${baseUrl}/admin/support-tickets?ticketId=${encodeURIComponent(id)}`
     : `${baseUrl}/admin/support-tickets`;
+}
+
+function buildAdminProductReviewLink() {
+  return `${getFrontendBaseUrl()}/admin/products?approvalStatus=pending`;
 }
 
 function buildSellerInventoryLink(productId) {
@@ -335,9 +344,22 @@ function eventDefinition(eventType) {
             role: NOTIFICATION_ROLES.CUSTOMER,
             recipientIds: (payload) => {
               const fromRole = String(payload.fromRole || "").toLowerCase();
-              if (fromRole !== "admin") return [];
+              const recipientRole = String(payload.recipientRole || payload.userType || "customer").toLowerCase();
+              if (fromRole !== "admin" || !["customer", "user"].includes(recipientRole)) return [];
               return normalizeIdList(payload.userId || payload.customerId);
             },
+            title: () => "Support reply",
+            body: (payload) => truncateText(payload.messageText || "New message"),
+          },
+          {
+            role: NOTIFICATION_ROLES.SELLER,
+            recipientIds: (payload) => String(payload.fromRole || "").toLowerCase() === "admin" && String(payload.recipientRole || payload.userType || "").toLowerCase() === "seller" ? normalizeIdList(payload.userId) : [],
+            title: () => "Support reply",
+            body: (payload) => truncateText(payload.messageText || "New message"),
+          },
+          {
+            role: NOTIFICATION_ROLES.DELIVERY,
+            recipientIds: (payload) => ["delivery", "delivery_boy", "rider"].includes(String(payload.recipientRole || payload.userType || "").toLowerCase()) && String(payload.fromRole || "").toLowerCase() === "admin" ? normalizeIdList(payload.userId) : [],
             title: () => "Support reply",
             body: (payload) => truncateText(payload.messageText || "New message"),
           },
@@ -357,6 +379,59 @@ function eventDefinition(eventType) {
           const itemLabel = variantName ? `${variantName}` : "this item";
           return `Only ${currentStock} left for ${itemLabel}. Restock soon.`;
         },
+      };
+    case NOTIFICATION_EVENTS.PRODUCT_SUBMITTED_FOR_REVIEW:
+      return {
+        multi: true,
+        definitions: [
+          {
+            role: NOTIFICATION_ROLES.ADMIN,
+            recipientIds: (payload) => normalizeIdList(payload.adminIds),
+            title: () => "Product Waiting for Review",
+            body: (payload) => `${payload.productName || "A product"} was submitted for review.`,
+          },
+          {
+            role: NOTIFICATION_ROLES.SELLER,
+            recipientIds: (payload) => normalizeIdList(payload.sellerId),
+            title: () => "Product Submitted for Review",
+            body: (payload) => `${payload.productName || "Your product"} is waiting for admin review.`,
+          },
+        ],
+      };
+    case NOTIFICATION_EVENTS.PRODUCT_REVIEWED:
+      return {
+        role: NOTIFICATION_ROLES.SELLER,
+        recipientIds: (payload) => normalizeIdList(payload.sellerId),
+        title: (payload) => String(payload.approvalStatus).toLowerCase() === "approved" ? "Product Approved" : "Product Needs Changes",
+        body: (payload) => {
+          const note = String(payload.approvalNote || "").trim();
+          return String(payload.approvalStatus).toLowerCase() === "approved"
+            ? `${payload.productName || "Your product"} has been approved and is ready to sell.`
+            : `${payload.productName || "Your product"} was not approved.${note ? ` Admin note: ${note}` : " Update it and submit it for review again."}`;
+        },
+      };
+    case NOTIFICATION_EVENTS.SELLER_APPLICATION_SUBMITTED:
+      return {
+        role: NOTIFICATION_ROLES.ADMIN,
+        recipientIds: (payload) => normalizeIdList(payload.adminIds),
+        title: () => "Seller Application Waiting for Review",
+        body: (payload) => `${payload.sellerName || "A seller"} submitted an application for ${payload.shopName || "a store"}.`,
+      };
+    case NOTIFICATION_EVENTS.SELLER_APPLICATION_REVIEWED:
+      return {
+        role: NOTIFICATION_ROLES.SELLER,
+        recipientIds: (payload) => normalizeIdList(payload.sellerId),
+        title: (payload) => String(payload.applicationStatus).toLowerCase() === "approved" ? "Seller Application Approved" : "Seller Application Needs Changes",
+        body: (payload) => String(payload.applicationStatus).toLowerCase() === "approved"
+          ? "Your seller application has been approved. You can now access your seller dashboard."
+          : `Your seller application was not approved.${payload.reason ? ` Admin note: ${payload.reason}` : " Please contact support for details."}`,
+      };
+    case NOTIFICATION_EVENTS.SELLER_WITHDRAWAL_UPDATED:
+      return {
+        role: NOTIFICATION_ROLES.SELLER,
+        recipientIds: (payload) => normalizeIdList(payload.sellerId),
+        title: (payload) => `Withdrawal ${String(payload.status || "updated").toLowerCase()}`,
+        body: (payload) => `Your withdrawal of ₹${Number(payload.amount || 0).toLocaleString("en-IN")} is ${String(payload.status || "updated").toLowerCase()}.${payload.reason ? ` ${payload.reason}` : ""}`,
       };
     default:
       return null;
@@ -384,7 +459,11 @@ function eventData(eventType, payload = {}, role) {
     const link =
       role === NOTIFICATION_ROLES.ADMIN
         ? buildAdminSupportLink(ticketId)
-        : buildCustomerSupportLink(ticketId);
+        : role === NOTIFICATION_ROLES.SELLER
+          ? `${getFrontendBaseUrl()}/seller/profile?ticketId=${encodeURIComponent(ticketId || "")}`
+          : role === NOTIFICATION_ROLES.DELIVERY
+            ? `${getFrontendBaseUrl()}/delivery/profile/help-support?ticketId=${encodeURIComponent(ticketId || "")}`
+            : buildCustomerSupportLink(ticketId);
 
     return {
       eventType,
@@ -394,13 +473,57 @@ function eventData(eventType, payload = {}, role) {
     };
   }
 
+  if ([NOTIFICATION_EVENTS.PRODUCT_SUBMITTED_FOR_REVIEW, NOTIFICATION_EVENTS.PRODUCT_REVIEWED].includes(eventType)) {
+    const productId = String(payload.productId || "").trim() || undefined;
+    const baseUrl = getFrontendBaseUrl();
+    return {
+      eventType,
+      productId,
+      approvalStatus: payload.approvalStatus,
+      approvalNote: payload.approvalNote || "",
+      link: role === NOTIFICATION_ROLES.ADMIN
+        ? buildAdminProductReviewLink()
+        : productId
+          ? `${baseUrl}/seller/products?productId=${encodeURIComponent(productId)}`
+          : `${baseUrl}/seller/products`,
+      ...(payload.data || {}),
+    };
+  }
+
+  if ([NOTIFICATION_EVENTS.SELLER_APPLICATION_SUBMITTED, NOTIFICATION_EVENTS.SELLER_APPLICATION_REVIEWED].includes(eventType)) {
+    const baseUrl = getFrontendBaseUrl();
+    return {
+      eventType,
+      applicationStatus: payload.applicationStatus,
+      link: role === NOTIFICATION_ROLES.ADMIN
+        ? `${baseUrl}/admin/sellers/pending`
+        : `${baseUrl}/seller/pending-approval`,
+      ...(payload.data || {}),
+    };
+  }
+
+  if (eventType === NOTIFICATION_EVENTS.SELLER_WITHDRAWAL_UPDATED) {
+    return {
+      eventType,
+      transactionId: String(payload.transactionId || "").trim() || undefined,
+      status: payload.status,
+      link: `${getFrontendBaseUrl()}/seller/withdrawals`,
+      ...(payload.data || {}),
+    };
+  }
+
   const orderId = String(payload.orderId || "").trim() || undefined;
   const checkoutGroupId = String(payload.checkoutGroupId || "").trim() || undefined;
+  const isSellerReturn = role === NOTIFICATION_ROLES.SELLER && [
+    NOTIFICATION_EVENTS.RETURN_REQUESTED,
+    NOTIFICATION_EVENTS.RETURN_DROP_OTP,
+    NOTIFICATION_EVENTS.RETURN_COMPLETED,
+  ].includes(eventType);
   return {
     eventType,
     orderId,
     checkoutGroupId,
-    link: buildOrderLink(orderId),
+    link: isSellerReturn ? `${getFrontendBaseUrl()}/seller/returns` : buildOrderLink(orderId, role),
     ...(payload.data || {}),
   };
 }

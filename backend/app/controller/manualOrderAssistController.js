@@ -78,6 +78,8 @@ export async function rankRidersForSeller(sellerDoc, { limit = 15, codAmount = 0
   const from = sellerPoint(sellerDoc);
   const riders = await Delivery.find({
     isOnline: true,
+    isActive: { $ne: false },
+    deletedAt: null,
     $or: [{ breakUntil: null }, { breakUntil: { $lte: new Date() } }, { breakUntil: { $exists: false } }],
   })
     .select("name phone vehicleType rating location lastLocationAt isVerified cashLimit")

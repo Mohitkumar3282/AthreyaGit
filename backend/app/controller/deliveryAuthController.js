@@ -128,6 +128,10 @@ export const loginDelivery = async (req, res) => {
             return handleResponse(res, 404, "Delivery partner not found. Please register first.");
         }
 
+        if (delivery.deletedAt || delivery.isActive === false) {
+            return handleResponse(res, 403, "Your delivery partner account is deactivated. Contact Admin.");
+        }
+
         if (!delivery.isVerified) {
             return handleResponse(res, 403, "Your registration is pending document verification by Admin. Please wait for approval before logging in.");
         }
@@ -170,6 +174,10 @@ export const verifyDeliveryOTP = async (req, res) => {
 
         if (!delivery) {
             return handleResponse(res, 400, "Invalid or expired OTP");
+        }
+
+        if (delivery.deletedAt || delivery.isActive === false) {
+            return handleResponse(res, 403, "Your delivery partner account is deactivated. Contact Admin.");
         }
 
         delivery.otp = undefined;
