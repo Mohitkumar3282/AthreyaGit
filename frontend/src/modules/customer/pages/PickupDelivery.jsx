@@ -639,6 +639,7 @@ const PickupDelivery = () => {
   // Real coordinates of the typed / GPS pickup. Without these the distance was
   // always measured from the app's saved location, not from the pickup typed.
   const [h2hPickupCoords, setH2hPickupCoords] = useState(null);
+  const [h2hPickupCoordsAddress, setH2hPickupCoordsAddress] = useState("");
   const [riderPickupCoords, setRiderPickupCoords] = useState(null);
   const lastGeocodedRef = useRef({});
   const [riderSenderPhone, setRiderSenderPhone] = useState(user?.phone || user?.phoneNumber || "");
@@ -653,6 +654,13 @@ const PickupDelivery = () => {
   // Drop point chosen via GPS / map pin (Rapido-style) instead of a saved address.
   const [riderMapDropAddress, setRiderMapDropAddress] = useState(null);
   const [isRiderMapOpen, setIsRiderMapOpen] = useState(false);
+
+  // Auth/profile data can arrive after the form's first render; fill sender
+  // fields once it does, while preserving anything the customer already typed.
+  useEffect(() => {
+    if (!h2hSenderName.trim()) setH2hSenderName(user?.name || user?.fullName || "");
+    if (!h2hSenderPhone.trim()) setH2hSenderPhone(user?.phone || user?.phoneNumber || "");
+  }, [user?.name, user?.fullName, user?.phone, user?.phoneNumber]);
 
   // Format Current Location into an address object
   const currentLocAddress = useMemo(() => {
@@ -713,10 +721,14 @@ const PickupDelivery = () => {
       if (!shopSelectedAddressId) setShopSelectedAddressId(defaultId);
       if (!cargoSelectedAddressId) setCargoSelectedAddressId(defaultId);
       if (!riderSelectedAddressId) setRiderSelectedAddressId(defaultId);
-      if (!h2hPickupAddress && currentLocAddress) setH2hPickupAddress(currentLocAddress.fullAddress);
+      if (!h2hPickupAddress && currentLocAddress) {
+        setH2hPickupAddress(currentLocAddress.fullAddress);
+        setH2hPickupCoords(currentLocAddress.location);
+        setH2hPickupCoordsAddress(currentLocAddress.fullAddress.trim());
+      }
       if (!riderPickupLoc && currentLocAddress) setRiderPickupLoc(currentLocAddress.fullAddress);
     }
-  }, [allAddresses, currentLocAddress]);
+  }, [allAddresses, currentLocAddress, h2hPickupAddress]);
 
   // Load saved profile addresses
   useEffect(() => {
@@ -799,27 +811,23 @@ const PickupDelivery = () => {
   // Helper to use current location
   // Turn a typed pickup address into coordinates (Google Geocoder), biased to
   // the customer's area. Silent on failure: the previous point is kept.
-  const geocodePickup = async (text, key, setCoords) => {
+  const geocodePickup = async (text, key, setCoords, setResolvedAddress) => {
     const q = String(text || "").trim();
     if (!q || lastGeocodedRef.current[key] === q) return;
     if (!window.google?.maps?.Geocoder) return;
     lastGeocodedRef.current[key] = q;
     try {
       const geocoder = new window.google.maps.Geocoder();
-      const bounds =
-        Number.isFinite(currentLocation?.latitude) && Number.isFinite(currentLocation?.longitude)
-          ? new window.google.maps.Circle({
-              center: { lat: currentLocation.latitude, lng: currentLocation.longitude },
-              radius: 20000,
-            }).getBounds()
-          : undefined;
       const results = await new Promise((resolve) => {
-        geocoder.geocode({ address: q, region: "in", componentRestrictions: { country: "IN" }, ...(bounds ? { bounds } : {}) }, (r, status) =>
+        geocoder.geocode({ address: q, region: "in", componentRestrictions: { country: "IN" } }, (r, status) =>
           resolve(status === "OK" ? r : null),
         );
       });
       const loc = results?.[0]?.geometry?.location;
-      if (loc) setCoords({ lat: loc.lat(), lng: loc.lng() });
+      if (loc) {
+        setCoords({ lat: loc.lat(), lng: loc.lng() });
+        setResolvedAddress?.(q);
+      }
     } catch {
       /* keep previous coordinates */
     }
@@ -834,10 +842,15 @@ const PickupDelivery = () => {
         setter(locName);
         if (setCoords && Number.isFinite(result.location.latitude) && Number.isFinite(result.location.longitude)) {
           setCoords({ lat: result.location.latitude, lng: result.location.longitude });
+          if (setCoords === setH2hPickupCoords) setH2hPickupCoordsAddress(locName.trim());
         }
         toast.success("Location updated successfully", { id: toastId });
       } else if (currentLocAddress) {
         setter(currentLocAddress.fullAddress);
+        if (setCoords) setCoords(currentLocAddress.location);
+        if (setCoords === setH2hPickupCoords) {
+          setH2hPickupCoordsAddress(currentLocAddress.fullAddress.trim());
+        }
         toast.success("Using current location", { id: toastId });
       } else {
         toast.error("Could not fetch GPS coordinates", { id: toastId });
@@ -867,15 +880,15 @@ const PickupDelivery = () => {
 
     if (activeTab === "home_to_home") {
       const selectedDrop = h2hDropAddressOptions.find(a => a._id === h2hSelectedDropAddressId || a.id === h2hSelectedDropAddressId);
-      if (currentLocation?.latitude && selectedDrop?.location) {
+      if (h2hPickupCoords && selectedDrop?.location) {
         return calculateDistance(
-          currentLocation.latitude,
-          currentLocation.longitude,
+          h2hPickupCoords.lat,
+          h2hPickupCoords.lng,
           selectedDrop.location.lat,
           selectedDrop.location.lng
         );
       }
-      return 2.5;
+      return null;
     }
 
     if (activeTab === "rider_delivery") {
@@ -915,6 +928,7 @@ const PickupDelivery = () => {
     h2hDropAddressOptions,
     riderDropAddressOptions,
     h2hSelectedDropAddressId,
+    h2hPickupCoords,
     riderSelectedAddressId,
     cargoSelectedAddressId,
     currentLocation,
@@ -931,7 +945,10 @@ const PickupDelivery = () => {
 
     if (activeTab === "home_to_home") {
       const d = h2hDropAddressOptions.find((a) => a._id === h2hSelectedDropAddressId || a.id === h2hSelectedDropAddressId);
-      return { pickup: h2hPickupCoords || cur, drop: d ? d.location || DEFAULT_POINT : cur, weight: h2hWeight };
+      const pickupMatchesText = h2hPickupCoords && h2hPickupCoordsAddress === h2hPickupAddress.trim();
+      const isCurrentLocation = currentLocAddress && h2hPickupAddress.trim() === currentLocAddress.fullAddress.trim();
+      if ((!pickupMatchesText && !isCurrentLocation) || !d?.location) return null;
+      return { pickup: pickupMatchesText ? h2hPickupCoords : cur, drop: d.location, weight: h2hWeight };
     }
     if (activeTab === "shop_to_home") {
       const shop = shops.find((x) => x._id === selectedShopId || x.id === selectedShopId);
@@ -956,7 +973,7 @@ const PickupDelivery = () => {
     h2hDropAddressOptions, riderDropAddressOptions,
     h2hSelectedDropAddressId, h2hWeight, shopSelectedAddressId, shopWeight,
     cargoSelectedAddressId, cargoWeight, riderSelectedAddressId, riderTiming,
-    h2hPickupCoords, riderPickupCoords,
+    h2hPickupCoords, h2hPickupCoordsAddress, h2hPickupAddress, currentLocAddress, riderPickupCoords,
   ]);
 
   const [fareQuote, setFareQuote] = useState(null);
@@ -1095,7 +1112,17 @@ const PickupDelivery = () => {
         toast.error("Please enter or select pickup address");
         return;
       }
+      const pickupIsResolved = h2hPickupCoords && h2hPickupCoordsAddress === h2hPickupAddress.trim();
+      const pickupIsCurrent = currentLocAddress && h2hPickupAddress.trim() === currentLocAddress.fullAddress.trim();
+      if (!pickupIsResolved && !pickupIsCurrent) {
+        toast.error("Please wait for the pickup address to be verified, or use GPS location");
+        return;
+      }
       const selectedDrop = h2hDropAddressOptions.find(a => a._id === h2hSelectedDropAddressId || a.id === h2hSelectedDropAddressId);
+      if (!selectedDrop?.location) {
+        toast.error("Please select a saved or map location with a valid address");
+        return;
+      }
       const dropAddrStr = selectedDrop ? (selectedDrop.fullAddress || selectedDrop.address) : h2hDropAddress;
       if (!dropAddrStr.trim()) {
         toast.error("Please specify drop address");
@@ -1549,8 +1576,16 @@ const PickupDelivery = () => {
                 <Input
                   placeholder="E.g., House No 4-22, Near Ganesh Temple, Aswapuram"
                   value={h2hPickupAddress}
-                  onChange={(e) => setH2hPickupAddress(e.target.value)}
-                  onBlur={() => geocodePickup(h2hPickupAddress, "h2h", setH2hPickupCoords)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setH2hPickupAddress(value);
+                    delete lastGeocodedRef.current.h2h;
+                    if (value.trim() !== h2hPickupCoordsAddress) {
+                      setH2hPickupCoords(null);
+                      setH2hPickupCoordsAddress("");
+                    }
+                  }}
+                  onBlur={() => geocodePickup(h2hPickupAddress, "h2h", setH2hPickupCoords, setH2hPickupCoordsAddress)}
                   className="text-[13.5px] font-semibold rounded-xl bg-slate-50"
                 />
               </div>
@@ -1623,7 +1658,7 @@ const PickupDelivery = () => {
                 <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-100 rounded-xl">
                   <Navigation size={14} className="text-emerald-700 shrink-0" />
                   <span className="text-[13.5px] font-bold text-emerald-900">
-                    Distance by road: <span className="font-black">{calculatedDistance} km</span>
+                    Distance by road: <span className="font-black">{calculatedDistance == null ? "Verifying locations…" : `${calculatedDistance} km`}</span>
                   </span>
                 </div>
               )}
@@ -1633,7 +1668,7 @@ const PickupDelivery = () => {
                   <Label className="text-[13px] font-bold text-slate-700">Receiver Name</Label>
                   <Input
                     placeholder="Receiver's Name"
-                    value={h2hReceiverName}
+                    value={h2hReceiverName || h2hDropAddressOptions.find((address) => address._id === h2hSelectedDropAddressId || address.id === h2hSelectedDropAddressId)?.name || ""}
                     onChange={(e) => setH2hReceiverName(e.target.value)}
                     className="text-[13.5px] rounded-xl bg-slate-50 mt-1"
                   />
@@ -1642,7 +1677,7 @@ const PickupDelivery = () => {
                   <Label className="text-[13px] font-bold text-slate-700">Receiver Phone</Label>
                   <Input
                     placeholder="Receiver Mobile"
-                    value={h2hReceiverPhone}
+                    value={h2hReceiverPhone || h2hDropAddressOptions.find((address) => address._id === h2hSelectedDropAddressId || address.id === h2hSelectedDropAddressId)?.phone || ""}
                     onChange={(e) => setH2hReceiverPhone(e.target.value)}
                     className="text-[13.5px] rounded-xl bg-slate-50 mt-1"
                   />
@@ -2376,6 +2411,28 @@ const PickupDelivery = () => {
               <p className="py-2 text-[12px] font-medium text-slate-500">
                 Ride fare is estimated from the selected route. Any shop bill or cargo freight shown above is based on the amount entered.
               </p>
+              <div className="space-y-0.5 rounded-xl border border-emerald-100 bg-emerald-50/70 px-3 py-1 text-[13px]">
+                <div className="flex items-center justify-between gap-3 py-2">
+                  <span className="font-semibold text-slate-600">Distance</span>
+                  <span className="text-right font-black text-slate-900">
+                    {fareQuote?.distanceKm != null
+                      ? `${Number(fareQuote.distanceKm).toFixed(1)} km`
+                      : quoteInput ? `${Number(calculatedDistance).toFixed(1)} km (approx.)` : "Select locations"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 border-t border-emerald-100 py-2">
+                  <span className="font-semibold text-slate-600">Estimated time</span>
+                  <span className="text-right font-black text-slate-900">
+                    {fareQuote?.eta?.label || (quoteInput ? "Calculating…" : "Select locations")}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 border-t border-emerald-100 py-2">
+                  <span className="font-semibold text-slate-600">Delivery Fee</span>
+                  <span className="text-right font-black text-emerald-900">
+                    {Number.isFinite(rideFareAmount) ? moneyLabel(rideFareAmount) : (quoteInput ? "Calculating…" : "Select locations")}
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Payment Mode Selector */}
