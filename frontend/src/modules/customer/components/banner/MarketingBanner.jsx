@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, Tag, Sparkles, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import VideoBanner from "./VideoBanner";
+import Translated from "@shared/components/Translated";
 
 const POSTER_IMAGES = {
     morning: "https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?q=80&w=600&auto=format&fit=crop",
@@ -52,7 +53,7 @@ const MarketingBanner = memo(({ videoData, offers = [] }) => {
                 <div className="flex justify-between items-start w-full">
                     {/* Time period indicator */}
                     <span className="px-2.5 py-0.5 bg-[#A3E635] text-[#042A0F] text-[11px] font-black rounded-full uppercase tracking-wider shadow-sm">
-                        {videoData?.timeOfDay || "Today's Specials"}
+                        <Translated text={videoData?.timeOfDay || "Today's Specials"} />
                     </span>
 
                     {/* Dynamic configured offer badge */}
@@ -60,7 +61,7 @@ const MarketingBanner = memo(({ videoData, offers = [] }) => {
                         <div className="flex items-center gap-1 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10 text-[#A3E635] max-w-[60%] animate-in fade-in slide-in-from-top-1 duration-300">
                             <Tag size={10} className="shrink-0" />
                             <span className="text-[11px] font-black tracking-tight truncate">
-                                {activeOffer.type}: {activeOffer.value}
+                                <Translated text={activeOffer.type} />: {activeOffer.value}
                             </span>
                         </div>
                     )}
@@ -72,18 +73,18 @@ const MarketingBanner = memo(({ videoData, offers = [] }) => {
                         {/* Offer message */}
                         {activeOffer && (
                             <p className="text-[#A3E635] text-[12px] font-bold uppercase tracking-wider mb-1 line-clamp-1">
-                                {activeOffer.title}
+                                <Translated text={activeOffer.title} />
                             </p>
                         )}
                         
                         {/* Main title */}
                         <h2 className="text-[16px] md:text-2xl font-black leading-tight truncate">
-                            {videoData?.text || "Fresh & Hot Specials"}
+                            <Translated text={videoData?.text || "Fresh & Hot Specials"} />
                         </h2>
                         
                         {/* Subtitle */}
                         <p className="text-[12px] md:text-sm text-slate-200 mt-0.5 leading-tight truncate">
-                            {videoData?.subtitle || "Delivered fast & fresh to your home"}
+                            <Translated text={videoData?.subtitle || "Delivered fast & fresh to your home"} />
                         </p>
                     </div>
 
@@ -106,7 +107,7 @@ const MarketingBanner = memo(({ videoData, offers = [] }) => {
                             }
                         }}
                     >
-                        {videoData?.cta || "Shop Now"}
+                        <Translated text={videoData?.cta || "Shop Now"} />
                         <ArrowRight size={12} className="stroke-[3]" />
                     </Button>
                 </div>

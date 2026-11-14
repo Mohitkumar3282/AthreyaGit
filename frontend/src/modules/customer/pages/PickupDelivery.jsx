@@ -9,6 +9,8 @@ import {
   CheckCircle, 
   Info, 
   Navigation,
+  Map,
+  IndianRupee,
   Home,
   Store,
   Truck,
@@ -34,6 +36,8 @@ import { useAuth } from "@core/context/AuthContext";
 import axiosInstance from "@core/api/axios";
 import Card from "@/shared/components/ui/Card";
 import MapPicker from "@/shared/components/MapPicker";
+import ExpressRouteMap from "../components/shared/ExpressRouteMap";
+import Translated from "@shared/components/Translated";
 import { openWhatsApp } from "@/shared/utils/whatsapp";
 import {
   homeToHomeImg,
@@ -962,6 +966,7 @@ const PickupDelivery = () => {
       setFareQuote(null);
       return undefined;
     }
+    setFareQuote(null);
     let cancelled = false;
     const t = setTimeout(async () => {
       try {
@@ -1025,6 +1030,31 @@ const PickupDelivery = () => {
     };
   });
   const calculatedDistance = fareQuote?.distanceKm ?? localDistance;
+  const routeSummaryReady = Boolean(
+    quoteInput &&
+      Number.isFinite(Number(quoteInput.pickup?.lat)) &&
+      Number.isFinite(Number(quoteInput.pickup?.lng)) &&
+      Number.isFinite(Number(quoteInput.drop?.lat)) &&
+      Number.isFinite(Number(quoteInput.drop?.lng)) &&
+      ((activeTab === "home_to_home" && h2hSelectedDropAddressId && h2hSelectedDropAddressId !== "custom_drop") ||
+        (activeTab === "shop_to_home" && selectedShopId && selectedShopId !== "custom_shop" && shopSelectedAddressId) ||
+        (activeTab === "cargo_to_home" && cargoSelectedAddressId) ||
+        (activeTab === "rider_delivery" && riderPickupLoc.trim() && riderSelectedAddressId && riderSelectedAddressId !== "custom_rider_drop")),
+  );
+  const rideFareAmount = Number(fareQuote?.fare?.total);
+  const extraBillAmount = activeTab === "shop_to_home" && shopPickupType === "pay_and_collect"
+    ? Math.max(0, Number(shopBillAmount) || 0)
+    : activeTab === "cargo_to_home"
+      ? Math.max(0, Number(cargoUnpaidFreight) || 0)
+      : 0;
+  const estimatedTotalBill = Number.isFinite(rideFareAmount)
+    ? rideFareAmount + extraBillAmount
+    : null;
+  const moneyLabel = (amount) => new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(amount);
   // WhatsApp Order Trigger Helper
   const triggerWhatsAppOrder = (customMsg) => {
     const numberCandidate = settings?.whatsappNumber || settings?.supportPhone || "919000000000";
@@ -2265,7 +2295,67 @@ const PickupDelivery = () => {
       ======================================================== */}
       {activeTab !== "whatsapp" && (
         <div className="mt-5 space-y-4">
-          {/* Payment mode is selected now; fare appears once the Express ride starts. */}
+          {routeSummaryReady && (
+            <Card className="overflow-hidden border border-emerald-200 bg-white p-4 shadow-sm space-y-3">
+              <div>
+                <Translated as="h2" text="Your route summary" className="text-sm font-black uppercase tracking-wide text-slate-900" />
+                <Translated as="p" text="Review the trip distance, time and estimated bill before booking." className="mt-0.5 text-xs font-medium text-slate-500" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase text-slate-500">
+                    <Navigation size={13} /> <Translated text="Distance" />
+                  </div>
+                  <div className="mt-1 text-base font-black text-slate-900">
+                    {fareQuote ? `${Number(fareQuote.distanceKm).toFixed(1)} km` : "Calculating…"}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase text-slate-500">
+                    <Clock size={13} /> <Translated text="Time" />
+                  </div>
+                  <div className="mt-1 text-sm font-black text-slate-900">
+                    {activeTab === "rider_delivery" && riderTiming === "scheduled"
+                      ? (riderScheduleTime ? `Scheduled · ${fmtClock(riderScheduleTime)}` : "Scheduled")
+                      : fareQuote?.eta?.label || "Calculating…"}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase text-emerald-800">
+                    <IndianRupee size={13} /> <Translated text="Bill" />
+                  </div>
+                  <div className="mt-1 text-base font-black text-emerald-950">
+                    {estimatedTotalBill === null ? "Calculating…" : moneyLabel(estimatedTotalBill)}
+                  </div>
+                  {estimatedTotalBill !== null && extraBillAmount > 0 && (
+                    <div className="mt-1 text-[10px] font-semibold leading-tight text-emerald-800">
+                      Includes ride {moneyLabel(rideFareAmount)} + {activeTab === "shop_to_home" ? "shop bill" : "cargo freight"} {moneyLabel(extraBillAmount)}
+                    </div>
+                  )}
+                  {estimatedTotalBill !== null && extraBillAmount === 0 && (
+                    <div className="mt-1 text-[10px] font-semibold text-emerald-800">Estimated ride bill</div>
+                  )}
+                </div>
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(`${quoteInput.pickup.lat},${quoteInput.pickup.lng}`)}&destination=${encodeURIComponent(`${quoteInput.drop.lat},${quoteInput.drop.lng}`)}&travelmode=driving`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex flex-col justify-center rounded-xl border border-sky-200 bg-sky-50 p-3 text-sky-900 hover:bg-sky-100"
+                >
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase">
+                    <Map size={14} /> <Translated text="Map" />
+                  </div>
+                  <Translated as="div" text="View route" className="mt-1 text-sm font-black" />
+                </a>
+              </div>
+
+              <ExpressRouteMap origin={quoteInput.pickup} destination={quoteInput.drop} />
+              <Translated as="p" text="Distance and ride bill update from the server quote. Shop bill or cargo freight is shown separately when entered." className="text-[10px] font-medium text-slate-500" />
+            </Card>
+          )}
+
+          {/* Show the live server quote alongside payment choices. */}
           <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
             <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide">
               Payment Details
@@ -2284,7 +2374,7 @@ const PickupDelivery = () => {
                 </div>
               )}
               <p className="py-2 text-[12px] font-medium text-slate-500">
-                Ride fare will be shown after your ride starts.
+                Ride fare is estimated from the selected route. Any shop bill or cargo freight shown above is based on the amount entered.
               </p>
             </div>
 

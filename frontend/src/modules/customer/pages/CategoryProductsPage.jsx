@@ -18,7 +18,7 @@ import { useSettings } from '@core/context/SettingsContext';
 import { useLanguage } from '@core/context/LanguageContext';
 import { LANGUAGES } from '@core/i18n/dictionary';
 import LanguagePicker from '@shared/components/LanguagePicker';
-import { getTeluguCategoryName } from '@shared/utils/categoryTranslations';
+import Translated from '@shared/components/Translated';
 import LogoTransparent from '@/assets/LogoTransparent.png';
 import LogoWhiteBike from '@/assets/LogoWhiteBike.png';
 
@@ -387,11 +387,8 @@ const CategoryProductsPage = () => {
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-[20px] font-black text-slate-900 leading-none">
-                            {category?.name || catId}
+                            <Translated text={category?.name || "Category"} />
                         </h1>
-                        <span className="text-[12px] font-bold text-[#1a6e2e] mt-1.5 block">
-                            {getTeluguCategoryName(category?.name || catId) || 'అశ్వాపురం'}
-                        </span>
                     </div>
                 </div>
             </div>
@@ -417,7 +414,7 @@ const CategoryProductsPage = () => {
                                     alt={sub.name} 
                                     className="w-4 h-4 object-contain"
                                 />
-                                {sub.name}
+                                <Translated text={sub.name} />
                             </button>
                         );
                     })}

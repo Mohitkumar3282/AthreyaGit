@@ -10,6 +10,8 @@ import { useSettings } from "@core/context/SettingsContext";
 import { useLanguage } from "@core/context/LanguageContext";
 import { LANGUAGES } from "@core/i18n/dictionary";
 import LanguagePicker from "@shared/components/LanguagePicker";
+import Translated from "@shared/components/Translated";
+import { getSpeechRecognitionConstructor, getSpeechRecognitionLocale } from "@shared/utils/speechRecognition";
 import { useCart } from "../../context/CartContext";
 import { cn } from "@/lib/utils";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
@@ -207,6 +209,8 @@ const MainLocationHeader = ({
   const [cartAnimData, setCartAnimData] = useState(null);
   const { cartCount } = useCart();
   const { language } = useLanguage();
+  const [isVoiceListening, setIsVoiceListening] = useState(false);
+  const recognitionRef = useRef(null);
 
   // Dynamically load shopping-cart Lottie on mount
   useEffect(() => {
@@ -235,6 +239,63 @@ const MainLocationHeader = ({
       navigate("/search", { state: { query: e.target.value } });
     }
   };
+
+  const handleVoiceSearch = (event) => {
+    event?.preventDefault();
+    event?.stopPropagation();
+    if (!inlineSearch) {
+      navigate("/search");
+      return;
+    }
+
+    const SpeechRecognition = getSpeechRecognitionConstructor();
+    if (!SpeechRecognition) {
+      window.alert("Voice search is not supported by this browser. Try Chrome or Safari.");
+      return;
+    }
+    if (isVoiceListening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    recognition.lang = getSpeechRecognitionLocale(language);
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onstart = () => setIsVoiceListening(true);
+    recognition.onend = () => {
+      setIsVoiceListening(false);
+      recognitionRef.current = null;
+    };
+    recognition.onresult = (resultEvent) => {
+      const transcript = resultEvent.results?.[resultEvent.resultIndex]?.[0]?.transcript?.trim();
+      if (transcript) onSearchChange(transcript);
+    };
+    recognition.onerror = (errorEvent) => {
+      setIsVoiceListening(false);
+      recognitionRef.current = null;
+      if (errorEvent.error === "not-allowed" || errorEvent.error === "service-not-allowed") {
+        window.alert("Microphone access is blocked. Allow microphone access in your browser settings and try again.");
+      } else if (errorEvent.error !== "no-speech" && errorEvent.error !== "aborted") {
+        window.alert("Voice search could not start. Please try again.");
+      }
+    };
+
+    try {
+      recognition.start();
+    } catch (error) {
+      recognitionRef.current = null;
+      setIsVoiceListening(false);
+      console.warn("Could not start voice search:", error);
+    }
+  };
+
+  useEffect(() => () => {
+    recognitionRef.current?.abort();
+    recognitionRef.current = null;
+  }, []);
 
   // Nearby stores for dynamic search placeholder
   const [nearbyStores, setNearbyStores] = useState([]);
@@ -459,9 +520,15 @@ const MainLocationHeader = ({
                   {...(inlineSearch ? { value: searchValue || "", onChange: (e) => onSearchChange(e.target.value) } : {})}
                   className="flex-1 bg-transparent border-none outline-none pl-2 text-white font-semibold placeholder:text-slate-400 text-[15px] cursor-pointer"
                 />
-                <div className="flex items-center gap-2 border-l border-white/10 pl-3">
-                  <MicIcon sx={{ color: "#ffffff", fontSize: 20 }} />
-                </div>
+                <button
+                  type="button"
+                  aria-label={isVoiceListening ? "Stop voice search" : "Start voice search"}
+                  aria-pressed={isVoiceListening}
+                  onClick={handleVoiceSearch}
+                  className="flex items-center gap-2 border-l border-white/10 pl-3 bg-transparent border-0 cursor-pointer"
+                >
+                  <MicIcon sx={{ color: isVoiceListening ? "#A3E635" : "#ffffff", fontSize: 20 }} />
+                </button>
               </motion.div>
             </div>
 
@@ -536,15 +603,10 @@ const MainLocationHeader = ({
                     <div className="flex items-center gap-0.5 text-white min-w-0 w-full">
                       <span className="text-red-500 text-[12px] shrink-0">📍</span>
                       <span className="block text-[11.5px] font-black tracking-tight leading-none group-hover:underline truncate">
-                        {getAreaName(currentLocation)}
+                        <Translated text={getAreaName(currentLocation)} />
                       </span>
                       <ChevronDownIcon sx={{ fontSize: 13, opacity: 0.8, color: "#ffffff" }} className="shrink-0" />
                     </div>
-                    {getTeluguAreaName(currentLocation) && (
-                      <span className="block text-[11px] font-semibold text-slate-300 ml-3.5 leading-tight mt-0.5 truncate max-w-full">
-                        {getTeluguAreaName(currentLocation)}
-                      </span>
-                    )}
                   </div>
                 </div>
  
@@ -582,7 +644,7 @@ const MainLocationHeader = ({
                         {cartCount > 0 ? cartCount : 3}
                       </span>
                     </div>
-                    <span className="text-[10.5px] font-black text-slate-300 mt-0.5">కార్ట్</span>
+                    <Translated as="span" text="Cart" className="text-[10.5px] font-black text-slate-300 mt-0.5" />
                   </button>
                 </div>
               </div>
@@ -605,13 +667,13 @@ const MainLocationHeader = ({
                 className="flex-1 bg-transparent border-none outline-none pl-2 text-white font-bold placeholder-slate-400 text-[12.5px] cursor-pointer"
               />
               <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate('/search');
-                }}
+                type="button"
+                aria-label={isVoiceListening ? "Stop voice search" : "Start voice search"}
+                aria-pressed={isVoiceListening}
+                onClick={handleVoiceSearch}
                 className="w-7 h-7 rounded-full bg-[#A3E635] flex items-center justify-center text-[#042A0F] cursor-pointer hover:opacity-90 active:scale-95 transition-transform border-0"
               >
-                <MicIcon sx={{ color: "#042A0F", fontSize: 16 }} />
+                <MicIcon sx={{ color: isVoiceListening ? "#ffffff" : "#042A0F", fontSize: 16 }} />
               </button>
             </motion.div>
           </div>

@@ -21,10 +21,17 @@ export const DEFAULT_LANGUAGE = "en";
 // static-text coverage.
 export const LANGUAGES = [
   { code: "en", label: "English", native: "English" },
-  { code: "te", label: "Telugu", native: "తెలుగు" },
   { code: "hi", label: "Hindi", native: "हिन्दी" },
   { code: "ta", label: "Tamil", native: "தமிழ்" },
+  { code: "te", label: "Telugu", native: "తెలుగు" },
+  { code: "ml", label: "Malayalam", native: "മലയാളം" },
   { code: "kn", label: "Kannada", native: "ಕನ್ನಡ" },
+  { code: "mr", label: "Marathi", native: "मराठी" },
+  { code: "bn", label: "Bengali", native: "বাংলা" },
+  { code: "gu", label: "Gujarati", native: "ગુજરાતી" },
+  { code: "pa", label: "Punjabi", native: "ਪੰਜਾਬੀ" },
+  { code: "or", label: "Odia", native: "ଓଡ଼ିଆ" },
+  { code: "as", label: "Assamese", native: "অসমীয়া" },
   { code: "ur", label: "Urdu", native: "اردو" },
 ];
 
@@ -147,3 +154,4 @@ export const DICTIONARY = {
     loading: "లోడ్ అవుతోంది...",
   },
 };
+

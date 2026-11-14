@@ -33,6 +33,8 @@ import { useCart } from "../context/CartContext";
 import { useSettings } from "@core/context/SettingsContext";
 import { useAuth } from "@core/context/AuthContext";
 import { useLanguage } from "@core/context/LanguageContext";
+import Translated from "@shared/components/Translated";
+import { getSpeechRecognitionConstructor, getSpeechRecognitionLocale } from "@shared/utils/speechRecognition";
 import { LANGUAGES } from "@core/i18n/dictionary";
 import LanguagePicker from "@shared/components/LanguagePicker";
 import { cn } from "@/lib/utils";
@@ -57,7 +59,7 @@ const Home = () => {
   const { cartCount, cart } = useCart();
   const { settings } = useSettings();
   const { user } = useAuth();
-  const { language } = useLanguage();
+  const { language, translateText } = useLanguage();
   const [isLocationOpen, setIsLocationOpen] = useState(false);
   const [categories, setCategories] = useState([]);
   const [headerCategories, setHeaderCategories] = useState([]);
@@ -102,6 +104,7 @@ const Home = () => {
   }, [searchPhrases]);
 
   useEffect(() => {
+    if (language !== "en") return undefined;
     if (!searchPhrases || searchPhrases.length === 0) return;
     const { textIndex, charIndex, isDeleting, isPaused } = typingState;
     const safeTextIndex = textIndex % searchPhrases.length;
@@ -150,21 +153,30 @@ const Home = () => {
     );
 
     return () => clearTimeout(timeout);
-  }, [typingState, searchPhrases]);
+  }, [typingState, searchPhrases, language]);
+
+  useEffect(() => {
+    if (language === "en") return undefined;
+    let cancelled = false;
+    translateText("Search nearby stores...", language).then((value) => {
+      if (!cancelled) setSearchPlaceholder(value);
+    });
+    return () => { cancelled = true; };
+  }, [language, translateText]);
 
 
   // Voice Search Logic (Direct on Home Page)
   const handleVoiceSearch = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = getSpeechRecognitionConstructor();
     if (!SpeechRecognition) {
       alert('Voice search is not supported in your browser. Please try Chrome.');
       return;
     }
 
     const recognition = new SpeechRecognition();
-    recognition.lang = 'en-IN'; 
+    recognition.lang = getSpeechRecognitionLocale(language);
     recognition.continuous = false;
-    recognition.interimResults = true;
+    recognition.interimResults = false;
 
     recognition.onstart = () => {
       setIsListening(true);
@@ -710,19 +722,19 @@ const Home = () => {
       {isSearchView ? (
         <div className="px-4 py-3 min-h-[50vh]">
           <h3 className="text-[14px] font-black text-[#A3E635] mb-4 uppercase tracking-wide">
-            Search Results for "{searchQuery || '...'}"
+            <Translated text="Search Results for" /> "{searchQuery || '...'}"
           </h3>
 
           {isSearchLoading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-2">
-              <span className="text-sm font-semibold text-slate-300">Searching products and stores...</span>
+                  <Translated as="span" text="Searching products and stores..." className="text-sm font-semibold text-slate-300" />
             </div>
           ) : (
             <div className="space-y-6">
               {/* 2. Products matching query */}
               {filteredProducts.length > 0 && (
                 <div>
-                  <h4 className="text-[12px] font-bold text-slate-300 mb-2.5 uppercase">Matching Products</h4>
+                  <Translated as="h4" text="Matching Products" className="text-[12px] font-bold text-slate-300 mb-2.5 uppercase" />
                   <div className="grid grid-cols-3 gap-2.5">
                     {/* Same card as the rest of the app: ADD to cart + opens product details */}
                     {filteredProducts.map((product) => (
@@ -735,7 +747,7 @@ const Home = () => {
               {/* 1. Stores matching query */}
               {filteredShops.length > 0 && (
                 <div>
-                  <h4 className="text-[12px] font-bold text-slate-300 mb-2.5 uppercase">Matching Stores</h4>
+                  <Translated as="h4" text="Matching Stores" className="text-[12px] font-bold text-slate-300 mb-2.5 uppercase" />
                   <div className="grid grid-cols-2 gap-3">
                     {filteredShops.map((shop, idx) => (
                       <div 
@@ -747,8 +759,8 @@ const Home = () => {
                           <img src={applyCloudinaryTransform(shop.shopLogo || shop.shopBanner)} alt={shop.shopName} className="w-full h-full object-cover" />
                         </div>
                         <div>
-                          <h5 className="text-[12.5px] font-black text-slate-800 line-clamp-1">{shop.shopName}</h5>
-                          <p className="text-[11px] font-bold text-slate-500 line-clamp-1 mt-1">{shop.locality || "Aswapuram"}</p>
+                          <Translated as="h5" text={shop.shopName} className="text-[12.5px] font-black text-slate-800 line-clamp-1" />
+                          <Translated as="p" text={shop.locality || "Aswapuram"} className="text-[11px] font-bold text-slate-500 line-clamp-1 mt-1" />
                         </div>
                       </div>
                     ))}
@@ -759,7 +771,7 @@ const Home = () => {
               {/* 0. Categories matching query */}
               {visibleCategories.length > 0 && (
                 <div>
-                  <h4 className="text-[12px] font-bold text-slate-300 mb-2.5 uppercase">Matching Categories</h4>
+                  <Translated as="h4" text="Matching Categories" className="text-[12px] font-bold text-slate-300 mb-2.5 uppercase" />
                   <div className="flex gap-3 overflow-x-auto pb-1">
                     {visibleCategories.map((cat) => (
                       <button
@@ -772,7 +784,7 @@ const Home = () => {
                             <img src={applyCloudinaryTransform(cat.image)} alt={cat.name} className="w-full h-full object-cover" />
                           )}
                         </div>
-                        <span className="text-[12px] font-black text-white text-center line-clamp-2 leading-tight">{cat.name}</span>
+                        <Translated as="span" text={cat.name} className="text-[12px] font-black text-white text-center line-clamp-2 leading-tight" />
                       </button>
                     ))}
                   </div>
@@ -782,8 +794,8 @@ const Home = () => {
               {matchingCategories.length === 0 && filteredShops.length === 0 && filteredProducts.length === 0 && searchQuery.trim() !== "" && (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <span className="text-3xl">🔍</span>
-                  <p className="text-sm font-black text-white mt-3">No products or stores found</p>
-                  <p className="text-xs text-slate-400 mt-1">Try checking your spelling or searching for another term</p>
+                  <Translated as="p" text="No products or stores found" className="text-sm font-black text-white mt-3" />
+                  <Translated as="p" text="Try checking your spelling or searching for another term" className="text-xs text-slate-400 mt-1" />
                 </div>
               )}
             </div>
@@ -812,8 +824,7 @@ const Home = () => {
                   )}
                 </div>
                 <div className="flex flex-col items-center leading-none text-center">
-                  <span className="text-[11.5px] font-black text-white">{cat.label}</span>
-                  <span className="text-[11px] font-bold text-slate-300 mt-0.5">{cat.teluguLabel}</span>
+                  <Translated as="span" text={cat.label} className="text-[11.5px] font-black text-white" />
                 </div>
               </div>
             ))}
@@ -829,10 +840,10 @@ const Home = () => {
             <div className="px-4 py-3" id="exclusive-partners">
               <div className="flex justify-between items-center mb-2.5">
                 <h3 className="text-[12.5px] font-black text-[#A3E635] tracking-wide uppercase">
-                  ATHREYA EXCLUSIVE PARTNERS (ప్రత్యేక భాగస్వాములు)
+                  ATHREYA <Translated as="span" text="EXCLUSIVE PARTNERS" />
                 </h3>
                 <button onClick={() => navigate('/shops')} className="text-[12px] font-black text-[#A3E635] hover:underline">
-                  See All
+                  <Translated text="See All" />
                 </button>
               </div>
               <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
@@ -849,12 +860,12 @@ const Home = () => {
                           store.isOpen ? "bg-emerald-500 text-white" : "bg-red-600 text-white"
                         }`}
                       >
-                        {store.isOpen ? "Open" : "Closed"}
+                        <Translated text={store.isOpen ? "Open" : "Closed"} />
                       </span>
                     </div>
                     <div className="p-2 flex flex-col justify-between flex-1 leading-none">
                       <div>
-                        <h4 className="text-[12px] font-black text-slate-800 line-clamp-1">{store.name}</h4>
+                        <Translated as="h4" text={store.name} className="text-[12px] font-black text-slate-800 line-clamp-1" />
                         {store.teluguName && (
                           <p className="text-[11px] font-bold text-slate-500 line-clamp-1 mt-0.5">{store.teluguName}</p>
                         )}

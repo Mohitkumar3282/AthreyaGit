@@ -10,6 +10,7 @@ const translationCacheSchema = new mongoose.Schema(
   {
     key: { type: String, required: true, unique: true, index: true },
     sourceText: { type: String, required: true },
+    sourceLang: { type: String, default: "en" },
     targetLang: { type: String, required: true },
     translatedText: { type: String, required: true },
   },

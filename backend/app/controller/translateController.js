@@ -3,6 +3,7 @@ import { translateBatch } from "../services/translationService.js";
 
 const MAX_TEXTS_PER_REQUEST = 100;
 const MAX_TEXT_LENGTH = 2000;
+const SUPPORTED_LANGUAGES = new Set(["en", "hi", "ta", "te", "ml", "kn", "mr", "bn", "gu", "pa", "or", "as", "ur"]);
 
 /**
  * POST /translate/batch
@@ -16,7 +17,7 @@ const MAX_TEXT_LENGTH = 2000;
  */
 export const translateBatchController = async (req, res) => {
   try {
-    const { texts, targetLang } = req.body || {};
+    const { texts, targetLang, sourceLang = "en" } = req.body || {};
 
     if (!Array.isArray(texts) || !texts.length) {
       return handleResponse(res, 400, "texts array is required");
@@ -30,9 +31,14 @@ export const translateBatchController = async (req, res) => {
     if (!targetLang || typeof targetLang !== "string") {
       return handleResponse(res, 400, "targetLang is required");
     }
+    const target = targetLang.trim().toLowerCase();
+    const source = typeof sourceLang === "string" ? sourceLang.trim().toLowerCase() : "";
+    if (!SUPPORTED_LANGUAGES.has(target) || !SUPPORTED_LANGUAGES.has(source)) {
+      return handleResponse(res, 400, "Unsupported source or target language");
+    }
 
-    const translations = await translateBatch(texts, targetLang);
-    return handleResponse(res, 200, "Translated", { translations, targetLang: targetLang.toLowerCase() });
+    const translations = await translateBatch(texts, target, source);
+    return handleResponse(res, 200, "Translated", { translations, targetLang: target, sourceLang: source });
   } catch (e) {
     console.error("translateBatchController error:", e);
     return handleResponse(res, 500, "Translation failed");

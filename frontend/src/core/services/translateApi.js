@@ -11,21 +11,21 @@ let pendingQueue = new Map(); // lang -> Map(text -> resolve[])
 let flushTimer = null;
 const FLUSH_DEBOUNCE_MS = 120;
 
-function lsKey(text, lang) {
-  return `${LS_KEY_PREFIX}${lang}:${text}`;
+function lsKey(text, lang, sourceLang = "en") {
+  return `${LS_KEY_PREFIX}${sourceLang}:${lang}:${text}`;
 }
 
-function readLocalCache(text, lang) {
+function readLocalCache(text, lang, sourceLang = "en") {
   try {
-    return localStorage.getItem(lsKey(text, lang));
+    return localStorage.getItem(lsKey(text, lang, sourceLang));
   } catch {
     return null;
   }
 }
 
-function writeLocalCache(text, lang, value) {
+function writeLocalCache(text, lang, value, sourceLang = "en") {
   try {
-    localStorage.setItem(lsKey(text, lang), value);
+    localStorage.setItem(lsKey(text, lang, sourceLang), value);
   } catch {
     // Storage full / disabled — memory cache still covers this session.
   }
@@ -41,7 +41,7 @@ async function flushQueue() {
     if (!texts.length) continue;
 
     try {
-      const res = await axiosInstance.post("/translate/batch", { texts, targetLang: lang });
+      const res = await axiosInstance.post("/translate/batch", { texts, targetLang: lang, sourceLang: "en" });
       const translations = res?.data?.result?.translations || {};
       texts.forEach((text) => {
         const out = translations[text] || text;
@@ -86,4 +86,31 @@ export function translateText(text, lang) {
       flushTimer = setTimeout(flushQueue, FLUSH_DEBOUNCE_MS);
     }
   });
+}
+
+/** Translate a group immediately; useful for list data to avoid one request per item. */
+export async function translateBatch(texts, lang, sourceLang = "en") {
+  const clean = [...new Set((Array.isArray(texts) ? texts : []).map((text) => String(text || "").trim()).filter(Boolean))];
+  if (!clean.length || !lang || lang === "en") return Object.fromEntries(clean.map((text) => [text, text]));
+  const unresolved = clean.filter((text) => {
+    const key = `${sourceLang}|${lang}|${text}`;
+    return !memCache.has(key) && !readLocalCache(text, lang, sourceLang);
+  });
+  if (unresolved.length) {
+    try {
+      const res = await axiosInstance.post("/translate/batch", { texts: unresolved, targetLang: lang, sourceLang });
+      const map = res?.data?.result?.translations || {};
+      unresolved.forEach((text) => {
+        const value = map[text] || text;
+        memCache.set(`${sourceLang}|${lang}|${text}`, value);
+        writeLocalCache(text, lang, value, sourceLang);
+      });
+    } catch {
+      // Preserve fallback behavior when translation is unavailable.
+    }
+  }
+  return Object.fromEntries(clean.map((text) => {
+    const key = `${sourceLang}|${lang}|${text}`;
+    return [text, memCache.get(key) || readLocalCache(text, lang, sourceLang) || text];
+  }));
 }

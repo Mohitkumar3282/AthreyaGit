@@ -12,6 +12,7 @@ import { applyCloudinaryTransform } from '@/core/utils/imageUtils';
 import { customerApi } from '../../services/customerApi';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import Translated from '@shared/components/Translated';
 
 const ProductDetailSheet = () => {
     const { selectedProduct, isOpen, closeProduct } = useProductDetail();
@@ -455,7 +456,7 @@ const ProductDetailSheet = () => {
                                             transition={{ delay: 0.15 }}
                                         >
                                             <h1 className="text-[19px] lg:text-[22px] font-black text-[#111827] leading-[1.2] tracking-tight mb-1">
-                                                {displayName}
+                                                <Translated text={displayName} />
                                             </h1>
                                             {selectedProduct.weight && (
                                                 <span className="text-[13px] text-gray-400 font-bold uppercase tracking-wider">{selectedProduct.weight}</span>
@@ -823,7 +824,7 @@ const ProductDetailSheet = () => {
                                 </div>
 
                                 <h2 className="text-xl font-black text-[#1A1A1A] leading-tight mb-2">
-                                    {displayName}
+                                    <Translated text={displayName} />
                                 </h2>
 
                                 {/* Variants Selection (Mobile) */}

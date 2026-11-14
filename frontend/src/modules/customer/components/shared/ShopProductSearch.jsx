@@ -5,6 +5,7 @@ import { customerApi } from "../../services/customerApi";
 import { useLocation as useAppLocation } from "../../context/LocationContext";
 import { applyCloudinaryTransform } from "@/core/utils/imageUtils";
 import ProductCard from "./ProductCard";
+import { useLanguage } from "@core/context/LanguageContext";
 
 const FALLBACK_IMG =
   "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?auto=format&fit=crop&q=80&w=400&h=400";
@@ -29,6 +30,7 @@ const listOf = (res) => {
 const ShopProductSearch = ({ query }) => {
   const navigate = useNavigate();
   const { currentLocation } = useAppLocation();
+  const { language, translateBatch } = useLanguage();
   const [products, setProducts] = useState([]);
   const [sellers, setSellers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -48,15 +50,22 @@ const ShopProductSearch = ({ query }) => {
           Number.isFinite(currentLocation?.latitude) && Number.isFinite(currentLocation?.longitude)
             ? { lat: currentLocation.latitude, lng: currentLocation.longitude }
             : {};
-        const [prodRes, sellerRes] = await Promise.all([
-          customerApi.getProducts({ search: q, limit: 100, ...geo }),
+        const englishQuery = language === "en"
+          ? q
+          : (await translateBatch([q], "en", language))[q] || q;
+        const searchTerms = [...new Set([q, englishQuery].map((term) => term.trim()).filter(Boolean))];
+        const [productResponses, sellerRes] = await Promise.all([
+          Promise.all(searchTerms.map((term) => customerApi.getProducts({ search: term, limit: 100, ...geo }).catch(() => null))),
           customerApi.getNearbySellers(geo),
         ]);
-        let items = listOf(prodRes);
+        let items = productResponses.flatMap(listOf);
+        items = [...new Map(items.map((product) => [String(product._id || product.id), product])).values()];
         let shopList = listOf(sellerRes);
         // Outside every delivery radius: still show where the product is sold.
         if (items.length === 0 && geo.lat !== undefined) {
-          items = listOf(await customerApi.getProducts({ search: q, limit: 100 }));
+          const fallbackResponses = await Promise.all(searchTerms.map((term) => customerApi.getProducts({ search: term, limit: 100 }).catch(() => null)));
+          items = fallbackResponses.flatMap(listOf);
+          items = [...new Map(items.map((product) => [String(product._id || product.id), product])).values()];
         }
         if (shopList.length === 0 && geo.lat !== undefined) {
           shopList = listOf(await customerApi.getNearbySellers({}));
@@ -76,7 +85,7 @@ const ShopProductSearch = ({ query }) => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [q, currentLocation?.latitude, currentLocation?.longitude]);
+  }, [q, currentLocation?.latitude, currentLocation?.longitude, language, translateBatch]);
 
   // One entry per shop, holding only that shop's matching products.
   const shops = useMemo(() => {

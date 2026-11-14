@@ -6,8 +6,8 @@ import TranslationCache from "../models/translationCache.js";
 // for strings this instance has already resolved since boot.
 const mem = new Map();
 
-function cacheKey(text, targetLang) {
-  return crypto.createHash("sha1").update(`${targetLang}|${text}`).digest("hex");
+function cacheKey(text, targetLang, sourceLang) {
+  return crypto.createHash("sha1").update(`${sourceLang}|${targetLang}|${text}`).digest("hex");
 }
 
 /**
@@ -19,13 +19,14 @@ function cacheKey(text, targetLang) {
  * failure, the original text is returned for the affected strings — the
  * caller (UI) should never break just because translation is unavailable.
  */
-export async function translateBatch(texts, targetLang) {
-  const lang = String(targetLang || "te").trim().toLowerCase();
+export async function translateBatch(texts, targetLang, sourceLang = "en") {
+  const lang = String(targetLang || "").trim().toLowerCase();
+  const source = String(sourceLang || "en").trim().toLowerCase();
   const uniqueTexts = [...new Set((texts || []).map((t) => String(t ?? "").trim()).filter(Boolean))];
   if (!uniqueTexts.length) return {};
 
   // Same-language passthrough — no point round-tripping to Google for it.
-  if (lang === "en") {
+  if (lang === source) {
     return Object.fromEntries(uniqueTexts.map((t) => [t, t]));
   }
 
@@ -33,7 +34,7 @@ export async function translateBatch(texts, targetLang) {
   const toFetch = [];
 
   for (const text of uniqueTexts) {
-    const key = cacheKey(text, lang);
+    const key = cacheKey(text, lang, source);
     if (mem.has(key)) {
       result[text] = mem.get(key);
     } else {
@@ -67,14 +68,19 @@ export async function translateBatch(texts, targetLang) {
         // less likely to be rate-limited than the single-translate endpoint.
         const translated = await translate(
           stillMissing.map((f) => f.text),
-          { to: lang },
+          {
+            from: source,
+            to: lang,
+            forceTo: ["as", "or"].includes(lang),
+            requestOptions: { signal: AbortSignal.timeout(Number(process.env.TRANSLATE_TIMEOUT_MS) || 12000) },
+          },
         );
         const docs = [];
         stillMissing.forEach((f, i) => {
           const out = translated?.[i]?.text || f.text;
           result[f.text] = out;
           mem.set(f.key, out);
-          docs.push({ key: f.key, sourceText: f.text, targetLang: lang, translatedText: out });
+          docs.push({ key: f.key, sourceText: f.text, targetLang: lang, sourceLang: source, translatedText: out });
         });
 
         // Persist without blocking the response on Mongo write latency.
@@ -101,7 +107,8 @@ export async function translateBatch(texts, targetLang) {
   return result;
 }
 
-export async function translateOne(text, targetLang) {
-  const map = await translateBatch([text], targetLang);
+export async function translateOne(text, targetLang, sourceLang = "en") {
+  const map = await translateBatch([text], targetLang, sourceLang);
   return map[String(text ?? "").trim()] ?? text;
 }
+

@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import MainLocationHeader from '../components/shared/MainLocationHeader';
 import { customerApi } from '../services/customerApi';
 import { applyCloudinaryTransform } from '@/core/utils/imageUtils';
-import { getTeluguCategoryName } from '@shared/utils/categoryTranslations';
 import ShopProductSearch from '../components/shared/ShopProductSearch';
+import Translated from '@shared/components/Translated';
+import { useLanguage } from '@core/context/LanguageContext';
 
 // Main categories, in the order customers should see them.
 const MAIN_CATEGORY_ORDER = [
@@ -25,6 +26,9 @@ const CategoriesPage = () => {
     const [categories, setCategories] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchText, setSearchText] = useState('');
+    const [localizedCategoryNames, setLocalizedCategoryNames] = useState({});
+    const [englishSearchText, setEnglishSearchText] = useState('');
+    const { language, translateBatch } = useLanguage();
 
     const fetchCategories = async () => {
         setIsLoading(true);
@@ -62,19 +66,68 @@ const CategoriesPage = () => {
         fetchCategories();
     }, []);
 
+    useEffect(() => {
+        if (!categories.length) return;
+        let cancelled = false;
+        translateBatch(categories.map((category) => category.name), language).then((translations) => {
+            if (!cancelled) setLocalizedCategoryNames(translations);
+        });
+        return () => { cancelled = true; };
+    }, [categories, language, translateBatch]);
+
+    useEffect(() => {
+        const query = searchText.trim();
+        if (!query) {
+            setEnglishSearchText('');
+            return undefined;
+        }
+        if (language === 'en') {
+            setEnglishSearchText(query);
+            return undefined;
+        }
+        let cancelled = false;
+        translateBatch([query], 'en', language).then((translations) => {
+            if (!cancelled) setEnglishSearchText(translations[query] || query);
+        });
+        return () => { cancelled = true; };
+    }, [searchText, language, translateBatch]);
+
+    const matchingCategories = useMemo(() => {
+        const queries = [searchText.trim(), englishSearchText.trim()].filter(Boolean).map((q) => q.toLocaleLowerCase());
+        if (!queries.length) return [];
+        return categories.filter((category) => {
+            const names = [category.name, localizedCategoryNames[category.name] || '']
+                .map((name) => String(name).toLocaleLowerCase());
+            return queries.some((query) => names.some((name) => name.includes(query) || query.includes(name)));
+        });
+    }, [categories, searchText, englishSearchText, localizedCategoryNames]);
+
     return (
         <div className="min-h-screen bg-[#042A0F] text-white">
             <MainLocationHeader searchValue={searchText} onSearchChange={setSearchText} />
             <div className="max-w-[1280px] mx-auto px-4 pt-[110px] md:pt-[140px] pb-20">
                 {searchText.trim() ? (
                     <div className="bg-slate-50 rounded-3xl p-4 text-slate-900">
+                        {matchingCategories.length > 0 && (
+                            <div className="mb-4">
+                                <h2 className="mb-3 text-sm font-black uppercase text-slate-700">Categories</h2>
+                                <div className="grid grid-cols-3 gap-3">
+                                    {matchingCategories.map((category) => (
+                                        <Link key={category.id} to={`/category/${category.id}`} className="flex flex-col items-center rounded-2xl bg-white p-2 text-center shadow-sm">
+                                            <img src={applyCloudinaryTransform(category.image)} alt={category.name} className="mb-2 aspect-square w-full rounded-xl object-contain" />
+                                            <span className="text-xs font-bold text-slate-900">{localizedCategoryNames[category.name] || category.name}</span>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                         <ShopProductSearch query={searchText} />
                     </div>
                 ) : (
                 <div className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {/* Group Title */}
                     <h2 className="text-[12.5px] md:text-sm font-black text-white tracking-wide uppercase mb-4 px-1 font-sans">
-                        ALL CATEGORIES
+                        <Translated text="ALL CATEGORIES" />
                     </h2>
 
                     {/* Loading Skeletons */}
@@ -112,13 +165,8 @@ const CategoriesPage = () => {
                                             </div>
                                             <div className="text-center w-full flex flex-col items-center justify-center leading-none pb-0.5">
                                                 <span className="text-[11.5px] md:text-[11.5px] font-extrabold text-slate-900 tracking-tight block truncate max-w-full font-sans uppercase">
-                                                    {category.name}
+                                                    <Translated text={category.name} />
                                                 </span>
-                                                {getTeluguCategoryName(category.name) && (
-                                                    <span className="text-[10.5px] md:text-[12px] font-semibold text-slate-500 mt-1 block truncate max-w-full font-sans">
-                                                        {getTeluguCategoryName(category.name)}
-                                                    </span>
-                                                )}
                                             </div>
                                         </div>
                                     </Link>

@@ -1,12 +1,14 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
-import { DEFAULT_LANGUAGE, DICTIONARY } from "../i18n/dictionary";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { DEFAULT_LANGUAGE, DICTIONARY, LANGUAGES } from "../i18n/dictionary";
+import { translateBatch, translateText } from "../services/translateApi";
 
 const STORAGE_KEY = "athreya_language";
 const LanguageContext = createContext(undefined);
 
 function readStoredLanguage() {
   try {
-    return localStorage.getItem(STORAGE_KEY) || DEFAULT_LANGUAGE;
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return LANGUAGES.some(({ code }) => code === stored) ? stored : DEFAULT_LANGUAGE;
   } catch {
     return DEFAULT_LANGUAGE;
   }
@@ -20,8 +22,10 @@ function readStoredLanguage() {
  */
 export const LanguageProvider = ({ children }) => {
   const [language, setLanguageState] = useState(readStoredLanguage);
+  const [generatedDictionary, setGeneratedDictionary] = useState({});
 
-  const setLanguage = useCallback((lang) => {
+  const changeLanguage = useCallback((lang) => {
+    if (!LANGUAGES.some(({ code }) => code === lang)) return;
     setLanguageState(lang);
     try {
       localStorage.setItem(STORAGE_KEY, lang);
@@ -30,21 +34,65 @@ export const LanguageProvider = ({ children }) => {
     }
   }, []);
 
+  useEffect(() => {
+    document.documentElement.lang = language;
+    document.documentElement.dir = language === "ur" ? "rtl" : "ltr";
+    if (language === DEFAULT_LANGUAGE) {
+      setGeneratedDictionary({});
+      return undefined;
+    }
+
+    let cancelled = false;
+    const entries = Object.entries(DICTIONARY.en || {});
+    translateBatch(entries.map(([, value]) => value), language).then((translations) => {
+      if (cancelled) return;
+      setGeneratedDictionary(Object.fromEntries(entries.map(([key, value]) => [
+        key,
+        translations[value] || value,
+      ])));
+    });
+    return () => { cancelled = true; };
+  }, [language]);
+
+  const setLanguage = changeLanguage;
+
   const toggleLanguage = useCallback(() => {
-    setLanguage(language === "en" ? "te" : "en");
+      setLanguage(language === "en" ? "te" : "en");
   }, [language, setLanguage]);
 
   const t = useCallback(
     (key, fallback) => {
-      const dict = DICTIONARY[language] || DICTIONARY.en;
-      return dict[key] ?? DICTIONARY.en[key] ?? fallback ?? key;
+      const dict = DICTIONARY[language] || {};
+      if (dict[key] != null) return dict[key];
+      const english = DICTIONARY.en[key] ?? fallback ?? key;
+      return generatedDictionary[key] ?? english;
     },
-    [language],
+    [language, generatedDictionary],
   );
 
+  const translateCurrentText = useCallback(
+    (text, target = language) => translateText(text, target),
+    [language],
+  );
+  const translateCurrentBatch = useCallback(
+    (texts, target = language, source = "en") => translateBatch(texts, target, source),
+    [language],
+  );
+  const getCurrentLanguage = useCallback(() => language, [language]);
+
   const value = useMemo(
-    () => ({ language, setLanguage, toggleLanguage, t, isEnglish: language === "en" }),
-    [language, setLanguage, toggleLanguage, t],
+    () => ({
+      language,
+      setLanguage,
+      changeLanguage,
+      toggleLanguage,
+      t,
+      translateText: translateCurrentText,
+      translateBatch: translateCurrentBatch,
+      getCurrentLanguage,
+      isEnglish: language === "en",
+    }),
+    [language, setLanguage, changeLanguage, toggleLanguage, t, translateCurrentText, translateCurrentBatch, getCurrentLanguage],
   );
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;

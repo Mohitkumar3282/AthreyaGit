@@ -12,6 +12,7 @@ import { getJSON, setJSON, STORAGE_KEYS } from "@core/utils/storage";
 
 const LocationContext = createContext(undefined);
 const STORAGE_KEY = STORAGE_KEYS.LOCATION;
+const LOCATION_PROMPTED_KEY = "athreya_location_permission_prompted_v1";
 // 30 days — refresh the cached coordinates if a user comes back to a stale tab
 // after roughly a month so we don't keep serving locations from a previous
 // address indefinitely.
@@ -34,6 +35,7 @@ export const LocationProvider = ({ children }) => {
 
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [locationError, setLocationError] = useState(null);
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
 
   // Update the current location.
   // By default this does NOT change saved addresses; only explicit
@@ -288,8 +290,34 @@ export const LocationProvider = ({ children }) => {
     refreshAddresses();
   }, [refreshAddresses]);
 
-  // On mount: restore from cache if present. If no cache exists, automatically auto-detect 
-  // location using GPS permission/Flutter bridge.
+  // Show the one-time location explanation on the customer's first visit.
+  useEffect(() => {
+    try {
+      if (!window.localStorage.getItem(LOCATION_PROMPTED_KEY)) {
+        setShowLocationPrompt(true);
+      }
+    } catch {
+      // If storage is unavailable, still offer the prompt for this visit.
+      setShowLocationPrompt(true);
+    }
+  }, []);
+
+  const dismissLocationPrompt = () => {
+    try {
+      window.localStorage.setItem(LOCATION_PROMPTED_KEY, "1");
+    } catch {
+      // The prompt remains dismissed for this mounted app session.
+    }
+    setShowLocationPrompt(false);
+  };
+
+  const requestLocationPermission = () => {
+    dismissLocationPrompt();
+    fetchAndCacheLocation();
+  };
+
+  // Restore the saved location on mount. GPS is requested only after the
+  // customer taps the first-launch prompt (browser permission requires a gesture).
   useEffect(() => {
     const parsed = getJSON(STORAGE_KEY, null);
     const addressName = parsed?.address || parsed?.name;
@@ -306,17 +334,6 @@ export const LocationProvider = ({ children }) => {
         },
         { persist: false, updateSavedHome: false },
       );
-    } else {
-      // Auto-detect using GPS/Bridge on startup!
-      fetchAndCacheLocation().then((res) => {
-        if (!res || !res.ok) {
-          // If auto-detection fails/is blocked, persist the default location as fallback
-          updateLocation(currentLocation, {
-            persist: true,
-            updateSavedHome: false,
-          });
-        }
-      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -362,12 +379,48 @@ export const LocationProvider = ({ children }) => {
     isFetchingLocation,
     locationError,
     refreshLocation: fetchAndCacheLocation,
+    showLocationPrompt,
+    requestLocationPermission,
+    dismissLocationPrompt,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [currentLocation, savedAddresses, isFetchingLocation, locationError, refreshAddresses]);
 
   return (
     <LocationContext.Provider value={locationValue}>
       {children}
+      {showLocationPrompt && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 p-4" role="presentation">
+          <section
+            aria-labelledby="location-permission-title"
+            aria-describedby="location-permission-description"
+            aria-modal="true"
+            role="dialog"
+            className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl"
+          >
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+              <span aria-hidden="true" className="text-2xl">⌖</span>
+            </div>
+            <h2 id="location-permission-title" className="text-xl font-bold text-slate-900">Enable your location</h2>
+            <p id="location-permission-description" className="mt-2 text-sm leading-6 text-slate-600">
+              Use your location to show nearby stores and accurate delivery availability.
+            </p>
+            <button
+              type="button"
+              onClick={requestLocationPermission}
+              className="mt-5 w-full rounded-xl bg-emerald-700 px-4 py-3 font-semibold text-white hover:bg-emerald-800"
+            >
+              Enable location
+            </button>
+            <button
+              type="button"
+              onClick={dismissLocationPrompt}
+              className="mt-2 w-full rounded-xl px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            >
+              Not now
+            </button>
+          </section>
+        </div>
+      )}
     </LocationContext.Provider>
   );
 };
