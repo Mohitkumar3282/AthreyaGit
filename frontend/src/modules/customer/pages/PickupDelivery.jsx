@@ -620,6 +620,13 @@ const PickupDelivery = () => {
     if (!h2hSenderPhone.trim()) setH2hSenderPhone(user?.phone || user?.phoneNumber || "");
   }, [user?.name, user?.fullName, user?.phone, user?.phoneNumber]);
 
+  // Auth/profile data can arrive after the form's first render; fill sender
+  // fields once it does, while preserving anything the customer already typed.
+  useEffect(() => {
+    if (!h2hSenderName.trim()) setH2hSenderName(user?.name || user?.fullName || "");
+    if (!h2hSenderPhone.trim()) setH2hSenderPhone(user?.phone || user?.phoneNumber || "");
+  }, [user?.name, user?.fullName, user?.phone, user?.phoneNumber]);
+
   // Format Current Location into an address object
   const currentLocAddress = useMemo(() => {
     if (!currentLocation) return null;
@@ -692,6 +699,7 @@ const PickupDelivery = () => {
       if (!riderPickupLoc && currentLocAddress) setRiderPickupLoc(currentLocAddress.fullAddress);
     }
   }, [allAddresses, currentLocAddress, h2hPickupAddress]);
+<<<<<<< HEAD
 
   useEffect(() => {
     const selected = allAddresses.find((address) => address._id === cargoSelectedAddressId || address.id === cargoSelectedAddressId);
@@ -700,6 +708,8 @@ const PickupDelivery = () => {
       setCargoReceiverPhone((phone) => phone || selected.phone || user?.phone || user?.phoneNumber || "");
     }
   }, [allAddresses, cargoSelectedAddressId, user?.name, user?.phone, user?.phoneNumber]);
+=======
+>>>>>>> 39610c25a20d3d7cf499734140effe26dca0fc41
 
   // Load saved profile addresses
   useEffect(() => {
@@ -919,7 +929,11 @@ const PickupDelivery = () => {
     activeTab, currentLocation, allAddresses, shops, selectedShopId,
     h2hDropAddressOptions, riderDropAddressOptions,
     h2hSelectedDropAddressId, h2hWeight, shopSelectedAddressId, shopWeight,
+<<<<<<< HEAD
     cargoSelectedAddressId, cargoDropAddressOptions, cargoDropAddress, cargoWeight, cargoPickupCoords, riderSelectedAddressId, riderTiming,
+=======
+    cargoSelectedAddressId, cargoWeight, riderSelectedAddressId, riderTiming,
+>>>>>>> 39610c25a20d3d7cf499734140effe26dca0fc41
     h2hPickupCoords, h2hPickupCoordsAddress, h2hPickupAddress, currentLocAddress, riderPickupCoords,
   ]);
 
