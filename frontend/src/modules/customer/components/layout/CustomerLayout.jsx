@@ -81,7 +81,7 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
     const path = location.pathname.replace(/\/$/, '') || '/';
 
     const hideHeaderRoutes = ['/', '/categories', '/orders', '/transactions', '/profile', '/profile/edit', '/wishlist', '/addresses', '/wallet', '/support', '/privacy', '/about', '/terms', '/checkout', '/search', '/chat', '/pickup-delivery'];
-    const hideBottomNavRoutes = ['/checkout', '/search', '/chat'];
+    const hideBottomNavRoutes = ['/checkout', '/search', '/chat', '/pickup-delivery'];
     const hideCartRoutes = ['/checkout', '/search', '/chat', '/pickup-delivery'];
 
     // If props are passed, use them. Otherwise, use route-based logic.
@@ -122,7 +122,7 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
             <main className={cn(
                 "flex-1 md:pb-0 transition-colors duration-300", 
                 !showHeader && "pt-0", 
-                !fullHeight && "main-mobile-bottom-padding",
+                !fullHeight && path !== '/pickup-delivery' && "main-mobile-bottom-padding",
                 isGreenTheme ? "bg-[#042A0F]" : "bg-white"
             )}>
                 <motion.div
@@ -138,9 +138,11 @@ const CustomerLayout = ({ children, showHeader: showHeaderProp, fullHeight = fal
             {showCart && <MiniCart />}
             <ProductDetailSheet />
 
-            <div className="hidden md:block">
-                <Footer />
-            </div>
+            {path !== '/pickup-delivery' && (
+                <div className="hidden md:block">
+                    <Footer />
+                </div>
+            )}
 
             {/* Mobile Footer Message logic */}
             <div className="md:hidden">

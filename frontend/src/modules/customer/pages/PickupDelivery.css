@@ -1,0 +1,161 @@
+.express-booking-page {
+  --express-bg: #050b08;
+  --express-panel: #111b16;
+  --express-field: #1c2922;
+  --express-line: #293a30;
+  --express-green: #00c978;
+  color: #f4f7f5;
+  background: var(--express-bg);
+  border-radius: 24px;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.express-booking-page [class~="bg-white"],
+.express-booking-page [class~="bg-slate-50"],
+.express-booking-page [class~="bg-slate-100"],
+.express-booking-page [class~="bg-slate-50/50"] {
+  background-color: var(--express-panel) !important;
+}
+
+.express-booking-page [class~="bg-sky-50"] {
+  color: #b8f2d5 !important;
+  background-color: #0d3524 !important;
+}
+
+.express-booking-page [class~="border-slate-200"],
+.express-booking-page [class~="border-slate-200/80"],
+.express-booking-page [class~="border-emerald-200"] {
+  border-color: var(--express-line) !important;
+}
+
+.express-booking-page [class~="border-sky-200"] {
+  border-color: var(--express-line) !important;
+}
+
+.express-booking-page a.bg-sky-50 {
+  color: var(--express-green) !important;
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+.express-booking-page [class~="text-slate-900"],
+.express-booking-page [class~="text-slate-800"],
+.express-booking-page [class~="text-slate-700"],
+.express-booking-page [class~="text-slate-600"] {
+  color: #e5ece7 !important;
+}
+
+.express-booking-page input,
+.express-booking-page textarea,
+.express-booking-page select {
+  color: #f3f7f4 !important;
+  background-color: var(--express-field) !important;
+  border-color: var(--express-line) !important;
+}
+
+.express-booking-page input::placeholder,
+.express-booking-page textarea::placeholder {
+  color: #9baaa0;
+}
+
+.express-booking-page [class~="bg-emerald-50"],
+.express-booking-page [class~="bg-emerald-50/70"] {
+  color: #b8f2d5 !important;
+  background-color: #0d3524 !important;
+}
+
+.express-booking-page [class~="text-emerald-950"],
+.express-booking-page [class~="text-emerald-900"],
+.express-booking-page [class~="text-emerald-800"] {
+  color: #8ce3b7 !important;
+}
+
+.express-booking-page [class~="border-t"],
+.express-booking-page [class~="divide-y"] > * + * {
+  border-color: var(--express-line) !important;
+}
+
+.express-booking-page button[class*="bg-emerald-50"] {
+  background-color: #06452a !important;
+  color: #eafff2 !important;
+}
+
+.express-booking-page > .flex.items-center.justify-between {
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--express-line) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 4px 0 14px !important;
+}
+
+.express-booking-page > .flex.items-center.justify-between h1 {
+  color: #12d786 !important;
+}
+
+.express-booking-page .express-service-badge {
+  padding: 5px 10px;
+  border-radius: 999px;
+  color: #28d987;
+  background: #0b2b1a;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.express-booking-page .express-shop-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.express-shop-company { order: 1; }
+.express-shop-address { order: 2; }
+.express-shop-items { order: 3; }
+
+.express-booking-page .express-cargo-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.express-cargo-pickup { order: 1; }
+.express-cargo-customer { order: 2; }
+.express-cargo-parcel { order: 3; }
+
+.express-booking-page .express-rider-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.express-rider-route { order: 1; }
+.express-rider-instructions { order: 2; }
+.express-rider-timing { order: 3; }
+
+.express-booking-page .express-h2h-pickup-fields,
+.express-booking-page .express-h2h-drop-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.express-h2h-sender,
+.express-h2h-receiver { order: 1; }
+.express-h2h-pickup-address,
+.express-h2h-drop-address { order: 2; }
+
+.express-booking-page .mt-5 > button[type="button"] {
+  min-height: 56px;
+  background: #006b3c !important;
+  color: white !important;
+  border: 1px solid #078b53;
+}
+
+@media (max-width: 480px) {
+  .express-booking-page {
+    border-radius: 18px;
+    padding: 12px;
+  }
+}

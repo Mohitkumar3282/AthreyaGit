@@ -1,30 +1,19 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { 
-  ChevronLeft, 
+import {
+  ChevronLeft,
   ChevronDown,
   Plus,
   MapPin, 
-  Upload, 
-  CheckCircle, 
-  Info, 
   Navigation,
   Map,
   IndianRupee,
   Home,
   Store,
   Truck,
-  Bike,
-  MessageSquare,
-  Package,
-  FileText,
   Clock,
-  Phone,
-  User,
-  ShieldCheck,
   Check
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,17 +22,10 @@ import { customerApi } from "../services/customerApi";
 import { useLocation } from "../context/LocationContext";
 import { useSettings } from "@core/context/SettingsContext";
 import { useAuth } from "@core/context/AuthContext";
-import axiosInstance from "@core/api/axios";
 import Card from "@/shared/components/ui/Card";
 import MapPicker from "@/shared/components/MapPicker";
-import ExpressRouteMap from "../components/shared/ExpressRouteMap";
 import Translated from "@shared/components/Translated";
-import { openWhatsApp } from "@/shared/utils/whatsapp";
-import {
-  homeToHomeImg,
-  shopToHomeImg,
-  cargoToHomeImg
-} from "@/assets/express";
+import "./PickupDelivery.css";
 
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   if (!Number.isFinite(lat1) || !Number.isFinite(lon1) || !Number.isFinite(lat2) || !Number.isFinite(lon2)) {
@@ -72,24 +54,7 @@ const CARGO_POINTS = [
   { id: "other_cargo", name: "Other Cargo / Bus Transport Point", loc: "Custom Location" },
 ];
 
-const DEFAULT_PARCEL_CATEGORIES = [
-  { id: "docs", label: "Documents / Papers", telugu: "పత్రాలు", icon: "📄" },
-  { id: "clothes", label: "Clothes / Laundry", telugu: "బట్టలు", icon: "👕" },
-  { id: "food", label: "Home Food / Tiffin", telugu: "ఇంటి భోజనం / టిఫిన్", icon: "🍱" },
-  { id: "electronics", label: "Electronics / Cables", telugu: "ఎలక్ట్రానిక్స్", icon: "📱" },
-  { id: "box", label: "Carton / Gift Box", telugu: "బాక్స్ / గిఫ్ట్", icon: "📦" },
-  { id: "other", label: "Other Permitted Item", telugu: "ఇతర వస్తువులు", icon: "✨" },
-];
-
 const WEIGHT_OPTIONS = ["Up to 1 kg", "1-3 kg", "3-5 kg", "5-10 kg", "10-25 kg", "25 kg+"];
-
-const DEFAULT_RIDER_TASK_TYPES = [
-  { id: "keys", label: "Deliver Keys", telugu: "తాళాలు డెలివరీ", icon: "🔑" },
-  { id: "docs", label: "Documents / Xerox", telugu: "డాక్యుమెంట్లు / జిరాక్స్", icon: "📄" },
-  { id: "tiffin", label: "Lunch Box / Tiffin", telugu: "లంచ్ బాక్స్ / టిఫిన్", icon: "🍱" },
-  { id: "errand", label: "Pickup & Drop Errand", telugu: "పికప్ & డ్రాప్ పని", icon: "🛵" },
-  { id: "other", label: "Custom Local Task", telugu: "ఇతర స్థానిక పని", icon: "📝" },
-];
 
 const AddressDropdown = ({
   options = [],
@@ -551,13 +516,16 @@ const PickupDelivery = () => {
   const { user } = useAuth();
 
   // Active Service Tab
-  const initialService = searchParams.get("service") || "home_to_home";
+  const requestedService = searchParams.get("service");
+  const initialService = ["home_to_home", "shop_to_home", "cargo_to_home", "rider_delivery"].includes(requestedService)
+    ? requestedService
+    : "home_to_home";
   const [activeTab, setActiveTab] = useState(initialService);
 
   // Sync tab with URL search param changes
   useEffect(() => {
     const serviceFromUrl = searchParams.get("service");
-    if (serviceFromUrl && ["home_to_home", "shop_to_home", "cargo_to_home", "rider_delivery", "whatsapp"].includes(serviceFromUrl)) {
+    if (serviceFromUrl && ["home_to_home", "shop_to_home", "cargo_to_home", "rider_delivery"].includes(serviceFromUrl)) {
       setActiveTab(serviceFromUrl);
     }
   }, [searchParams]);
@@ -566,15 +534,6 @@ const PickupDelivery = () => {
   const [addresses, setAddresses] = useState([]);
   const [loadingShops, setLoadingShops] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [uploading, setUploading] = useState(false);
-
-  // Dynamic Parcel Categories and Rider Task Types from Admin Settings
-  const parcelCategories = useMemo(() => {
-    if (Array.isArray(settings?.parcelCategories) && settings.parcelCategories.length > 0) {
-      return settings.parcelCategories.filter(c => c.enabled !== false);
-    }
-    return DEFAULT_PARCEL_CATEGORIES;
-  }, [settings?.parcelCategories]);
 
   // Admin-managed cargo / bus-stand points; falls back to the built-in list.
   const cargoPoints = useMemo(() => {
@@ -585,15 +544,7 @@ const PickupDelivery = () => {
     return CARGO_POINTS;
   }, [settings?.cargoPoints]);
 
-  const riderTaskTypes = useMemo(() => {
-    if (Array.isArray(settings?.riderTaskTypes) && settings.riderTaskTypes.length > 0) {
-      return settings.riderTaskTypes.filter(t => t.enabled !== false);
-    }
-    return DEFAULT_RIDER_TASK_TYPES;
-  }, [settings?.riderTaskTypes]);
-
   // Common Form States
-  const [uploadedImage, setUploadedImage] = useState("");
   const [paymentMode, setPaymentMode] = useState("COD"); // COD or ONLINE
 
   // 1. Home to Home State
@@ -604,21 +555,21 @@ const PickupDelivery = () => {
   const [h2hReceiverPhone, setH2hReceiverPhone] = useState("");
   const [h2hDropAddress, setH2hDropAddress] = useState("");
   const [h2hSelectedDropAddressId, setH2hSelectedDropAddressId] = useState("");
-  const [h2hParcelCategory, setH2hParcelCategory] = useState("box");
   const [h2hParcelDetails, setH2hParcelDetails] = useState("");
+  const [h2hInstructions, setH2hInstructions] = useState("");
   const [h2hWeight, setH2hWeight] = useState("Up to 1 kg");
   const [h2hItemsCount, setH2hItemsCount] = useState("1");
   // Drop point chosen via GPS / map pin (Rapido-style) instead of a saved address.
   const [h2hMapDropAddress, setH2hMapDropAddress] = useState(null);
   const [isH2hMapOpen, setIsH2hMapOpen] = useState(false);
+  const [isH2hPickupMapOpen, setIsH2hPickupMapOpen] = useState(false);
 
   // 2. Shop to Home State
   const [selectedShopId, setSelectedShopId] = useState("");
   const [customShopName, setCustomShopName] = useState("");
   const [customShopLocation, setCustomShopLocation] = useState("");
   const [shopParcelDetails, setShopParcelDetails] = useState("");
-  const [shopPickupType, setShopPickupType] = useState("prepaid"); // prepaid or pay_and_collect
-  const [shopBillAmount, setShopBillAmount] = useState("");
+  const [shopInstructions, setShopInstructions] = useState("");
   const [shopSelectedAddressId, setShopSelectedAddressId] = useState("");
   const [shopItemsCount, setShopItemsCount] = useState("");
   const [shopWeight, setShopWeight] = useState("Up to 1 kg");
@@ -627,12 +578,19 @@ const PickupDelivery = () => {
   const [selectedCargoPointId, setSelectedCargoPointId] = useState(CARGO_POINTS[0].id);
   const [customCargoName, setCustomCargoName] = useState("");
   const [cargoLrNumber, setCargoLrNumber] = useState("");
-  const [cargoOriginCity, setCargoOriginCity] = useState("Hyderabad");
-  const [cargoSenderContact, setCargoSenderContact] = useState("");
-  const [cargoUnpaidFreight, setCargoUnpaidFreight] = useState("");
+  const [cargoOriginCity, setCargoOriginCity] = useState("");
   const [cargoSelectedAddressId, setCargoSelectedAddressId] = useState("");
   const [cargoItemsCount, setCargoItemsCount] = useState("1");
   const [cargoWeight, setCargoWeight] = useState("Up to 1 kg");
+  const [cargoReceiverName, setCargoReceiverName] = useState("");
+  const [cargoReceiverPhone, setCargoReceiverPhone] = useState("");
+  const [cargoParcelDetails, setCargoParcelDetails] = useState("");
+  const [cargoInstructions, setCargoInstructions] = useState("");
+  const [cargoMapDropAddress, setCargoMapDropAddress] = useState(null);
+  const [cargoDropAddress, setCargoDropAddress] = useState("");
+  const [cargoPickupCoords, setCargoPickupCoords] = useState(null);
+  const [isCargoMapOpen, setIsCargoMapOpen] = useState(false);
+  const [isCargoDropMapOpen, setIsCargoDropMapOpen] = useState(false);
 
   // 4. Rider Delivery Request State
   const [riderPickupLoc, setRiderPickupLoc] = useState("");
@@ -646,7 +604,6 @@ const PickupDelivery = () => {
   const [riderDropLoc, setRiderDropLoc] = useState("");
   const [riderReceiverPhone, setRiderReceiverPhone] = useState("");
   const [riderSelectedAddressId, setRiderSelectedAddressId] = useState("");
-  const [riderTaskType, setRiderTaskType] = useState("keys");
   const [riderInstructions, setRiderInstructions] = useState("");
   const [riderTiming, setRiderTiming] = useState("instant"); // instant or scheduled
   const [riderScheduleTime, setRiderScheduleTime] = useState("");
@@ -654,6 +611,7 @@ const PickupDelivery = () => {
   // Drop point chosen via GPS / map pin (Rapido-style) instead of a saved address.
   const [riderMapDropAddress, setRiderMapDropAddress] = useState(null);
   const [isRiderMapOpen, setIsRiderMapOpen] = useState(false);
+  const [isRiderPickupMapOpen, setIsRiderPickupMapOpen] = useState(false);
 
   // Auth/profile data can arrive after the form's first render; fill sender
   // fields once it does, while preserving anything the customer already typed.
@@ -713,6 +671,11 @@ const PickupDelivery = () => {
     return mapAddr ? [mapAddr, ...allAddresses] : allAddresses;
   }, [allAddresses, riderMapDropAddress]);
 
+  const cargoDropAddressOptions = useMemo(() => {
+    const mapAddr = buildMapAddress("cargo_map_drop", cargoMapDropAddress, cargoReceiverName || "Receiver");
+    return mapAddr ? [mapAddr, ...allAddresses] : allAddresses;
+  }, [allAddresses, cargoMapDropAddress, cargoReceiverName]);
+
   // Set default addresses on load
   useEffect(() => {
     if (allAddresses.length > 0) {
@@ -729,6 +692,14 @@ const PickupDelivery = () => {
       if (!riderPickupLoc && currentLocAddress) setRiderPickupLoc(currentLocAddress.fullAddress);
     }
   }, [allAddresses, currentLocAddress, h2hPickupAddress]);
+
+  useEffect(() => {
+    const selected = allAddresses.find((address) => address._id === cargoSelectedAddressId || address.id === cargoSelectedAddressId);
+    if (selected) {
+      setCargoReceiverName((name) => name || selected.name || user?.name || "");
+      setCargoReceiverPhone((phone) => phone || selected.phone || user?.phone || user?.phoneNumber || "");
+    }
+  }, [allAddresses, cargoSelectedAddressId, user?.name, user?.phone, user?.phoneNumber]);
 
   // Load saved profile addresses
   useEffect(() => {
@@ -776,37 +747,6 @@ const PickupDelivery = () => {
     loadShops();
   }, [currentLocation?.latitude, currentLocation?.longitude]);
 
-  // Image Upload Helper
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const uploadForm = new FormData();
-    uploadForm.append("file", file);
-
-    setUploading(true);
-    try {
-      const uploadRes = await axiosInstance.post("/media/upload", uploadForm, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      const url =
-        uploadRes.data?.result?.url ||
-        uploadRes.data?.data?.url ||
-        uploadRes.data?.url ||
-        "";
-      if (url) {
-        setUploadedImage(url);
-        toast.success("Image uploaded successfully!");
-      } else {
-        throw new Error("Upload response missing URL");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to upload image. Please try again.");
-    } finally {
-      setUploading(false);
-    }
-  };
 
   // Helper to use current location
   // Turn a typed pickup address into coordinates (Google Geocoder), biased to
@@ -905,11 +845,15 @@ const PickupDelivery = () => {
     }
 
     if (activeTab === "cargo_to_home") {
-      const selectedAddress = allAddresses.find(a => a._id === cargoSelectedAddressId || a.id === cargoSelectedAddressId);
-      if (currentLocation?.latitude && selectedAddress?.location) {
+      const selectedAddress = cargoDropAddressOptions.find(a => a._id === cargoSelectedAddressId || a.id === cargoSelectedAddressId) ||
+        (cargoSelectedAddressId === "cargo_custom_drop" && cargoDropAddress.trim()
+          ? { name: cargoReceiverName, phone: cargoReceiverPhone, fullAddress: cargoDropAddress, address: cargoDropAddress, city: "Aswapuram", location: currentLocation?.latitude ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : { lat: 17.7833, lng: 80.8500 } }
+          : null);
+      const pickupCoords = cargoPickupCoords || (currentLocation?.latitude ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : null);
+      if (pickupCoords && selectedAddress?.location) {
         return calculateDistance(
-          currentLocation.latitude,
-          currentLocation.longitude,
+          pickupCoords.lat,
+          pickupCoords.lng,
           selectedAddress.location.lat,
           selectedAddress.location.lng
         );
@@ -931,6 +875,9 @@ const PickupDelivery = () => {
     h2hPickupCoords,
     riderSelectedAddressId,
     cargoSelectedAddressId,
+    cargoDropAddressOptions,
+    cargoPickupCoords,
+    cargoDropAddress,
     currentLocation,
   ]);
 
@@ -959,9 +906,9 @@ const PickupDelivery = () => {
       return { pickup, drop: a.location || DEFAULT_POINT, weight: shopWeight, sellerId: shop?._id || shop?.id };
     }
     if (activeTab === "cargo_to_home") {
-      const a = findAddr(cargoSelectedAddressId);
-      if (!a) return null;
-      return { pickup: cur, drop: a.location || DEFAULT_POINT, weight: cargoWeight };
+      const a = cargoDropAddressOptions.find((item) => item._id === cargoSelectedAddressId || item.id === cargoSelectedAddressId);
+      if (!a && !(cargoSelectedAddressId === "cargo_custom_drop" && cargoDropAddress.trim())) return null;
+      return { pickup: cargoPickupCoords || cur, drop: a?.location || cur || DEFAULT_POINT, weight: cargoWeight };
     }
     if (activeTab === "rider_delivery") {
       const d = riderDropAddressOptions.find((a) => a._id === riderSelectedAddressId || a.id === riderSelectedAddressId);
@@ -972,7 +919,7 @@ const PickupDelivery = () => {
     activeTab, currentLocation, allAddresses, shops, selectedShopId,
     h2hDropAddressOptions, riderDropAddressOptions,
     h2hSelectedDropAddressId, h2hWeight, shopSelectedAddressId, shopWeight,
-    cargoSelectedAddressId, cargoWeight, riderSelectedAddressId, riderTiming,
+    cargoSelectedAddressId, cargoDropAddressOptions, cargoDropAddress, cargoWeight, cargoPickupCoords, riderSelectedAddressId, riderTiming,
     h2hPickupCoords, h2hPickupCoordsAddress, h2hPickupAddress, currentLocAddress, riderPickupCoords,
   ]);
 
@@ -1059,43 +1006,12 @@ const PickupDelivery = () => {
         (activeTab === "rider_delivery" && riderPickupLoc.trim() && riderSelectedAddressId && riderSelectedAddressId !== "custom_rider_drop")),
   );
   const rideFareAmount = Number(fareQuote?.fare?.total);
-  const extraBillAmount = activeTab === "shop_to_home" && shopPickupType === "pay_and_collect"
-    ? Math.max(0, Number(shopBillAmount) || 0)
-    : activeTab === "cargo_to_home"
-      ? Math.max(0, Number(cargoUnpaidFreight) || 0)
-      : 0;
-  const estimatedTotalBill = Number.isFinite(rideFareAmount)
-    ? rideFareAmount + extraBillAmount
-    : null;
+  const estimatedTotalBill = Number.isFinite(rideFareAmount) ? rideFareAmount : null;
   const moneyLabel = (amount) => new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 0,
   }).format(amount);
-  // WhatsApp Order Trigger Helper
-  const triggerWhatsAppOrder = (customMsg) => {
-    const numberCandidate = settings?.whatsappNumber || settings?.supportPhone || "919000000000";
-    const rawNumber = String(numberCandidate).replace(/[^\d]/g, "");
-    let targetNumber = rawNumber.length === 10 ? `91${rawNumber}` : rawNumber;
-
-    const customerAddress =
-      currentLocation?.name ||
-      currentLocation?.address ||
-      "Aswapuram";
-
-    const customerName = user?.name || user?.fullName || "Athreya Customer";
-    const customerPhone = user?.phone || user?.phoneNumber || "";
-
-    const message = customMsg || `⚡ *ATHREYA EXPRESS BOOKING REQUEST*\n\n` +
-      `👤 *Customer:* ${customerName}${customerPhone ? ` (${customerPhone})` : ''}\n` +
-      `📍 *Location:* ${customerAddress}\n\n` +
-      `📦 *Service:* Direct WhatsApp Order\n` +
-      `📝 *Details:* I need assistance with an express pickup/delivery in Aswapuram.\n\n` +
-      `Please confirm rider availability and fare.`;
-
-    openWhatsApp(targetNumber, message);
-  };
-
   // Submit Handler for all 4 flows
   const handleBookingSubmit = async () => {
     let parcelDetailsText = "";
@@ -1128,8 +1044,8 @@ const PickupDelivery = () => {
         toast.error("Please specify drop address");
         return;
       }
-      if (!h2hParcelDetails.trim() && !uploadedImage) {
-        toast.error("Please describe parcel contents or upload a photo");
+      if (!h2hParcelDetails.trim()) {
+        toast.error("Please describe the parcel contents");
         return;
       }
 
@@ -1155,14 +1071,12 @@ const PickupDelivery = () => {
       };
 
       parcelDetailsText = `🏠 [HOME TO HOME PICKUP]\n` +
-        `📦 Category: ${parcelCategories.find(c => c.id === h2hParcelCategory)?.label || "Parcel"}\n` +
         `🔢 Items: ${h2hItemsCount || 1} | ⚖️ Weight: ${h2hWeight}\n` +
-        `📝 Details: ${h2hParcelDetails}\n` +
+        `📝 Details: ${h2hParcelDetails}${h2hInstructions ? ` | Instructions: ${h2hInstructions}` : ""}\n` +
         `📤 Pickup From: ${h2hPickupAddress} (Sender: ${h2hSenderName} - ${h2hSenderPhone})\n` +
         `📥 Drop To: ${dropAddrStr} (Receiver: ${h2hReceiverName} - ${h2hReceiverPhone})`;
 
       expressMetaData = {
-        parcelCategory: h2hParcelCategory,
         parcelWeight: h2hWeight,
         weight: h2hWeight,
         itemsCount: h2hItemsCount,
@@ -1181,12 +1095,8 @@ const PickupDelivery = () => {
         toast.error("Please select a store or enter shop name");
         return;
       }
-      if (!shopParcelDetails.trim() && !uploadedImage) {
-        toast.error("Please provide the items list or upload a bill/list photo");
-        return;
-      }
-      if (shopPickupType === "pay_and_collect" && !shopBillAmount) {
-        toast.error("Please enter the estimated shop bill amount for the rider to pay");
+      if (!shopParcelDetails.trim()) {
+        toast.error("Please enter the shopping items");
         return;
       }
 
@@ -1197,8 +1107,8 @@ const PickupDelivery = () => {
       }
 
       targetSellerId = selectedShop?._id || selectedShop?.id;
-      finalPickupType = shopPickupType;
-      finalBillAmount = shopPickupType === "pay_and_collect" ? Number(shopBillAmount) : 0;
+      finalPickupType = "prepaid";
+      finalBillAmount = 0;
 
       dropAddressData = {
         name: selectedAddress.name || user?.name || "Customer",
@@ -1210,9 +1120,8 @@ const PickupDelivery = () => {
 
       parcelDetailsText = `🏪 [SHOP TO HOME PICKUP]\n` +
         `🏪 Shop: ${shopTitle} (${customShopLocation || selectedShop?.locality || "Aswapuram"})\n` +
-        `🛒 Items List: ${shopParcelDetails}\n` +
+        `🛒 Items List: ${shopParcelDetails}${shopInstructions ? ` | Instructions: ${shopInstructions}` : ""}\n` +
         `🔢 Items: ${shopItemsCount || "—"} | ⚖️ Weight: ${shopWeight}\n` +
-        `💰 Payment to Shop: ${shopPickupType === "pay_and_collect" ? `Pay & Collect ₹${shopBillAmount}` : "Prepaid (Already Paid)"}\n` +
         `📥 Deliver to: ${dropAddressData.address}`;
 
       const shopCoords = selectedShop?.location?.coordinates;
@@ -1247,19 +1156,34 @@ const PickupDelivery = () => {
         toast.error("Please enter LR / Booking / Waybill number");
         return;
       }
+      if (!cargoOriginCity.trim()) {
+        toast.error("Please select the cargo pickup location");
+        return;
+      }
+      if (!cargoParcelDetails.trim()) {
+        toast.error("Please describe the parcel contents");
+        return;
+      }
 
-      const selectedAddress = allAddresses.find(a => a._id === cargoSelectedAddressId || a.id === cargoSelectedAddressId);
+      const selectedAddress = cargoDropAddressOptions.find(a => a._id === cargoSelectedAddressId || a.id === cargoSelectedAddressId) ||
+        (cargoSelectedAddressId === "cargo_custom_drop" && cargoDropAddress.trim()
+          ? { name: cargoReceiverName, phone: cargoReceiverPhone, fullAddress: cargoDropAddress, address: cargoDropAddress, city: "Aswapuram", location: currentLocation?.latitude ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : { lat: 17.7833, lng: 80.8500 } }
+          : null);
       if (!selectedAddress) {
         toast.error("Please select your delivery address");
         return;
       }
+      if (!cargoReceiverName.trim() || !cargoReceiverPhone.trim()) {
+        toast.error("Please enter the receiver name and mobile number");
+        return;
+      }
 
-      finalPickupType = cargoUnpaidFreight > 0 ? "pay_and_collect" : "prepaid";
-      finalBillAmount = Number(cargoUnpaidFreight || 0);
+      finalPickupType = "prepaid";
+      finalBillAmount = 0;
 
       dropAddressData = {
-        name: selectedAddress.name || user?.name || "Customer",
-        phone: selectedAddress.phone || user?.phone || "",
+        name: cargoReceiverName || selectedAddress.name || user?.name || "Customer",
+        phone: cargoReceiverPhone || selectedAddress.phone || user?.phone || "",
         address: selectedAddress.fullAddress || selectedAddress.address,
         city: selectedAddress.city || "Aswapuram",
         location: selectedAddress.location || { lat: 17.7833, lng: 80.8500 }
@@ -1268,25 +1192,29 @@ const PickupDelivery = () => {
       parcelDetailsText = `🚚 [CARGO / BUS TO HOME PICKUP]\n` +
         `🏢 Cargo Point: ${cargoPointName}\n` +
         `📄 LR / Booking No: ${cargoLrNumber}\n` +
-        `📍 Origin: ${cargoOriginCity} ${cargoSenderContact ? `(Sender Contact: ${cargoSenderContact})` : ""}\n` +
+        `📍 Pickup: ${cargoOriginCity}\n` +
         `🔢 Parcels: ${cargoItemsCount || 1} | ⚖️ Weight: ${cargoWeight}\n` +
-        `💰 Counter Freight: ${cargoUnpaidFreight > 0 ? `Unpaid Freight ₹${cargoUnpaidFreight}` : "Prepaid"}\n` +
+        `📝 Details: ${cargoParcelDetails}${cargoInstructions ? ` | Instructions: ${cargoInstructions}` : ""}\n` +
         `📥 Deliver to: ${dropAddressData.address}`;
 
       pickupLocationData = {
         name: cargoPointName,
-        phone: cargoSenderContact || "",
-        address: selectedCargoPoint?.loc || cargoPointName,
-        location: currentLocation?.latitude ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : { lat: 17.7833, lng: 80.8500 },
+        phone: "",
+        address: cargoOriginCity || selectedCargoPoint?.loc || cargoPointName,
+        location: cargoPickupCoords || (currentLocation?.latitude ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : { lat: 17.7833, lng: 80.8500 }),
       };
 
       expressMetaData = {
         cargoPointName,
         lrNumber: cargoLrNumber,
         originCity: cargoOriginCity,
-        senderContact: cargoSenderContact,
+        senderContact: "",
         weight: cargoWeight,
         itemsCount: cargoItemsCount,
+        parcelDescription: cargoParcelDetails,
+        instructions: cargoInstructions,
+        receiverName: cargoReceiverName,
+        receiverPhone: cargoReceiverPhone,
       };
     }
 
@@ -1302,11 +1230,6 @@ const PickupDelivery = () => {
         toast.error("Please specify drop location");
         return;
       }
-      if (!riderInstructions.trim() && !uploadedImage) {
-        toast.error("Please provide instructions for the rider");
-        return;
-      }
-
       // Timing rules come from the admin panel (checked again on the server).
       let riderScheduledAtIso;
       if (riderTiming === "instant" && !timingRules.instantEnabled) {
@@ -1359,7 +1282,6 @@ const PickupDelivery = () => {
       };
 
       parcelDetailsText = `🛵 [RIDER PICKUP REQUEST]\n` +
-        `📋 Task: ${riderTaskTypes.find(t => t.id === riderTaskType)?.label || "Personal Errand"}\n` +
         `📝 Instructions: ${riderInstructions}\n` +
         `📏 Estimated Distance: ${calculatedDistance} km\n` +
         `⏱️ Schedule: ${riderTiming === "instant" ? "Immediate Instant Pickup" : `Scheduled: ${riderScheduleTime}`}\n` +
@@ -1367,7 +1289,6 @@ const PickupDelivery = () => {
         `📥 Drop: ${dropAddrStr} (Phone: ${riderReceiverPhone})`;
 
       expressMetaData = {
-        taskType: riderTaskType,
         instructions: riderInstructions,
         timing: riderTiming,
         // Full date-time: a bare "14:30" is not a valid date on the server and was dropped.
@@ -1384,7 +1305,7 @@ const PickupDelivery = () => {
         sellerId: targetSellerId,
         pickupAddress: pickupLocationData,
         parcelDetails: parcelDetailsText.trim(),
-        parcelImage: uploadedImage,
+        
         pickupType: finalPickupType,
         billAmount: finalBillAmount,
         address: dropAddressData,
@@ -1429,7 +1350,7 @@ const PickupDelivery = () => {
   };
 
   return (
-    <div className="max-w-xl mx-auto p-3.5 sm:p-4 pb-32 min-h-screen font-sans bg-slate-50/50">
+    <div className="express-booking-page max-w-xl mx-auto p-3.5 sm:p-4 pb-6 min-h-screen font-sans">
       
       {/* Header */}
       <div className="flex items-center justify-between mb-4 bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs">
@@ -1446,107 +1367,14 @@ const PickupDelivery = () => {
               <h1 className="text-base sm:text-lg font-black text-[#042A0F] tracking-tight">ATHREYA EXPRESS</h1>
             </div>
             <p className="text-[13px] sm:text-[13.5px] font-bold text-slate-700">
-              Instant pickup & delivery in Aswapuram
+              {activeTab === "cargo_to_home" ? "Cargo to Home Pickup" : activeTab === "rider_delivery" ? "Fast & Easy Rider Booking" : activeTab === "shop_to_home" ? "Fast & Easy Shop Delivery" : "Fast & Easy Home Delivery"}
             </p>
           </div>
         </div>
 
-        <button
-          onClick={() => triggerWhatsAppOrder()}
-          className="flex items-center gap-1 px-2.5 py-1.5 bg-[#25D366]/10 text-[#0d4d29] border border-[#25D366]/30 rounded-xl text-[13px] font-black hover:bg-[#25D366]/20 transition-colors"
-        >
-          <MessageSquare size={13} className="text-[#25D366]" />
-          <span>WhatsApp</span>
-        </button>
-      </div>
-
-      {/* Service Switcher Tabs */}
-      <div className="grid grid-cols-4 gap-1.5 mb-5 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-xs">
-        <button
-          onClick={() => setActiveTab("home_to_home")}
-          className={`flex flex-col items-center py-2 px-1 rounded-xl transition-all ${
-            activeTab === "home_to_home"
-              ? "bg-[#042A0F] text-white shadow-sm font-black"
-              : "text-slate-600 hover:bg-slate-50 font-bold"
-          }`}
-        >
-          <Home size={17} className={activeTab === "home_to_home" ? "text-[#A3E635]" : "text-slate-700"} />
-          <span className="text-[12.5px] mt-1 text-center leading-tight">Home to Home</span>
-          <span className="text-[11px] opacity-80 leading-none mt-0.5">ఇంటికి</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("shop_to_home")}
-          className={`flex flex-col items-center py-2 px-1 rounded-xl transition-all ${
-            activeTab === "shop_to_home"
-              ? "bg-[#042A0F] text-white shadow-sm font-black"
-              : "text-slate-600 hover:bg-slate-50 font-bold"
-          }`}
-        >
-          <Store size={17} className={activeTab === "shop_to_home" ? "text-[#A3E635]" : "text-slate-700"} />
-          <span className="text-[12.5px] mt-1 text-center leading-tight">Shop to Home</span>
-          <span className="text-[11px] opacity-80 leading-none mt-0.5">షాప్ నుండి</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("cargo_to_home")}
-          className={`flex flex-col items-center py-2 px-1 rounded-xl transition-all ${
-            activeTab === "cargo_to_home"
-              ? "bg-[#042A0F] text-white shadow-sm font-black"
-              : "text-slate-600 hover:bg-slate-50 font-bold"
-          }`}
-        >
-          <Truck size={17} className={activeTab === "cargo_to_home" ? "text-[#A3E635]" : "text-slate-700"} />
-          <span className="text-[12.5px] mt-1 text-center leading-tight">Cargo / Bus</span>
-          <span className="text-[11px] opacity-80 leading-none mt-0.5">కార్గో / బస్సు</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("rider_delivery")}
-          className={`flex flex-col items-center py-2 px-1 rounded-xl transition-all ${
-            activeTab === "rider_delivery"
-              ? "bg-[#042A0F] text-white shadow-sm font-black"
-              : "text-slate-600 hover:bg-slate-50 font-bold"
-          }`}
-        >
-          <Bike size={17} className={activeTab === "rider_delivery" ? "text-[#A3E635]" : "text-slate-700"} />
-          <span className="text-[12.5px] mt-1 text-center leading-tight">Rider Pickup</span>
-          <span className="text-[11px] opacity-80 leading-none mt-0.5">రైడర్ పికప్</span>
-        </button>
-      </div>
-
-      {/* Service Banner Showcase */}
-      <div className="relative rounded-2xl overflow-hidden mb-5 border border-emerald-900/20 shadow-md bg-gradient-to-r from-[#042A0F] to-[#0d4d29] p-3 text-white flex items-center justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1 text-[#A3E635] text-[13px] font-black uppercase tracking-wider mb-0.5">
-            <span>⚡ ATHREYA EXPRESS SERVICE</span>
-          </div>
-          <h2 className="text-[15px] sm:text-base font-black text-white leading-tight">
-            {activeTab === "home_to_home" && "Home to Home Parcel Delivery (ఇంటి నుండి ఇంటికి)"}
-            {activeTab === "shop_to_home" && "Shop to Home Express Delivery (షాప్ నుండి ఇంటికి)"}
-            {activeTab === "cargo_to_home" && "Cargo & Bus Stand Parcel Pickup (కార్గో / బస్సు పార్సెల్)"}
-            {activeTab === "rider_delivery" && "Book a Rider for Personal Tasks (రైడర్ పికప్)"}
-          </h2>
-          <p className="text-[13px] text-slate-300 font-medium mt-1 leading-snug">
-            {activeTab === "home_to_home" && "Send packages, clothes, documents or food anywhere in Aswapuram."}
-            {activeTab === "shop_to_home" && "Get groceries, stationery or items from local stores delivered right to your doorstep."}
-            {activeTab === "cargo_to_home" && "Rider collects your parcels from RTC bus stand or cargo transport offices."}
-            {activeTab === "rider_delivery" && "Send keys, urgent documents, lunch boxes or errands with a dedicated bike rider."}
-          </p>
-        </div>
-
-        <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-xl overflow-hidden bg-white/10 p-0.5 border border-white/20">
-          <img 
-            src={
-              activeTab === "home_to_home" ? homeToHomeImg :
-              activeTab === "shop_to_home" ? shopToHomeImg :
-              activeTab === "cargo_to_home" ? cargoToHomeImg :
-              shopToHomeImg
-            }
-            alt="Service"
-            className="w-full h-full object-cover rounded-lg"
-          />
-        </div>
+        <span className="express-service-badge">
+          {activeTab === "cargo_to_home" ? "CARGO" : activeTab === "rider_delivery" ? "RIDER" : activeTab === "shop_to_home" ? "SHOP" : "HOME TO HOME"}
+        </span>
       </div>
 
       {/* ========================================================
@@ -1558,11 +1386,11 @@ const PickupDelivery = () => {
           <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
             <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
               <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">1</span>
-              Pickup Location (ఎక్కడ నుండి పికప్ చేయాలి)
+              Pickup Details
             </h3>
 
-            <div className="space-y-2.5">
-              <div>
+            <div className="express-h2h-pickup-fields">
+              <div className="express-h2h-pickup-address">
                 <div className="flex justify-between items-center mb-1">
                   <Label className="text-[13.5px] font-bold text-slate-700">Sender Pickup Address</Label>
                   <button 
@@ -1571,6 +1399,9 @@ const PickupDelivery = () => {
                     className="text-[13px] font-black text-emerald-700 hover:underline flex items-center gap-0.5"
                   >
                     <Navigation size={10} /> Use GPS Location
+                  </button>
+                  <button type="button" onClick={() => setIsH2hPickupMapOpen(true)} className="text-[13px] font-black text-emerald-700 hover:underline flex items-center gap-0.5">
+                    <MapPin size={10} /> Choose on Map
                   </button>
                 </div>
                 <Input
@@ -1590,7 +1421,7 @@ const PickupDelivery = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="express-h2h-sender grid grid-cols-2 gap-2">
                 <div>
                   <Label className="text-[13px] font-bold text-slate-700">Sender Name</Label>
                   <Input
@@ -1601,7 +1432,7 @@ const PickupDelivery = () => {
                   />
                 </div>
                 <div>
-                  <Label className="text-[13px] font-bold text-slate-700">Sender Phone</Label>
+                  <Label className="text-[13px] font-bold text-slate-700">Sender Mobile</Label>
                   <Input
                     placeholder="10-digit mobile"
                     value={h2hSenderPhone}
@@ -1610,6 +1441,7 @@ const PickupDelivery = () => {
                   />
                 </div>
               </div>
+
             </div>
           </Card>
 
@@ -1617,11 +1449,11 @@ const PickupDelivery = () => {
           <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3 overflow-visible">
             <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
               <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">2</span>
-              Drop Location (ఎక్కడికి డెలివరీ చేయాలి)
+              Delivery Details
             </h3>
 
-            <div className="space-y-2.5">
-              <div>
+            <div className="express-h2h-drop-fields">
+              <div className="express-h2h-drop-address">
                 <div className="flex justify-between items-center mb-1">
                   <Label className="text-[13.5px] font-bold text-slate-700">Select Saved Address or Type Custom</Label>
                   <button
@@ -1654,16 +1486,7 @@ const PickupDelivery = () => {
               </div>
 
               {/* Live estimated distance for the selected drop point */}
-              {h2hSelectedDropAddressId && h2hSelectedDropAddressId !== "custom_drop" && (
-                <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-100 rounded-xl">
-                  <Navigation size={14} className="text-emerald-700 shrink-0" />
-                  <span className="text-[13.5px] font-bold text-emerald-900">
-                    Distance by road: <span className="font-black">{calculatedDistance == null ? "Verifying locations…" : `${calculatedDistance} km`}</span>
-                  </span>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-2">
+              <div className="express-h2h-receiver grid grid-cols-2 gap-2">
                 <div>
                   <Label className="text-[13px] font-bold text-slate-700">Receiver Name</Label>
                   <Input
@@ -1674,7 +1497,7 @@ const PickupDelivery = () => {
                   />
                 </div>
                 <div>
-                  <Label className="text-[13px] font-bold text-slate-700">Receiver Phone</Label>
+                  <Label className="text-[13px] font-bold text-slate-700">Mobile Number</Label>
                   <Input
                     placeholder="Receiver Mobile"
                     value={h2hReceiverPhone || h2hDropAddressOptions.find((address) => address._id === h2hSelectedDropAddressId || address.id === h2hSelectedDropAddressId)?.phone || ""}
@@ -1693,30 +1516,8 @@ const PickupDelivery = () => {
               Parcel Details (పార్సెల్ వివరాలు)
             </h3>
 
-            {/* Category selection */}
             <div>
-              <Label className="text-[13.5px] font-bold text-slate-700 mb-1.5 block">What are you sending?</Label>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
-                {parcelCategories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setH2hParcelCategory(cat.id)}
-                    className={`p-2 rounded-xl border text-center transition-all flex flex-col items-center ${
-                      h2hParcelCategory === cat.id
-                        ? "bg-emerald-50 border-[#16a34a] text-[#042A0F] font-black ring-1 ring-[#16a34a]"
-                        : "bg-slate-50 border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
-                    }`}
-                  >
-                    <span className="text-base">{cat.icon}</span>
-                    <span className="text-[12px] mt-0.5 line-clamp-1 leading-tight">{cat.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-[13.5px] font-bold text-slate-700">Description / Contents</Label>
+              <Label className="text-[13.5px] font-bold text-slate-700">Parcel Description *</Label>
               <Textarea
                 placeholder="E.g., 2 shirts & 1 pant in sealed plastic bag, handle with care"
                 value={h2hParcelDetails}
@@ -1753,21 +1554,9 @@ const PickupDelivery = () => {
               </div>
             </div>
 
-            {/* Optional Photo */}
             <div>
-              <Label className="text-[13.5px] font-bold text-slate-700">Parcel Photo (Optional)</Label>
-              <div className="mt-1 flex items-center gap-3">
-                <label className="flex items-center gap-2 px-3 py-2 bg-slate-100 border border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-slate-200 text-[13.5px] font-bold text-slate-600">
-                  <Upload size={14} />
-                  <span>{uploading ? "Uploading..." : "Attach Photo"}</span>
-                  <input type="file" onChange={handleImageUpload} className="hidden" accept="image/*" />
-                </label>
-                {uploadedImage && (
-                  <div className="w-12 h-12 rounded-xl overflow-hidden border border-slate-200">
-                    <img src={uploadedImage} alt="Parcel" className="w-full h-full object-cover" />
-                  </div>
-                )}
-              </div>
+              <Label className="text-[13.5px] font-bold text-slate-700">Instructions (Optional)</Label>
+              <Textarea value={h2hInstructions} onChange={(e) => setH2hInstructions(e.target.value)} placeholder="Enter instructions..." className="mt-1 text-[13.5px] bg-slate-50 rounded-xl" rows={2} />
             </div>
           </Card>
         </div>
@@ -1777,9 +1566,9 @@ const PickupDelivery = () => {
           FLOW 2: SHOP TO HOME PICKUP
       ======================================================== */}
       {activeTab === "shop_to_home" && (
-        <div className="space-y-4">
+        <div className="express-shop-flow">
           {/* Step 1: Select Shop */}
-          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3 overflow-visible">
+          <Card className="express-shop-company p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3 overflow-visible">
             <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
               <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">1</span>
               Select Shop in Aswapuram (షాప్ ఎంచుకోండి)
@@ -1815,10 +1604,10 @@ const PickupDelivery = () => {
             </div>
           </Card>
 
-          {/* Step 2: Items / Written List */}
-          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
+          {/* Step 3: Shopping Details */}
+          <Card className="express-shop-items p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
             <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">2</span>
+              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">3</span>
               Items List / Bill (వస్తువుల వివరాలు)
             </h3>
 
@@ -1861,76 +1650,17 @@ const PickupDelivery = () => {
             </div>
 
             <div>
-              <Label className="text-[13.5px] font-bold text-slate-700">Upload Handwritten List or Shop Bill Photo (Optional)</Label>
-              <div className="mt-1 flex items-center gap-3">
-                <label className="flex items-center gap-2 px-3 py-2 bg-slate-100 border border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-slate-200 text-[13.5px] font-bold text-slate-600">
-                  <Upload size={14} />
-                  <span>{uploading ? "Uploading..." : "Upload Photo / Bill"}</span>
-                  <input type="file" onChange={handleImageUpload} className="hidden" accept="image/*" />
-                </label>
-                {uploadedImage && (
-                  <div className="w-12 h-12 rounded-xl overflow-hidden border border-slate-200">
-                    <img src={uploadedImage} alt="Shop Proof" className="w-full h-full object-cover" />
-                  </div>
-                )}
-              </div>
-            </div>
-          </Card>
-
-          {/* Step 3: Shop Payment Collection Type */}
-          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
-            <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">3</span>
-              Store Payment (షాప్ బిల్లు ఎవరు చెల్లిస్తారు?)
-            </h3>
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setShopPickupType("prepaid")}
-                className={`p-2.5 rounded-xl border text-left transition-all ${
-                  shopPickupType === "prepaid"
-                    ? "bg-emerald-50 border-[#16a34a] text-[#042A0F] font-black ring-1 ring-[#16a34a]"
-                    : "bg-slate-50 border-slate-200 text-slate-600 font-bold"
-                }`}
-              >
-                <div className="text-[13.5px] font-black">Prepaid (నేను చెల్లించాను)</div>
-                <div className="text-[12px] text-slate-700 mt-0.5">I already paid the shop. Rider only picks up.</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShopPickupType("pay_and_collect")}
-                className={`p-2.5 rounded-xl border text-left transition-all ${
-                  shopPickupType === "pay_and_collect"
-                    ? "bg-emerald-50 border-[#16a34a] text-[#042A0F] font-black ring-1 ring-[#16a34a]"
-                    : "bg-slate-50 border-slate-200 text-slate-600 font-bold"
-                }`}
-              >
-                <div className="text-[13.5px] font-black">Pay & Collect (రైడర్ చెల్లింపు)</div>
-                <div className="text-[12px] text-slate-700 mt-0.5">Rider pays the shop bill & collects cash at home.</div>
-              </button>
+              <Label className="text-[13.5px] font-bold text-slate-700">Instructions (Optional)</Label>
+              <Textarea value={shopInstructions} onChange={(e) => setShopInstructions(e.target.value)} placeholder="Enter item instructions..." className="mt-1 text-[13.5px] bg-slate-50 rounded-xl" rows={2} />
             </div>
 
-            {shopPickupType === "pay_and_collect" && (
-              <div className="mt-2 p-2.5 bg-amber-50 rounded-xl border border-amber-200">
-                <Label className="text-[13.5px] font-black text-amber-900">Estimated Shop Bill Amount (₹)</Label>
-                <Input
-                  type="number"
-                  placeholder="Enter estimated bill amount e.g. 250"
-                  value={shopBillAmount}
-                  onChange={(e) => setShopBillAmount(e.target.value)}
-                  className="mt-1 text-[13.5px] font-bold bg-white rounded-xl"
-                />
-              </div>
-            )}
           </Card>
 
-          {/* Step 4: Home Address */}
-          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3 overflow-visible">
+          {/* Step 2: Delivery Address */}
+          <Card className="express-shop-address p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3 overflow-visible">
             <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">4</span>
-              Home Delivery Address (డెలివరీ చిరునామా)
+              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">2</span>
+              Delivery Address
             </h3>
 
             <AddressDropdown
@@ -1948,16 +1678,16 @@ const PickupDelivery = () => {
           FLOW 3: CARGO TO HOME PICKUP
       ======================================================== */}
       {activeTab === "cargo_to_home" && (
-        <div className="space-y-4">
+        <div className="express-cargo-flow">
           {/* Step 1: Select Cargo Point */}
-          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3 overflow-visible">
+          <Card className="express-cargo-pickup p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3 overflow-visible">
             <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
               <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">1</span>
-              Select Cargo / Bus Stand Point (రవాణా పాయింట్)
+              Cargo Pickup Details
             </h3>
 
             <div>
-              <Label className="text-[13.5px] font-bold text-slate-700">Transport Counter</Label>
+              <Label className="text-[13.5px] font-bold text-slate-700">Cargo Company Name *</Label>
               <CargoPointDropdown
                 points={cargoPoints}
                 value={selectedCargoPointId}
@@ -1972,48 +1702,31 @@ const PickupDelivery = () => {
                   className="text-[13.5px] bg-slate-50 rounded-xl mt-2"
                 />
               )}
+              <div className="mt-3">
+                <Label className="text-[13.5px] font-bold text-slate-700">LR Number *</Label>
+                <Input placeholder="Enter LR number" value={cargoLrNumber} onChange={(e) => setCargoLrNumber(e.target.value)} className="mt-1 text-[13.5px] bg-slate-50 rounded-xl" />
+              </div>
+              <div className="mt-3">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-[13.5px] font-bold text-slate-700">Pickup Location *</Label>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => { setCargoOriginCity(currentLocation?.name || currentLocation?.address || "Current Location"); setCargoPickupCoords(currentLocation?.latitude ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : null); }} className="text-xs font-bold text-emerald-600">Current Location</button>
+                    <button type="button" onClick={() => setIsCargoMapOpen(true)} className="text-xs font-bold text-emerald-600">Choose on Map</button>
+                  </div>
+                </div>
+                <Input placeholder="Select pickup location" value={cargoOriginCity} onChange={(e) => { setCargoOriginCity(e.target.value); setCargoPickupCoords(null); }} className="mt-1 text-[13.5px] bg-slate-50 rounded-xl" />
+              </div>
             </div>
           </Card>
 
-          {/* Step 2: LR / Booking Details */}
-          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
+          {/* Step 3: Parcel Details */}
+          <Card className="express-cargo-parcel p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
             <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">2</span>
-              Booking & Parcel Info (రసీదు & బుకింగ్ వివరాలు)
+              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">3</span>
+              Parcel Details
             </h3>
 
             <div className="space-y-2.5">
-              <div>
-                <Label className="text-[13.5px] font-bold text-slate-700">LR Number / Booking Receipt / Bus Ticket No</Label>
-                <Input
-                  placeholder="E.g. LR # 9845120 or Bus No AP29Z..."
-                  value={cargoLrNumber}
-                  onChange={(e) => setCargoLrNumber(e.target.value)}
-                  className="text-[13.5px] font-bold bg-slate-50 rounded-xl mt-1 uppercase"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label className="text-[13px] font-bold text-slate-700">Origin / Sent From</Label>
-                  <Input
-                    placeholder="E.g. Hyderabad / Khammam"
-                    value={cargoOriginCity}
-                    onChange={(e) => setCargoOriginCity(e.target.value)}
-                    className="text-[13.5px] rounded-xl bg-slate-50 mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[13px] font-bold text-slate-700">Sender Phone (Optional)</Label>
-                  <Input
-                    placeholder="Sender mobile"
-                    value={cargoSenderContact}
-                    onChange={(e) => setCargoSenderContact(e.target.value)}
-                    className="text-[13.5px] rounded-xl bg-slate-50 mt-1"
-                  />
-                </div>
-              </div>
-
               {/* Items count + Weight — helps the rider judge the bike load */}
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -2042,57 +1755,52 @@ const PickupDelivery = () => {
               </div>
 
               <div>
-                <Label className="text-[13.5px] font-bold text-slate-700">Upload LR / Booking Photo (Optional)</Label>
-                <div className="mt-1 flex items-center gap-3">
-                  <label className="flex items-center gap-2 px-3 py-2 bg-slate-100 border border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-slate-200 text-[13.5px] font-bold text-slate-600">
-                    <Upload size={14} />
-                    <span>{uploading ? "Uploading..." : "Upload LR Photo"}</span>
-                    <input type="file" onChange={handleImageUpload} className="hidden" accept="image/*" />
-                  </label>
-                  {uploadedImage && (
-                    <div className="w-12 h-12 rounded-xl overflow-hidden border border-slate-200">
-                      <img src={uploadedImage} alt="LR Copy" className="w-full h-full object-cover" />
-                    </div>
-                  )}
-                </div>
+                <Label className="text-[13.5px] font-bold text-slate-700">Parcel Description</Label>
+                <Textarea value={cargoParcelDetails} onChange={(e) => setCargoParcelDetails(e.target.value)} placeholder="Enter parcel details" className="mt-1 text-[13.5px] bg-slate-50 rounded-xl" rows={2} />
+              </div>
+              <div>
+                <Label className="text-[13.5px] font-bold text-slate-700">Special Instructions (Optional)</Label>
+                <Textarea value={cargoInstructions} onChange={(e) => setCargoInstructions(e.target.value)} placeholder="Enter instructions..." className="mt-1 text-[13.5px] bg-slate-50 rounded-xl" rows={2} />
+              </div>
+
+            </div>
+          </Card>
+
+          {/* Step 2: Customer Details */}
+          <Card className="express-cargo-customer p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3 overflow-visible">
+            <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">2</span>
+              Customer Details
+            </h3>
+
+            <div className="grid grid-cols-2 gap-2">
+              <Input placeholder="Receiver Name *" value={cargoReceiverName} onChange={(e) => setCargoReceiverName(e.target.value)} className="text-[13.5px] bg-slate-50 rounded-xl" />
+              <Input placeholder="Mobile Number *" value={cargoReceiverPhone} onChange={(e) => setCargoReceiverPhone(e.target.value)} className="text-[13.5px] bg-slate-50 rounded-xl" />
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-[13.5px] font-bold text-slate-700">Home Delivery Address *</Label>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setCargoSelectedAddressId("current_location_temp")} className="text-xs font-bold text-emerald-600">Current Location</button>
+                <button type="button" onClick={() => setIsCargoDropMapOpen(true)} className="text-xs font-bold text-emerald-600">Choose on Map</button>
               </div>
             </div>
-          </Card>
-
-          {/* Step 3: Freight Charges */}
-          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
-            <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">3</span>
-              Freight Payment at Counter (కౌంటర్ చెల్లింపు)
-            </h3>
-
-            <div>
-              <Label className="text-[13.5px] font-bold text-slate-700">Unpaid Freight Charges to Pay at Counter (₹)</Label>
-              <Input
-                type="number"
-                placeholder="Leave 0 if freight is already prepaid"
-                value={cargoUnpaidFreight}
-                onChange={(e) => setCargoUnpaidFreight(e.target.value)}
-                className="mt-1 text-[13.5px] font-bold bg-slate-50 rounded-xl"
-              />
-              <p className="text-[12.5px] text-slate-600 mt-1">If "To-Pay / Unpaid", rider will pay this amount at cargo counter and collect from you.</p>
-            </div>
-          </Card>
-
-          {/* Step 4: Home Delivery Address */}
-          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3 overflow-visible">
-            <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">4</span>
-              Home Delivery Address (డెలివరీ చిరునామా)
-            </h3>
-
             <AddressDropdown
-              options={allAddresses}
+              options={cargoDropAddressOptions}
               value={cargoSelectedAddressId}
-              onChange={setCargoSelectedAddressId}
-              allowCustom={false}
+              onChange={(id) => {
+                setCargoSelectedAddressId(id);
+                const address = allAddresses.find((item) => item._id === id || item.id === id);
+                if (address) {
+                  setCargoReceiverName(address.name || "");
+                  setCargoReceiverPhone(address.phone || "");
+                }
+              }}
+              allowCustom={true}
+              customValue="cargo_custom_drop"
+              customLabel="Other / Custom Delivery Address"
               label="Select Delivery Address"
             />
+            {cargoSelectedAddressId === "cargo_custom_drop" && <Input placeholder="Enter delivery address" value={cargoDropAddress} onChange={(e) => setCargoDropAddress(e.target.value)} className="text-[13.5px] bg-slate-50 rounded-xl" />}
           </Card>
         </div>
       )}
@@ -2101,37 +1809,17 @@ const PickupDelivery = () => {
           FLOW 4: RIDER DELIVERY REQUEST
       ======================================================== */}
       {activeTab === "rider_delivery" && (
-        <div className="space-y-4">
-          {/* Step 1: Task Type */}
-          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
+        <div className="express-rider-flow">
+          {/* Step 2: Rider Instructions */}
+          <Card className="express-rider-instructions p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
             <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">1</span>
-              Task Category (రైడర్ ఏ పని చేయాలి?)
+              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">2</span>
+              Rider Instructions (Optional)
             </h3>
 
-            <div className="grid grid-cols-3 gap-1.5">
-              {riderTaskTypes.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setRiderTaskType(t.id)}
-                  className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center ${
-                    riderTaskType === t.id
-                      ? "bg-emerald-50 border-[#16a34a] text-[#042A0F] font-black ring-1 ring-[#16a34a]"
-                      : "bg-slate-50 border-slate-200 text-slate-600 font-bold hover:bg-slate-100"
-                  }`}
-                >
-                  <span className="text-base">{t.icon}</span>
-                  <span className="text-[12.5px] mt-1 line-clamp-1 font-black leading-tight">{t.label}</span>
-                  <span className="text-[11px] text-slate-600 mt-0.5">{t.telugu}</span>
-                </button>
-              ))}
-            </div>
-
             <div>
-              <Label className="text-[13.5px] font-bold text-slate-700">Detailed Instructions for Rider</Label>
               <Textarea
-                placeholder="E.g., Go to SBI Bank Aswapuram, collect documents envelope from Mr. Ramesh, and deliver to my home."
+                placeholder="Enter instructions for rider..."
                 value={riderInstructions}
                 onChange={(e) => setRiderInstructions(e.target.value)}
                 className="mt-1 text-[13.5px] bg-slate-50 rounded-xl"
@@ -2141,10 +1829,10 @@ const PickupDelivery = () => {
           </Card>
 
           {/* Step 2: Pickup & Drop Points */}
-          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3 overflow-visible">
+          <Card className="express-rider-route p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3 overflow-visible">
             <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">2</span>
-              Route: Pickup & Drop Points
+              <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">1</span>
+              Pickup & Drop Location
             </h3>
 
             <div className="space-y-3">
@@ -2157,6 +1845,9 @@ const PickupDelivery = () => {
                     className="text-[13px] font-black text-emerald-700 hover:underline flex items-center gap-0.5"
                   >
                     <Navigation size={10} /> Use GPS
+                  </button>
+                  <button type="button" onClick={() => setIsRiderPickupMapOpen(true)} className="text-[13px] font-black text-emerald-700 hover:underline flex items-center gap-0.5">
+                    <MapPin size={10} /> Choose on Map
                   </button>
                 </div>
                 <Input
@@ -2212,10 +1903,10 @@ const PickupDelivery = () => {
           </Card>
 
           {/* Step 3: Timing */}
-          <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
+          <Card className="express-rider-timing p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
             <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
               <span className="w-5 h-5 rounded-full bg-[#042A0F] text-white flex items-center justify-center text-[13px]">3</span>
-              Timing & Schedule
+              When do you need it?
             </h3>
 
             <div className="grid grid-cols-2 gap-2">
@@ -2290,54 +1981,16 @@ const PickupDelivery = () => {
       )}
 
       {/* ========================================================
-          FLOW 5: WHATSAPP DIRECT ORDER
+          BILLING & BOOKING ACTION
       ======================================================== */}
-      {activeTab === "whatsapp" && (
-        <Card className="p-5 bg-white border border-emerald-200 rounded-3xl shadow-md text-center space-y-4">
-          <div className="w-16 h-16 rounded-full bg-[#25D366]/10 text-[#25D366] flex items-center justify-center mx-auto text-3xl shadow-inner border border-[#25D366]/20">
-            💬
-          </div>
-
-          <div>
-            <h3 className="text-base font-black text-slate-900">
-              WhatsApp Direct Order (వాట్సాప్ ద్వారా ఆర్డర్)
-            </h3>
-            <p className="text-[13.5px] text-slate-700 mt-1 max-w-sm mx-auto">
-              Prefer chatting on WhatsApp? Tap below to send your pickup or shopping list directly to our operations team.
-            </p>
-          </div>
-
-          <div className="p-3 bg-emerald-50/70 border border-emerald-100 rounded-2xl text-left text-[13.5px] font-medium text-slate-700 space-y-1">
-            <p className="font-black text-[#042A0F]">⚡ How WhatsApp Order Works:</p>
-            <p>1. Tap the green button below to open official Athreya WhatsApp chat.</p>
-            <p>2. Pre-filled request is prepared with your location details.</p>
-            <p>3. Operations team confirms your order & assigns a rider immediately.</p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => triggerWhatsAppOrder()}
-            className="w-full py-3.5 bg-[#25D366] hover:bg-[#20bd5a] text-[#042A0F] rounded-2xl font-black text-[15px] uppercase tracking-wide flex items-center justify-center gap-2 shadow-md active:scale-98 transition-all cursor-pointer"
-          >
-            <MessageSquare size={18} />
-            <span>Order via WhatsApp Now &gt;</span>
-          </button>
-        </Card>
-      )}
-
-      {/* ========================================================
-          BILLING, PAYMENT & BOOKING ACTION (For Tabs 1 to 4)
-      ======================================================== */}
-      {activeTab !== "whatsapp" && (
-        <div className="mt-5 space-y-4">
+      <div className="mt-5 space-y-4">
           {routeSummaryReady && (
             <Card className="overflow-hidden border border-emerald-200 bg-white p-4 shadow-sm space-y-3">
               <div>
-                <Translated as="h2" text="Your route summary" className="text-sm font-black uppercase tracking-wide text-slate-900" />
-                <Translated as="p" text="Review the trip distance, time and estimated bill before booking." className="mt-0.5 text-xs font-medium text-slate-500" />
+                  <Translated as="h2" text="Delivery Details" className="text-sm font-black uppercase tracking-wide text-slate-900" />
               </div>
 
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                   <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase text-slate-500">
                     <Navigation size={13} /> <Translated text="Distance" />
@@ -2358,25 +2011,17 @@ const PickupDelivery = () => {
                 </div>
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
                   <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase text-emerald-800">
-                    <IndianRupee size={13} /> <Translated text="Bill" />
+                    <IndianRupee size={13} /> <Translated text="Fee" />
                   </div>
                   <div className="mt-1 text-base font-black text-emerald-950">
                     {estimatedTotalBill === null ? "Calculating…" : moneyLabel(estimatedTotalBill)}
                   </div>
-                  {estimatedTotalBill !== null && extraBillAmount > 0 && (
-                    <div className="mt-1 text-[10px] font-semibold leading-tight text-emerald-800">
-                      Includes ride {moneyLabel(rideFareAmount)} + {activeTab === "shop_to_home" ? "shop bill" : "cargo freight"} {moneyLabel(extraBillAmount)}
-                    </div>
-                  )}
-                  {estimatedTotalBill !== null && extraBillAmount === 0 && (
-                    <div className="mt-1 text-[10px] font-semibold text-emerald-800">Estimated ride bill</div>
-                  )}
                 </div>
                 <a
                   href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(`${quoteInput.pickup.lat},${quoteInput.pickup.lng}`)}&destination=${encodeURIComponent(`${quoteInput.drop.lat},${quoteInput.drop.lng}`)}&travelmode=driving`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex flex-col justify-center rounded-xl border border-sky-200 bg-sky-50 p-3 text-sky-900 hover:bg-sky-100"
+                  className="col-span-3 flex flex-row items-center justify-start gap-2 rounded-xl border-0 bg-transparent p-0 text-emerald-500 hover:bg-transparent sm:col-span-1"
                 >
                   <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase">
                     <Map size={14} /> <Translated text="Map" />
@@ -2384,16 +2029,12 @@ const PickupDelivery = () => {
                   <Translated as="div" text="View route" className="mt-1 text-sm font-black" />
                 </a>
               </div>
-
-              <ExpressRouteMap origin={quoteInput.pickup} destination={quoteInput.drop} />
-              <Translated as="p" text="Distance and ride bill update from the server quote. Shop bill or cargo freight is shown separately when entered." className="text-[10px] font-medium text-slate-500" />
             </Card>
           )}
 
-          {/* Show the live server quote alongside payment choices. */}
           <Card className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs space-y-3">
             <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide">
-              Payment Details
+              {activeTab === "cargo_to_home" ? "Delivery Fee Payment" : "Payment Method"}
             </h3>
 
             <div className="divide-y divide-slate-100 text-[13.5px]">
@@ -2408,31 +2049,6 @@ const PickupDelivery = () => {
                   This location is outside the Athreya Express service area (maximum {fareQuote?.maxDistanceKm} km). Please choose a closer location.
                 </div>
               )}
-              <p className="py-2 text-[12px] font-medium text-slate-500">
-                Ride fare is estimated from the selected route. Any shop bill or cargo freight shown above is based on the amount entered.
-              </p>
-              <div className="space-y-0.5 rounded-xl border border-emerald-100 bg-emerald-50/70 px-3 py-1 text-[13px]">
-                <div className="flex items-center justify-between gap-3 py-2">
-                  <span className="font-semibold text-slate-600">Distance</span>
-                  <span className="text-right font-black text-slate-900">
-                    {fareQuote?.distanceKm != null
-                      ? `${Number(fareQuote.distanceKm).toFixed(1)} km`
-                      : quoteInput ? `${Number(calculatedDistance).toFixed(1)} km (approx.)` : "Select locations"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-3 border-t border-emerald-100 py-2">
-                  <span className="font-semibold text-slate-600">Estimated time</span>
-                  <span className="text-right font-black text-slate-900">
-                    {fareQuote?.eta?.label || (quoteInput ? "Calculating…" : "Select locations")}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-3 border-t border-emerald-100 py-2">
-                  <span className="font-semibold text-slate-600">Delivery Fee</span>
-                  <span className="text-right font-black text-emerald-900">
-                    {Number.isFinite(rideFareAmount) ? moneyLabel(rideFareAmount) : (quoteInput ? "Calculating…" : "Select locations")}
-                  </span>
-                </div>
-              </div>
             </div>
 
             {/* Payment Mode Selector */}
@@ -2448,7 +2064,7 @@ const PickupDelivery = () => {
                       : "bg-slate-50 border-slate-200 text-slate-600 font-bold"
                   }`}
                 >
-                  💵 Cash on Delivery (COD)
+                  💵 Cash to Rider (COD)
                 </button>
 
                 {onlinePaymentOn && (
@@ -2461,7 +2077,7 @@ const PickupDelivery = () => {
                       : "bg-slate-50 border-slate-200 text-slate-600 font-bold"
                   }`}
                 >
-                  💳 UPI / Online Payment
+                  💳 Online Payment
                 </button>
                 )}
               </div>
@@ -2475,14 +2091,15 @@ const PickupDelivery = () => {
             onClick={handleBookingSubmit}
             className="w-full py-3.5 bg-[#042A0F] hover:bg-[#063A16] disabled:opacity-70 text-white rounded-2xl font-black text-[15px] uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg active:scale-98 transition-all cursor-pointer"
           >
-            <span>{submitting ? "Booking Rider..." : "⚡ Confirm Athreya Express Order"}</span>
+            <span>
+              {submitting ? "Confirming booking..." : `⚡ Confirm ${activeTab === "cargo_to_home" ? "Cargo Order" : activeTab === "rider_delivery" ? "Rider Booking" : activeTab === "shop_to_home" ? "Shop Order" : "Express Order"}`}
+            </span>
           </button>
 
           <p className="text-center text-[13px] text-slate-700 font-medium">
-            🔒 Safe & instant delivery by verified Athreya Delivery Partners in Aswapuram
+            Safe & reliable delivery by verified Athreya delivery partners
           </p>
-        </div>
-      )}
+      </div>
 
       {/* Drop location pickers — GPS / drag-pin, Rapido-style. Confirming turns
           the pin into an address entry the distance/fare/submit logic already
@@ -2505,6 +2122,20 @@ const PickupDelivery = () => {
         }}
       />
       <MapPicker
+        isOpen={isH2hPickupMapOpen}
+        onClose={() => setIsH2hPickupMapOpen(false)}
+        mode="point"
+        title="Select Pickup Location"
+        searchPlaceholder="Search pickup address in Aswapuram..."
+        confirmLabel="Use This Location"
+        initialLocation={currentLocation?.latitude ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : null}
+        onConfirm={(result) => {
+          setH2hPickupAddress(result.address || "Selected pickup location");
+          setH2hPickupCoords({ lat: result.lat, lng: result.lng });
+          setH2hPickupCoordsAddress((result.address || "Selected pickup location").trim());
+        }}
+      />
+      <MapPicker
         isOpen={isRiderMapOpen}
         onClose={() => setIsRiderMapOpen(false)}
         mode="point"
@@ -2519,6 +2150,45 @@ const PickupDelivery = () => {
         onConfirm={(result) => {
           setRiderMapDropAddress(result);
           setRiderSelectedAddressId("rider_map_drop");
+        }}
+      />
+      <MapPicker
+        isOpen={isCargoMapOpen}
+        onClose={() => setIsCargoMapOpen(false)}
+        mode="point"
+        title="Select Cargo Pickup Location"
+        searchPlaceholder="Search cargo pickup address..."
+        confirmLabel="Use This Location"
+        initialLocation={currentLocation?.latitude ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : null}
+        onConfirm={(result) => {
+          setCargoOriginCity(result.address || result.name || "Selected pickup location");
+          setCargoPickupCoords({ lat: result.lat, lng: result.lng });
+        }}
+      />
+      <MapPicker
+        isOpen={isCargoDropMapOpen}
+        onClose={() => setIsCargoDropMapOpen(false)}
+        mode="point"
+        title="Select Delivery Location"
+        searchPlaceholder="Search delivery address..."
+        confirmLabel="Use This Location"
+        initialLocation={currentLocation?.latitude ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : null}
+        onConfirm={(result) => {
+          setCargoMapDropAddress(result);
+          setCargoSelectedAddressId("cargo_map_drop");
+        }}
+      />
+      <MapPicker
+        isOpen={isRiderPickupMapOpen}
+        onClose={() => setIsRiderPickupMapOpen(false)}
+        mode="point"
+        title="Select Pickup Location"
+        searchPlaceholder="Search pickup address..."
+        confirmLabel="Use This Location"
+        initialLocation={currentLocation?.latitude ? { lat: currentLocation.latitude, lng: currentLocation.longitude } : null}
+        onConfirm={(result) => {
+          setRiderPickupLoc(result.address || result.name || "Selected pickup location");
+          setRiderPickupCoords({ lat: result.lat, lng: result.lng });
         }}
       />
     </div>
