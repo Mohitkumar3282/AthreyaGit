@@ -699,8 +699,6 @@ const PickupDelivery = () => {
       if (!riderPickupLoc && currentLocAddress) setRiderPickupLoc(currentLocAddress.fullAddress);
     }
   }, [allAddresses, currentLocAddress, h2hPickupAddress]);
-<<<<<<< HEAD
-
   useEffect(() => {
     const selected = allAddresses.find((address) => address._id === cargoSelectedAddressId || address.id === cargoSelectedAddressId);
     if (selected) {
@@ -708,8 +706,6 @@ const PickupDelivery = () => {
       setCargoReceiverPhone((phone) => phone || selected.phone || user?.phone || user?.phoneNumber || "");
     }
   }, [allAddresses, cargoSelectedAddressId, user?.name, user?.phone, user?.phoneNumber]);
-=======
->>>>>>> 39610c25a20d3d7cf499734140effe26dca0fc41
 
   // Load saved profile addresses
   useEffect(() => {
@@ -929,11 +925,7 @@ const PickupDelivery = () => {
     activeTab, currentLocation, allAddresses, shops, selectedShopId,
     h2hDropAddressOptions, riderDropAddressOptions,
     h2hSelectedDropAddressId, h2hWeight, shopSelectedAddressId, shopWeight,
-<<<<<<< HEAD
     cargoSelectedAddressId, cargoDropAddressOptions, cargoDropAddress, cargoWeight, cargoPickupCoords, riderSelectedAddressId, riderTiming,
-=======
-    cargoSelectedAddressId, cargoWeight, riderSelectedAddressId, riderTiming,
->>>>>>> 39610c25a20d3d7cf499734140effe26dca0fc41
     h2hPickupCoords, h2hPickupCoordsAddress, h2hPickupAddress, currentLocAddress, riderPickupCoords,
   ]);
 
