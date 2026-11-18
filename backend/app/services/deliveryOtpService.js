@@ -3,7 +3,7 @@ import Order from '../models/order.js';
 import ReturnRequest from '../models/returnRequest.js';
 import CancellationRequest from '../models/cancellationRequest.js';
 import OrderOtp from '../models/orderOtp.js';
-import { checkProximity } from './proximityService.js';
+import { checkProximity, getOtpRadiusMeters } from './proximityService.js';
 import { emitToCustomer, emitOrderStatusUpdate } from './orderSocketEmitter.js';
 import { orderMatchQueryFromRouteParam } from '../utils/orderLookup.js';
 
@@ -141,7 +141,7 @@ export async function generateDeliveryOtp(orderId, deliveryLocation) {
     if (!proximityCheck.inRange) {
       return {
         success: false,
-        error: `Delivery person must be within 0-1000 meters of delivery location. Current distance: ${Math.round(proximityCheck.distance)}m`
+        error: `Delivery person must be within 0-${getOtpRadiusMeters()} meters of delivery location. Current distance: ${Math.round(proximityCheck.distance)}m`
       };
     }
 

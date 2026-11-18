@@ -10,12 +10,25 @@ function getSmsIndiaConfig() {
     dltTemplateId: String(process.env.SMS_INDIA_HUB_DLT_TEMPLATE_ID || "").trim(),
     gatewayId: String(process.env.SMS_INDIA_HUB_GWID || "2").trim(),
     peId: String(process.env.SMS_INDIA_HUB_PE_ID || "").trim(),
+    // Used only by the newer /api/mt/SendSMS endpoint.
+    channel: String(process.env.SMS_INDIA_HUB_CHANNEL || "2").trim(),
+    route: String(process.env.SMS_INDIA_HUB_ROUTE || "1").trim(),
     url: String(
       process.env.SMS_INDIA_HUB_URL ||
         "http://cloud.smsindiahub.in/vendorsms/pushsms.aspx",
     ).trim(),
     timeoutMs: parseInt(process.env.SMS_INDIA_HUB_TIMEOUT_MS || "10000", 10),
   };
+}
+
+function isSendSmsApi(url) {
+  return /\/api\/mt\/sendsms/i.test(String(url || ""));
+}
+
+function strictQueryString(params) {
+  return Object.entries(params)
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join("&");
 }
 
 function normalizeProviderPayload(payload) {
@@ -104,12 +117,34 @@ export async function sendSmsIndiaHubOtp({ phone, otp, message }) {
     throw error;
   }
 
-  const response = await axios.get(config.url, {
+  const text = message || buildMessage(otp);
+
+  // Newer SMS India Hub API (/api/mt/SendSMS). Templates added in recent panels
+  // are only matched through this endpoint; the legacy pushsms.aspx returns 006.
+  const response = isSendSmsApi(config.url)
+    ? await axios.get(config.url, {
+        params: {
+          APIKey: config.apiKey,
+          senderid: config.senderId,
+          channel: config.channel,
+          DCS: "0",
+          flashsms: "0",
+          number: toIndianNumber(phone),
+          text,
+          route: config.route,
+          ...(config.dltTemplateId ? { dlttemplateid: config.dltTemplateId } : {}),
+          ...(config.peId ? { EntityId: config.peId } : {}),
+        },
+        // Encode spaces as %20 (axios defaults to '+').
+        paramsSerializer: { serialize: strictQueryString },
+        timeout: config.timeoutMs,
+      })
+    : await axios.get(config.url, {
     params: {
       APIKey: config.apiKey,
       msisdn: toIndianNumber(phone),
       sid: config.senderId,
-      msg: message || buildMessage(otp),
+      msg: text,
       fl: "0",
       gwid: config.gatewayId,
       ...(config.dltTemplateId

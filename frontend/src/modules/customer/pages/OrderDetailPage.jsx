@@ -1002,6 +1002,8 @@ const OrderDetailPage = () => {
               stage="pickup"
               orderId={order?.orderId || orderId}
               checkoutGroupId={order?.checkoutGroupId || orderId}
+              initialOtp={order?.pickupOtp}
+              initialOtpExpiresAt={order?.pickupOtpExpiresAt}
             />
           )}
 

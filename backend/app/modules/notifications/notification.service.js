@@ -52,6 +52,13 @@ function dedupeKeyForNotification(eventType, notification, payload = {}) {
     orderRef = `${payload.transactionId || "withdrawal"}:${payload.status || "updated"}`;
   } else if (eventType === NOTIFICATION_EVENTS.SELLER_APPLICATION_REVIEWED) {
     orderRef = `${notification?.userId || "seller"}:${payload.applicationStatus || "reviewed"}:${payload.reviewedAt || "reviewed"}`;
+  } else if (isOtpEvent(eventType)) {
+    // Each regenerated OTP is a new code and must reach the user, so key on
+    // the OTP's expiry rather than only the order (which would suppress
+    // every resend for the dedupe TTL).
+    const expiresAt = payload.data?.expiresAt;
+    const otpRef = expiresAt ? new Date(expiresAt).getTime() : Date.now();
+    orderRef = `${payload.orderId || "order"}:${otpRef}`;
   }
   return [
     "notify",
@@ -118,6 +125,21 @@ function isDeliveryUpdateEvent(eventType) {
     NOTIFICATION_EVENTS.ORDER_READY,
     NOTIFICATION_EVENTS.RETURN_PICKUP_ASSIGNED,
     NOTIFICATION_EVENTS.RETURN_PICKUP_OTP,
+    NOTIFICATION_EVENTS.PICKUP_OTP,
+    NOTIFICATION_EVENTS.DELIVERY_OTP,
+    NOTIFICATION_EVENTS.CANCELLATION_PICKUP_OTP,
+  ].includes(eventType);
+}
+
+/** OTPs are required to complete a handoff, so they are always delivered. */
+function isOtpEvent(eventType) {
+  return [
+    NOTIFICATION_EVENTS.PICKUP_OTP,
+    NOTIFICATION_EVENTS.DELIVERY_OTP,
+    NOTIFICATION_EVENTS.RETURN_PICKUP_OTP,
+    NOTIFICATION_EVENTS.RETURN_DROP_OTP,
+    NOTIFICATION_EVENTS.CANCELLATION_PICKUP_OTP,
+    NOTIFICATION_EVENTS.CANCELLATION_DROP_OTP,
   ].includes(eventType);
 }
 
@@ -143,6 +165,7 @@ async function getPreference(userId, role) {
 
 function isAllowedByPreference(eventType, preference) {
   if (!preference) return true;
+  if (isOtpEvent(eventType)) return true;
   if (isDeliveryUpdateEvent(eventType)) {
     return preference.deliveryUpdates !== false;
   }

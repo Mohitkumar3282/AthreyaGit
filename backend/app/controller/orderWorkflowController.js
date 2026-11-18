@@ -698,7 +698,7 @@ export const requestCancellationPickupOtp = async (req, res) => {
         });
 
         // ── Send Push Notification to Customer ──
-        emitNotificationEvent(NOTIFICATION_EVENTS.RETURN_PICKUP_OTP, {
+        emitNotificationEvent(NOTIFICATION_EVENTS.CANCELLATION_PICKUP_OTP, {
           orderId,
           customerId,
           userId: customerId,
@@ -871,6 +871,16 @@ export const requestCancellationDropOtp = async (req, res) => {
             otp: result.otp,
             expiresAt: result.expiresAt,
             message: `Cancellation drop OTP for order #${orderId}: ${result.otp}. Share with delivery partner to confirm receipt.`,
+          },
+        });
+
+        // ── Send Push Notification to Seller ──
+        emitNotificationEvent(NOTIFICATION_EVENTS.CANCELLATION_DROP_OTP, {
+          sellerId,
+          orderId,
+          data: {
+            otp: result.otp,
+            expiresAt: result.expiresAt,
           },
         });
 

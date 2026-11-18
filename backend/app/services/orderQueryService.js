@@ -648,6 +648,24 @@ export async function getOrderWithAccess(orderId, userId, role) {
     }
   }
 
+  // Athreya Express: rider asks the sender for a pickup OTP before taking the
+  // parcel. Return any active one so it survives a page refresh.
+  const isPrePickup =
+    order.workflowStatus === WORKFLOW_STATUS.DELIVERY_ASSIGNED ||
+    order.workflowStatus === WORKFLOW_STATUS.PICKUP_READY;
+  if (isPrePickup) {
+    const activePickupOtp = await OrderOtp.findOne({
+      orderId: order.orderId,
+      type: "pickup",
+      consumedAt: null,
+      expiresAt: { $gt: new Date() },
+    }).sort({ createdAt: -1 });
+    if (activePickupOtp) {
+      order.pickupOtp = activePickupOtp.code;
+      order.pickupOtpExpiresAt = activePickupOtp.expiresAt;
+    }
+  }
+
   return {
     isGroupSummary: false,
     payload: order,

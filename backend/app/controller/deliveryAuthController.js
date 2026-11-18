@@ -7,6 +7,9 @@ import { generateOTP, useRealSMS } from "../utils/otp.js";
 import { uploadToCloudinary } from "../services/mediaService.js";
 import { clearRiderPresence } from "../services/firebaseService.js";
 
+const OTP_EXPIRY_MS = () =>
+    parseInt(process.env.OTP_EXPIRY_MINUTES || "5", 10) * 60 * 1000;
+
 const generateToken = (delivery) =>
     jwt.sign(
         { id: delivery._id, role: "delivery" },
@@ -91,7 +94,7 @@ export const signupDelivery = async (req, res) => {
                 drivingLicense: dlUrl,
             },
             otp,
-            otpExpiry: Date.now() + 5 * 60 * 1000,
+            otpExpiry: Date.now() + OTP_EXPIRY_MS(),
         };
 
         if (!delivery) {
@@ -142,7 +145,7 @@ export const loginDelivery = async (req, res) => {
         }
 
         delivery.otp = otp;
-        delivery.otpExpiry = Date.now() + 5 * 60 * 1000;
+        delivery.otpExpiry = Date.now() + OTP_EXPIRY_MS();
         await delivery.save();
 
         if (useRealSMS()) {

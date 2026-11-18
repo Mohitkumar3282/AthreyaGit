@@ -10,7 +10,8 @@ const mockOrderOtpCreate = jest.fn();
 const mockOrderOtpFindOne = jest.fn();
 
 jest.unstable_mockModule('../app/services/proximityService.js', () => ({
-  checkProximity: mockCheckProximity
+  checkProximity: mockCheckProximity,
+  getOtpRadiusMeters: () => 1000
 }));
 
 jest.unstable_mockModule('../app/models/order.js', () => ({

@@ -283,6 +283,49 @@ function eventDefinition(eventType) {
             ? `Your return pickup OTP is ${payload.data.otp}. Share this with the delivery partner. Valid for 10 mins.`
             : "Your return pickup OTP has been sent.",
       };
+    case NOTIFICATION_EVENTS.PICKUP_OTP:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) =>
+          normalizeIdList(payload.customerId || payload.userId),
+        title: () => "Your Pickup OTP 🔐",
+        body: (payload) =>
+          payload.data?.otp
+            ? `Your pickup OTP for order #${payload.orderId} is ${payload.data.otp}. Share it with the delivery partner only when they collect your parcel.`
+            : "Your pickup OTP has been generated. Open the app to view it.",
+      };
+    case NOTIFICATION_EVENTS.DELIVERY_OTP:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) =>
+          normalizeIdList(payload.customerId || payload.userId),
+        title: () => "Your Delivery OTP 🔐",
+        body: (payload) =>
+          payload.data?.otp
+            ? `Your delivery partner is nearby. Delivery OTP for order #${payload.orderId} is ${payload.data.otp}. Share it only when you receive your order.`
+            : "Your delivery OTP has been generated. Open the app to view it.",
+      };
+    case NOTIFICATION_EVENTS.CANCELLATION_PICKUP_OTP:
+      return {
+        role: NOTIFICATION_ROLES.CUSTOMER,
+        recipientIds: (payload) =>
+          normalizeIdList(payload.customerId || payload.userId),
+        title: () => "Your Cancellation Pickup OTP 🔐",
+        body: (payload) =>
+          payload.data?.otp
+            ? `Your cancellation pickup OTP for order #${payload.orderId} is ${payload.data.otp}. Share it with the delivery partner when they collect the item.`
+            : "Your cancellation pickup OTP has been generated. Open the app to view it.",
+      };
+    case NOTIFICATION_EVENTS.CANCELLATION_DROP_OTP:
+      return {
+        role: NOTIFICATION_ROLES.SELLER,
+        recipientIds: (payload) => normalizeIdList(payload.sellerId),
+        title: () => "Cancellation Drop OTP 🔐",
+        body: (payload) =>
+          payload.data?.otp
+            ? `Cancellation drop OTP for order #${payload.orderId}: ${payload.data.otp}. Share with the delivery partner to confirm receipt.`
+            : "A cancellation drop OTP has been generated.",
+      };
     case NOTIFICATION_EVENTS.RETURN_DROP_OTP:
       return {
         role: NOTIFICATION_ROLES.SELLER,

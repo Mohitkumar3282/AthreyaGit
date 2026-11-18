@@ -1631,6 +1631,14 @@ export async function requestHandoffOtpAtomic(deliveryId, orderId, lat, lng) {
   });
   emitOrderStatusUpdate(orderId, { otpSent: true }, order.customer);
 
+  // Push notification so the customer sees the OTP even with the app closed.
+  emitNotificationEvent(NOTIFICATION_EVENTS.DELIVERY_OTP, {
+    orderId,
+    customerId,
+    userId: customerId,
+    data: { otp: code, expiresAt },
+  });
+
   return { expiresAt, attemptsRemaining: 3, message: "OTP sent to customer" };
 }
 
@@ -2027,6 +2035,14 @@ export async function requestPickupOtpAtomic(deliveryId, orderId, lat, lng) {
     payload: otpPayload,
   });
   emitOrderStatusUpdate(orderId, { pickupOtpSent: true }, order.customer);
+
+  // Push notification so the sender sees the OTP even with the app closed.
+  emitNotificationEvent(NOTIFICATION_EVENTS.PICKUP_OTP, {
+    orderId,
+    customerId,
+    userId: customerId,
+    data: { otp: code, expiresAt },
+  });
 
   return { expiresAt, attemptsRemaining: 3, message: "OTP sent to sender" };
 }

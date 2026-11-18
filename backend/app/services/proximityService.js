@@ -1,6 +1,15 @@
 import { distanceMeters } from '../utils/geoUtils.js';
 
 /**
+ * Max distance (meters) a rider may be from the pickup/drop point to send an OTP.
+ * Shared with orderWorkflowService via DELIVERY_OTP_RADIUS_METERS.
+ */
+export function getOtpRadiusMeters() {
+  const parsed = parseInt(process.env.DELIVERY_OTP_RADIUS_METERS || '1000', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1000;
+}
+
+/**
  * Check if delivery person is within proximity range of delivery location
  * @param {Object} deliveryLocation - Current location of delivery person
  * @param {number} deliveryLocation.lat - Latitude
@@ -58,8 +67,8 @@ export function checkProximity(deliveryLocation, customerLocation) {
     customerLng
   );
   
-  // Check if distance is within proximity range (0m - 1000m inclusive)
-  const inRange = distance >= 0 && distance <= 1000;
+  // Check if distance is within the configured OTP radius (default 1000m, inclusive)
+  const inRange = distance >= 0 && distance <= getOtpRadiusMeters();
   
   return {
     inRange,
