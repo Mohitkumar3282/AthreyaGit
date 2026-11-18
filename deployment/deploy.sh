@@ -39,8 +39,26 @@ echo "📦 Installing Frontend dependencies..."
 cd "$APP_DIR/frontend"
 npm ci
 
+# Keep the previous build's hashed chunks: users who still have the old app
+# open will request them, and deleting them causes
+# "Failed to fetch dynamically imported module" errors.
+OLD_ASSETS_DIR="/tmp/athreya-prev-assets"
+rm -rf "$OLD_ASSETS_DIR"
+if [ -d "dist/assets" ]; then
+  echo "🗂️ Saving previous build assets..."
+  cp -a dist/assets "$OLD_ASSETS_DIR"
+fi
+
 echo "🏗️ Building Frontend for production..."
 npm run build
+
+if [ -d "$OLD_ASSETS_DIR" ]; then
+  echo "♻️ Restoring previous build assets (new files take precedence)..."
+  cp -an "$OLD_ASSETS_DIR"/. dist/assets/
+  # Drop chunks older than 7 days so dist/assets doesn't grow forever.
+  find dist/assets -type f -mtime +7 -delete
+  rm -rf "$OLD_ASSETS_DIR"
+fi
 
 # 6. Set correct permissions for Nginx
 echo "🔒 Setting permissions for /var/www/athreyadelivery..."
