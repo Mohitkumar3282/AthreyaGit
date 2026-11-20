@@ -55,6 +55,21 @@ function toSellerOid(rawId) {
   return new mongoose.Types.ObjectId(String(rawId));
 }
 
+/**
+ * Revenue is only earned once the order reaches the customer. An order counts
+ * as delivered when its legacy status is "delivered" and the workflow did not
+ * end in CANCELLED (guards rows where the two fields disagree).
+ */
+const IS_DELIVERED = {
+  $and: [
+    { $eq: ["$status", "delivered"] },
+    { $ne: ["$workflowStatus", "CANCELLED"] },
+  ],
+};
+const DELIVERED_TOTAL = {
+  $cond: [IS_DELIVERED, { $ifNull: ["$pricing.total", 0] }, 0],
+};
+
 function normalizeRange(value) {
   const v = String(value || "daily").toLowerCase();
   if (v === "monthly" || v === "weekly" || v === "daily") return v;
@@ -103,6 +118,7 @@ async function computeSellerStats(sellerOid, range) {
       $match: {
         seller: sellerOid,
         status: { $ne: "cancelled" },
+        workflowStatus: { $ne: "CANCELLED" },
       },
     },
     {
@@ -111,8 +127,9 @@ async function computeSellerStats(sellerOid, range) {
           {
             $group: {
               _id: null,
-              totalSales: { $sum: { $ifNull: ["$pricing.total", 0] } },
+              totalSales: { $sum: DELIVERED_TOTAL },
               totalOrders: { $sum: 1 },
+              deliveredOrders: { $sum: { $cond: [IS_DELIVERED, 1, 0] } },
             },
           },
         ],
@@ -121,7 +138,7 @@ async function computeSellerStats(sellerOid, range) {
           {
             $group: {
               _id: null,
-              sales: { $sum: { $ifNull: ["$pricing.total", 0] } },
+              sales: { $sum: DELIVERED_TOTAL },
               count: { $sum: 1 },
             },
           },
@@ -131,7 +148,7 @@ async function computeSellerStats(sellerOid, range) {
           {
             $group: {
               _id: null,
-              sales: { $sum: { $ifNull: ["$pricing.total", 0] } },
+              sales: { $sum: DELIVERED_TOTAL },
               count: { $sum: 1 },
             },
           },
@@ -141,7 +158,7 @@ async function computeSellerStats(sellerOid, range) {
           {
             $group: {
               _id: { $dateToString: { format: aggregationFormat, date: "$createdAt" } },
-              sales: { $sum: { $ifNull: ["$pricing.total", 0] } },
+              sales: { $sum: DELIVERED_TOTAL },
               orders: { $sum: 1 },
             },
           },
@@ -194,10 +211,16 @@ async function computeSellerStats(sellerOid, range) {
     },
   ]);
 
-  const overviewRaw = statsResult.overview[0] || { totalSales: 0, totalOrders: 0 };
+  const overviewRaw = statsResult.overview[0] || {
+    totalSales: 0,
+    totalOrders: 0,
+    deliveredOrders: 0,
+  };
   const totalSales = overviewRaw.totalSales;
   const totalOrders = overviewRaw.totalOrders;
-  const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+  const deliveredOrders = overviewRaw.deliveredOrders || 0;
+  // Average over orders that actually produced revenue (delivered ones).
+  const avgOrderValue = deliveredOrders > 0 ? totalSales / deliveredOrders : 0;
 
   const currentSales = statsResult.currentWeek[0]?.sales || 0;
   const prevSalesVal = statsResult.prevWeek[0]?.sales || 0;

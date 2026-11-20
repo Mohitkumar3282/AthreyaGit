@@ -362,6 +362,10 @@ export const placeCustomPickupOrder = async (req, res) => {
     if (sellerId) {
       seller = await Seller.findById(sellerId).lean();
     }
+    // Only a real, customer-chosen shop can accept/reject. A custom (unlisted)
+    // shop or the fallback operations store below goes straight to riders.
+    const requiresSellerAcceptance =
+      normalizedExpressService === "shop_to_home" && Boolean(seller);
     if (!seller) {
       seller = await Seller.findOne({ isActive: true, isVerified: true }).lean() || await Seller.findOne({}).lean();
     }
@@ -455,6 +459,7 @@ export const placeCustomPickupOrder = async (req, res) => {
       orderType: "custom_pickup",
       workflowVersion: 2,
       expressService: normalizedExpressService,
+      requiresSellerAcceptance,
       expressMeta: {
         ...sanitizeExpressMeta(expressMeta),
         // Server-measured, not whatever the client sent.
@@ -495,8 +500,9 @@ export const placeCustomPickupOrder = async (req, res) => {
       billAmount: billAmt,
       address,
       status: "pending",
-      // afterPlaceOrderV2 flips this straight to DELIVERY_SEARCH — express
-      // orders have no shop to approve them, they go to riders directly.
+      // afterPlaceOrderV2 flips this straight to DELIVERY_SEARCH for most
+      // express orders. Shop to Home from a listed shop stays here until the
+      // shop accepts (requiresSellerAcceptance).
       workflowStatus: WORKFLOW_STATUS.SELLER_PENDING,
       sellerPendingExpiresAt: new Date(now.getTime() + sellerTimeoutMs),
       paymentMode: req.body.paymentMode || "COD",

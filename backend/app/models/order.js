@@ -684,6 +684,13 @@ const orderSchema = new mongoose.Schema(
         "whatsapp",
       ],
     },
+    /* Shop to Home bookings from a listed shop: the shop must accept (ringing
+       Accept/Reject + push) before riders are searched. Other express orders
+       still go straight to riders. */
+    requiresSellerAcceptance: {
+      type: Boolean,
+      default: false,
+    },
     pickupAddress: {
       name: { type: String },
       phone: { type: String },

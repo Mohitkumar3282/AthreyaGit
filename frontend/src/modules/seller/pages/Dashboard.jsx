@@ -90,41 +90,47 @@ const Dashboard = () => {
   }, [statsData?.salesTrend, statsData?.chartData]);
   const revenueMax = Math.max(1, ...revenueChartData.map((d) => d.sales));
 
+  // Week-over-week trends computed by the backend (e.g. "+12.5%", "-4%", "0%").
+  const trendType = (value) =>
+    String(value || "").trim().startsWith("-") ? "decrease" : "increase";
+  const salesTrend = statsData?.overview?.salesTrend || "0%";
+  const ordersTrend = statsData?.overview?.ordersTrend || "0%";
+
   const stats = [
     {
       label: "Total Revenue",
       value: statsData?.overview?.totalSales || "₹0",
-      change: "+12.5%",
-      changeType: "increase",
+      change: salesTrend,
+      changeType: trendType(salesTrend),
       icon: DollarSign,
       iconBg: "bg-brand-50",
       iconColor: "text-brand-600",
-      description: "vs last month",
+      description: "delivered orders, vs last week",
     },
     {
       label: "Total Orders",
       value: statsData?.overview?.totalOrders || "0",
-      change: "+8.2%",
-      changeType: "increase",
+      change: ordersTrend,
+      changeType: trendType(ordersTrend),
       icon: ShoppingBag,
       iconBg: "bg-brand-50",
       iconColor: "text-brand-600",
-      description: "vs last month",
+      description: "vs last week",
     },
     {
       label: "Avg Order Value",
       value: statsData?.overview?.avgOrderValue || "₹0",
-      change: "+2",
+      change: "",
       changeType: "increase",
       icon: Package,
       iconBg: "bg-purple-50",
       iconColor: "text-purple-600",
-      description: "per order",
+      description: "per delivered order",
     },
     {
       label: "Pending Orders",
       value: safeOrders.filter(o => o.status === 'pending').length.toString(),
-      change: "-3",
+      change: "",
       changeType: "decrease",
       icon: Clock,
       iconBg: "bg-orange-50",
@@ -272,15 +278,17 @@ const Dashboard = () => {
                   <p className="text-base font-medium text-slate-600">{stat.label}</p>
                   <p className="text-2xl font-bold text-slate-900 mt-2">{stat.value}</p>
                   <div className="flex items-center gap-2 mt-2">
-                    <span
-                      className={cn(
-                        "text-xs font-semibold flex items-center gap-1",
-                        stat.changeType === "increase" ? "text-brand-600" : "text-red-600"
-                      )}
-                    >
-                      <TrendingUp className={cn("h-3 w-3", stat.changeType === "decrease" && "rotate-180")} />
-                      {stat.change}
-                    </span>
+                    {stat.change ? (
+                      <span
+                        className={cn(
+                          "text-xs font-semibold flex items-center gap-1",
+                          stat.changeType === "increase" ? "text-brand-600" : "text-red-600"
+                        )}
+                      >
+                        <TrendingUp className={cn("h-3 w-3", stat.changeType === "decrease" && "rotate-180")} />
+                        {stat.change}
+                      </span>
+                    ) : null}
                     <span className="text-sm text-slate-600">{stat.description}</span>
                   </div>
                 </div>

@@ -222,6 +222,11 @@ export async function afterPlaceExpressOrderV2(orderDoc) {
     return orderDoc;
   }
 
+  // Shop to Home from a listed shop: the shop accepts first, riders after.
+  if (orderDoc.requiresSellerAcceptance) {
+    return startShopAcceptanceV2(orderDoc);
+  }
+
   const now = new Date();
   const deliveryMs = DEFAULT_DELIVERY_TIMEOUT_MS();
 
@@ -283,6 +288,61 @@ export async function afterPlaceExpressOrderV2(orderDoc) {
     userId: updated.customer?._id || updated.customer,
     sellerId: updated.seller,
   });
+
+  return updated;
+}
+
+/**
+ * Shop to Home (listed shop): ring the shop for Accept/Reject.
+ * Starts the seller acceptance window now (payment may have taken a while for
+ * online orders), sends the in-app `order:new` event that drives the seller's
+ * ringing popup, and a push notification for when the app is closed.
+ * Accept -> sellerAcceptAtomic (riders searched near the shop).
+ * Reject / no answer -> sellerRejectAtomic / processSellerTimeoutJob (cancelled).
+ */
+async function startShopAcceptanceV2(orderDoc) {
+  const orderId = orderDoc.orderId;
+  const now = new Date();
+  const sellerPendingExpiresAt = new Date(now.getTime() + DEFAULT_SELLER_TIMEOUT_MS());
+
+  const updated = await Order.findOneAndUpdate(
+    {
+      orderId,
+      workflowVersion: { $gte: 2 },
+      workflowStatus: { $in: [WORKFLOW_STATUS.CREATED, WORKFLOW_STATUS.SELLER_PENDING] },
+    },
+    {
+      $set: {
+        workflowStatus: WORKFLOW_STATUS.SELLER_PENDING,
+        status: "pending",
+        sellerPendingExpiresAt,
+      },
+    },
+    { new: true },
+  );
+  if (!updated) return null;
+
+  await scheduleSellerTimeoutJob(orderId);
+
+  const sellerId = updated.seller?.toString();
+  emitToSeller(sellerId, {
+    event: "order:new",
+    payload: {
+      orderId,
+      workflowStatus: WORKFLOW_STATUS.SELLER_PENDING,
+      sellerPendingExpiresAt,
+    },
+  });
+  emitNotificationEvent(NOTIFICATION_EVENTS.NEW_ORDER, {
+    orderId,
+    sellerId,
+    customerId: updated.customer,
+  });
+  emitOrderStatusUpdate(
+    orderId,
+    { workflowStatus: WORKFLOW_STATUS.SELLER_PENDING, sellerPendingExpiresAt },
+    updated.customer,
+  );
 
   return updated;
 }
@@ -409,11 +469,16 @@ export async function sellerAcceptAtomic(sellerId, orderId) {
       updated.customer?._id || updated.customer,
     );
 
-    await emitDeliveryBroadcastForSeller(
-      updated.seller,
-      deliveryBroadcastPayloadFromOrder(updated),
-      { excludeIds: updated.skippedBy },
-    );
+    if (isExpressOrder(updated)) {
+      // Shop to Home accepted by the shop: search riders near the pickup point.
+      await broadcastExpressOrder(updated);
+    } else {
+      await emitDeliveryBroadcastForSeller(
+        updated.seller,
+        deliveryBroadcastPayloadFromOrder(updated),
+        { excludeIds: updated.skippedBy },
+      );
+    }
   }
 
   emitNotificationEvent(NOTIFICATION_EVENTS.ORDER_CONFIRMED, {
