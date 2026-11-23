@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MapPin } from "lucide-react";
 import { loadGoogleMaps } from "../../core/services/googleMapsLoader";
+import {
+  createPlacesSessionToken,
+  fetchPlaceSuggestions,
+} from "../../core/services/placesAutocomplete";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -16,23 +20,24 @@ export const AddressAutocompleteField = ({
   const [predictions, setPredictions] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const autocompleteServiceRef = useRef(null);
+  const placesReadyRef = useRef(false);
   const geocoderRef = useRef(null);
   const containerRef = useRef(null);
   const sessionTokenRef = useRef(null);
+  const latestRequestRef = useRef(0);
 
-  // Initialize AutocompleteService
+  // Load Maps + Geocoder once; suggestions come from Places API (New).
   const initPlaces = async () => {
-    if (autocompleteServiceRef.current) return true;
+    if (placesReadyRef.current) return true;
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     if (!apiKey) return false;
 
     try {
       await loadGoogleMaps(apiKey);
-      if (window.google?.maps?.places) {
-        autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
+      if (window.google?.maps) {
         geocoderRef.current = new window.google.maps.Geocoder();
-        sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
+        sessionTokenRef.current = await createPlacesSessionToken();
+        placesReadyRef.current = true;
         return true;
       }
     } catch (err) {
@@ -62,26 +67,27 @@ export const AddressAutocompleteField = ({
 
     const fetchPredictions = async () => {
       const ready = await initPlaces();
-      if (!ready || !autocompleteServiceRef.current) return;
+      if (!ready) return;
 
+      const requestId = latestRequestRef.current + 1;
+      latestRequestRef.current = requestId;
       setIsSearching(true);
-      const request = {
-        input: query,
-        componentRestrictions: { country: "in" },
-        sessionToken: sessionTokenRef.current,
-      };
-
-      autocompleteServiceRef.current.getPlacePredictions(
-        request,
-        (results, status) => {
-          setIsSearching(false);
-          if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
-            setPredictions(results.slice(0, 5));
-          } else {
-            setPredictions([]);
-          }
-        }
-      );
+      try {
+        const results = await fetchPlaceSuggestions({
+          input: query,
+          sessionToken: sessionTokenRef.current,
+          limit: 5,
+        });
+        // Ignore responses from older keystrokes.
+        if (requestId !== latestRequestRef.current) return;
+        setPredictions(results);
+      } catch (err) {
+        if (requestId !== latestRequestRef.current) return;
+        console.warn("Place suggestions failed:", err);
+        setPredictions([]);
+      } finally {
+        if (requestId === latestRequestRef.current) setIsSearching(false);
+      }
     };
 
     const timer = setTimeout(fetchPredictions, 300);
@@ -125,10 +131,10 @@ export const AddressAutocompleteField = ({
       }
     );
 
-    // Refresh session token for subsequent searches
-    if (window.google?.maps?.places?.AutocompleteSessionToken) {
-      sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
-    }
+    // Start a new session token for subsequent searches
+    createPlacesSessionToken().then((token) => {
+      sessionTokenRef.current = token;
+    });
   };
 
   const InputComponent = textarea ? Textarea : Input;

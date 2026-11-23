@@ -470,6 +470,16 @@ export async function updateCashInHand({
   };
 }
 
+/**
+ * An order counts as delivered (money earned) only when its status is
+ * "delivered" AND its workflow did not end in CANCELLED — guards the rare rows
+ * where the two fields disagree.
+ */
+const DELIVERED_ORDER_MATCH = Object.freeze({
+  status: "delivered",
+  workflowStatus: { $ne: "CANCELLED" },
+});
+
 export async function getAdminFinanceSummary() {
   const adminWallet = await getOrCreateWallet(OWNER_TYPE.ADMIN, null);
 
@@ -497,24 +507,23 @@ export async function getAdminFinanceSummary() {
       ]),
       Order.aggregate([
         // Requirement: Total Admin Earning should not include COD orders.
-        { $match: { status: "delivered", paymentMode: "ONLINE" } },
+        { $match: { ...DELIVERED_ORDER_MATCH, paymentMode: "ONLINE" } },
         { $group: { _id: null, amount: { $sum: "$paymentBreakdown.platformTotalEarning" } } },
       ]),
       Payout.aggregate([
         { $match: { status: { $in: [PAYOUT_STATUS.PENDING, PAYOUT_STATUS.PROCESSING] } } },
         { $group: { _id: "$payoutType", amount: { $sum: "$amount" } } },
       ]),
-      // System Float (COD) should reflect "cash owed to the system" for COD orders, even before delivery.
+      // System Float (COD) = cash riders hold for DELIVERED COD orders (a rider
+      // only has the customer's cash once the order is handed over).
       // - After cash is marked collected, we use the persisted `codPendingAmount` (net of remittances).
-      // - Before collection, we estimate float from the order snapshot as: grandTotal - riderPayoutTotal.
-      // This matches the admin UI expectation: show exposure as soon as a COD order is placed,
-      // and reduce to 0 once the rider remits full amount.
+      // - Otherwise we estimate it from the snapshot as: grandTotal - riderPayoutTotal.
+      // It drops to 0 once the rider remits the full amount.
       Order.aggregate([
         {
           $match: {
             paymentMode: "COD",
-            status: { $ne: "cancelled" },
-            orderStatus: { $ne: "cancelled" },
+            ...DELIVERED_ORDER_MATCH,
           },
         },
         {
@@ -548,15 +557,12 @@ export async function getAdminFinanceSummary() {
           },
         },
       ]),
-      // Total Platform Earning card (UI label: "Total money collected") should reflect total checkout
-      // value placed by customers across COD + ONLINE orders (regardless of remittance/capture).
-      // This updates immediately on order placement.
+      // Total Platform Earning card (UI label: "Total money collected"): checkout value of
+      // DELIVERED orders only, COD + ONLINE. Pending / in-progress / cancelled orders are
+      // not earnings yet, so this grows when an order is delivered, not when it is placed.
       Order.aggregate([
         {
-          $match: {
-            status: { $ne: "cancelled" },
-            orderStatus: { $ne: "cancelled" },
-          },
+          $match: DELIVERED_ORDER_MATCH,
         },
         {
           $group: {
@@ -577,10 +583,9 @@ export async function getAdminFinanceSummary() {
     pendingPayouts.find((row) => row._id === PAYOUT_TYPE.DELIVERY_PARTNER)?.amount || 0;
 
   const totalPlatformEarning = roundCurrency(platformGross[0]?.amount || 0);
-  // "Available Balance" in the admin wallet UI is treated as a business-level net balance:
-  // total checkout value placed by customers minus pending payout liabilities.
-  // This makes the number update immediately on order placement (COD + ONLINE) and
-  // automatically decreases as seller/rider payout requests are queued.
+  // "Available Balance" in the admin wallet UI is a business-level net balance:
+  // checkout value of DELIVERED orders minus pending payout liabilities. It grows
+  // when orders are delivered and decreases as seller/rider payouts are queued.
   const availableBalanceVirtual = roundCurrency(
     Math.max(
       totalPlatformEarning - roundCurrency(sellerPendingPayouts) - roundCurrency(riderPendingPayouts),

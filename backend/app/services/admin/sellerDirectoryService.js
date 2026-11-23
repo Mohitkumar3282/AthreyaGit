@@ -117,7 +117,7 @@ export async function getSellerLocationsData({
             },
             deliveredOrders: {
               $sum: {
-                $cond: [{ $eq: ["$status", "delivered"] }, 1, 0],
+                $cond: [{ $and: [{ $and: [{ $eq: ["$status", "delivered"] }, { $ne: ["$workflowStatus", "CANCELLED"] }] }, { $ne: ["$workflowStatus", "CANCELLED"] }] }, 1, 0],
               },
             },
             ordersLast24h: {
@@ -320,7 +320,7 @@ export async function getActiveSellersData({
               totalOrders: { $sum: 1 },
               deliveredOrders: {
                 $sum: {
-                  $cond: [{ $eq: ["$status", "delivered"] }, 1, 0],
+                  $cond: [{ $and: [{ $and: [{ $eq: ["$status", "delivered"] }, { $ne: ["$workflowStatus", "CANCELLED"] }] }, { $ne: ["$workflowStatus", "CANCELLED"] }] }, 1, 0],
                 },
               },
               pendingOrders: {
@@ -340,7 +340,7 @@ export async function getActiveSellersData({
               totalRevenue: {
                 $sum: {
                   $cond: [
-                    { $eq: ["$status", "delivered"] },
+                    { $and: [{ $and: [{ $eq: ["$status", "delivered"] }, { $ne: ["$workflowStatus", "CANCELLED"] }] }, { $ne: ["$workflowStatus", "CANCELLED"] }] },
                     { $ifNull: ["$pricing.total", 0] },
                     0,
                   ],
@@ -377,7 +377,7 @@ export async function getActiveSellersData({
               totalRevenue: {
                 $sum: {
                   $cond: [
-                    { $eq: ["$status", "delivered"] },
+                    { $and: [{ $and: [{ $eq: ["$status", "delivered"] }, { $ne: ["$workflowStatus", "CANCELLED"] }] }, { $ne: ["$workflowStatus", "CANCELLED"] }] },
                     { $ifNull: ["$pricing.total", 0] },
                     0,
                   ],

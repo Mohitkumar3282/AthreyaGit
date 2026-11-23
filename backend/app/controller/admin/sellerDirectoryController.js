@@ -93,7 +93,7 @@ export const getSellerById = async (req, res) => {
           _id: "$seller",
           totalOrders: { $sum: 1 },
           deliveredOrders: {
-            $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] }
+            $sum: { $cond: [{ $and: [{ $eq: ["$status", "delivered"] }, { $ne: ["$workflowStatus", "CANCELLED"] }] }, 1, 0] }
           },
           cancelledOrders: {
             $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] }
@@ -109,7 +109,8 @@ export const getSellerById = async (req, res) => {
           totalRevenue: {
             $sum: {
               $cond: [
-                { $eq: ["$status", "delivered"] },
+                // Revenue from delivered orders only.
+                { $and: [{ $eq: ["$status", "delivered"] }, { $ne: ["$workflowStatus", "CANCELLED"] }] },
                 { $ifNull: ["$pricing.total", 0] },
                 0
               ]

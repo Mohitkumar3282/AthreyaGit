@@ -22,8 +22,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { adminApi } from '../services/adminApi';
 
+const DOCUMENT_LABELS = {
+    aadhar: 'Aadhaar',
+    pan: 'PAN',
+    drivingLicense: 'Driving License',
+};
+
+const isPdfUrl = (url = '') => /\.pdf($|\?)/i.test(url);
+
 const PendingDeliveryBoys = () => {
     const [pendingRiders, setPendingRiders] = useState([]);
+    // Document opened full-size from the review modal: { label, url }
+    const [previewDoc, setPreviewDoc] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
@@ -50,7 +60,10 @@ const PendingDeliveryBoys = () => {
                 appliedDate: new Date(r.createdAt).toLocaleDateString(),
                 location: r.currentArea || 'Unknown',
                 vehicle: r.vehicleType,
-                documents: Object.keys(r.documents || {}).filter(key => r.documents[key]),
+                // Keep the file URL so admins can open each document.
+                documents: Object.entries(r.documents || {})
+                    .filter(([, url]) => typeof url === 'string' && url.trim())
+                    .map(([key, url]) => ({ key, label: DOCUMENT_LABELS[key] || key, url })),
                 status: r.isVerified ? 'approved' : 'pending_review',
                 experience: 'Not Specified', // Mock for now
                 preferredArea: r.currentArea || 'Not Specified'
@@ -239,9 +252,9 @@ return (
                                                 {rider.status.replace('_', ' ')}
                                             </Badge>
                                             <div className="flex gap-1">
-                                                {rider.documents.slice(0, 2).map((doc, i) => (
-                                                    <div key={i} className="h-5 px-2 bg-slate-100 rounded-md text-[8px] font-bold text-slate-500 flex items-center">
-                                                        {doc}
+                                                {rider.documents.slice(0, 2).map((doc) => (
+                                                    <div key={doc.key} className="h-5 px-2 bg-slate-100 rounded-md text-[8px] font-bold text-slate-500 flex items-center">
+                                                        {doc.label}
                                                     </div>
                                                 ))}
                                                 {rider.documents.length > 2 && (
@@ -372,14 +385,26 @@ return (
                             <div className="space-y-4 mb-14">
                                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Submitted Documents ({viewingRider.documents.length})</h4>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    {viewingRider.documents.map((doc, idx) => (
-                                        <div key={idx} className="group relative aspect-[4/3] bg-slate-100 rounded-[24px] overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all">
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
-                                                <FileSearch className="h-8 w-8 text-slate-400 group-hover:text-primary transition-colors" />
-                                                <p className="text-[9px] font-black text-slate-500 uppercase mt-2 text-center">{doc}</p>
+                                    {viewingRider.documents.map((doc) => (
+                                        <button
+                                            type="button"
+                                            key={doc.key}
+                                            onClick={() => (isPdfUrl(doc.url) ? window.open(doc.url, '_blank', 'noopener,noreferrer') : setPreviewDoc(doc))}
+                                            title={`View ${doc.label}`}
+                                            className="group relative aspect-[4/3] bg-slate-100 rounded-[24px] overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                                        >
+                                            {isPdfUrl(doc.url) ? (
+                                                <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
+                                                    <FileSearch className="h-8 w-8 text-slate-400 group-hover:text-primary transition-colors" />
+                                                </div>
+                                            ) : (
+                                                <img src={doc.url} alt={doc.label} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                                            )}
+                                            <div className="absolute inset-x-0 bottom-0 bg-white/90 px-2 py-1.5">
+                                                <p className="text-[9px] font-black text-slate-600 uppercase text-center">{doc.label}</p>
                                             </div>
-                                            <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/5 transition-colors" />
-                                        </div>
+                                            <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/10 transition-colors" />
+                                        </button>
                                     ))}
                                 </div>
                             </div>
@@ -414,6 +439,46 @@ return (
                 </div>
             )}
         </AnimatePresence>
+
+        {/* Full-size document preview (above the review modal) */}
+        {previewDoc && (
+            <div
+                className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/80 p-4"
+                onClick={() => setPreviewDoc(null)}
+            >
+                <div
+                    className="relative w-full max-w-3xl rounded-3xl bg-white p-4 shadow-2xl"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                        <h4 className="text-sm font-black uppercase tracking-widest text-slate-700">{previewDoc.label}</h4>
+                        <div className="flex items-center gap-2">
+                            <a
+                                href={previewDoc.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200"
+                            >
+                                Open original
+                            </a>
+                            <button
+                                type="button"
+                                onClick={() => setPreviewDoc(null)}
+                                aria-label="Close preview"
+                                className="rounded-xl p-2 hover:bg-slate-100"
+                            >
+                                <X className="h-5 w-5 text-slate-500" />
+                            </button>
+                        </div>
+                    </div>
+                    <img
+                        src={previewDoc.url}
+                        alt={previewDoc.label}
+                        className="max-h-[75vh] w-full rounded-2xl bg-slate-50 object-contain"
+                    />
+                </div>
+            </div>
+        )}
     </div>
 );
 };

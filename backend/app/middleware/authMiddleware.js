@@ -91,7 +91,7 @@ export const requireApprovedSeller = async (req, res, next) => {
     }
 
     const seller = await Seller.findById(req.user.id)
-      .select("isVerified isActive applicationStatus rejectionReason")
+      .select("isVerified isActive applicationStatus rejectionReason deletedAt")
       .lean();
 
     if (!seller) {
@@ -100,9 +100,11 @@ export const requireApprovedSeller = async (req, res, next) => {
 
     const applicationStatus =
       seller.applicationStatus || (seller.isVerified ? "approved" : "pending");
+    // Approval only — `isActive` is the seller's shop open switch, not account
+    // status (see sellerAuthController login).
     const isApproved =
       seller.isVerified === true &&
-      seller.isActive === true &&
+      !seller.deletedAt &&
       applicationStatus === "approved";
 
     if (!isApproved) {

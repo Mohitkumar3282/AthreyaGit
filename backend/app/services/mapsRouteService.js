@@ -1,15 +1,25 @@
-import { Client } from "@googlemaps/google-maps-services-js";
-import polyline from "@mapbox/polyline";
 import { getRedisClient } from "../config/redis.js";
 import { writeRoutePolyline, getRoutePolyline } from "./firebaseService.js";
 import { distanceMeters } from "../utils/geoUtils.js";
-
-const client = new Client({});
+import logger from "./logger.js";
 
 const ROUTE_CACHE_TTL_SEC = () =>
   parseInt(process.env.ROUTE_CACHE_TTL_SEC || "900", 10);
 const ROUTE_CACHE_MATCH_THRESHOLD_M = () =>
   parseInt(process.env.ROUTE_CACHE_MATCH_THRESHOLD_METERS || "150", 10);
+
+const FIREBASE_CACHE_TIMEOUT_MS = 1500;
+
+/** Resolve `fallback` if `promise` hasn't settled within `ms`. */
+function withTimeout(promise, ms, fallback = null) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((resolve) => {
+      timer = setTimeout(() => resolve(fallback), ms);
+    }),
+  ]).finally(() => clearTimeout(timer));
+}
 
 function roundCoord(n) {
   return Math.round(n * 1e5) / 1e5;
@@ -20,59 +30,114 @@ function cacheKey(origin, dest, mode) {
   return `route:v4:${roundCoord(origin.lat)},${roundCoord(origin.lng)}:${roundCoord(dest.lat)},${roundCoord(dest.lng)}:${mode}`;
 }
 
-/** Directions step polyline — tolerate string or `{ points }` shapes. */
-function stepEncodedPolyline(step) {
-  if (!step || typeof step !== "object") return null;
-  const p = step.polyline;
-  if (typeof p === "string") return p;
-  if (p && typeof p.points === "string") return p.points;
-  return null;
+/* ------------------------------------------------------------------
+ * Google Routes API (computeRoutes).
+ *
+ * Replaces the legacy Directions API, which Google no longer enables for new
+ * projects ("You're calling a legacy API, which is not enabled for your
+ * project"). Requires "Routes API" enabled for GOOGLE_MAPS_API_KEY.
+ * ------------------------------------------------------------------ */
+
+const ROUTES_API_URL = "https://routes.googleapis.com/directions/v2:computeRoutes";
+
+const TRAVEL_MODES = {
+  driving: "DRIVE",
+  walking: "WALK",
+  bicycling: "BICYCLE",
+  two_wheeler: "TWO_WHEELER",
+  transit: "TRANSIT",
+};
+
+let lastRouteErrorLogAt = 0;
+/** Log Google's real error (at most once a minute) instead of failing silently. */
+function logRouteError(message) {
+  const now = Date.now();
+  if (now - lastRouteErrorLogAt < 60000) return;
+  lastRouteErrorLogAt = now;
+  logger.warn("Google Routes API request failed", {
+    scope: "mapsRouteService",
+    error: message,
+  });
+}
+
+/** "123s" -> 123 */
+function parseDurationSeconds(value) {
+  const n = parseFloat(String(value || "").replace(/s$/, ""));
+  return Number.isFinite(n) ? Math.round(n) : null;
+}
+
+/** Routes `viewport` -> Directions-style `bounds` (kept for payload compatibility). */
+function viewportToBounds(viewport) {
+  if (!viewport?.low || !viewport?.high) return null;
+  return {
+    southwest: { lat: viewport.low.latitude, lng: viewport.low.longitude },
+    northeast: { lat: viewport.high.latitude, lng: viewport.high.longitude },
+  };
 }
 
 /**
- * `overview_polyline` is heavily simplified: decoded points can be kilometers
- * apart, so maps draw long straight "chords" across blocks (looks like a second
- * route). Prefer merging each step's polyline — full road geometry.
- * Iterates all legs (multi-waypoint routes).
+ * One route from the Routes API.
+ * @returns {Promise<{polyline:string, distanceMeters:number|null, duration:number|null, bounds:object|null}|null>}
  */
-function mergeRouteStepPolylines(route) {
-  const legs = route?.legs;
-  if (!Array.isArray(legs) || legs.length === 0) return null;
-  const coords = [];
-  for (const leg of legs) {
-    if (!leg?.steps?.length) continue;
-    for (const step of leg.steps) {
-      const enc = stepEncodedPolyline(step);
-      if (!enc || typeof enc !== "string") continue;
-      let part;
-      try {
-        part = polyline.decode(enc);
-      } catch {
-        continue;
-      }
-      if (!Array.isArray(part) || part.length === 0) continue;
-      for (const pair of part) {
-        if (!Array.isArray(pair) || pair.length < 2) continue;
-        if (coords.length === 0) {
-          coords.push(pair);
-          continue;
-        }
-        const prev = coords[coords.length - 1];
-        if (prev[0] === pair[0] && prev[1] === pair[1]) continue;
-        coords.push(pair);
-      }
-    }
+async function computeRoute(origin, dest, mode, apiKey) {
+  const travelMode = TRAVEL_MODES[mode] || "DRIVE";
+  const body = {
+    origin: { location: { latLng: { latitude: origin.lat, longitude: origin.lng } } },
+    destination: { location: { latLng: { latitude: dest.lat, longitude: dest.lng } } },
+    travelMode,
+    // Full road geometry (the old code merged step polylines for the same reason).
+    polylineQuality: "HIGH_QUALITY",
+  };
+  if (travelMode === "DRIVE" || travelMode === "TWO_WHEELER") {
+    body.routingPreference = "TRAFFIC_UNAWARE"; // basic (cheapest) billing tier
   }
-  if (coords.length < 2) return null;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
   try {
-    return polyline.encode(coords);
-  } catch {
+    const resp = await fetch(ROUTES_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": apiKey,
+        "X-Goog-FieldMask":
+          "routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline,routes.viewport",
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    const data = await resp.json().catch(() => ({}));
+
+    if (!resp.ok) {
+      logRouteError(
+        `${resp.status} ${data?.error?.status || ""}: ${data?.error?.message || "unknown error"}`,
+      );
+      return null;
+    }
+
+    const route = data?.routes?.[0];
+    const encoded = route?.polyline?.encodedPolyline;
+    if (!encoded) {
+      logRouteError("No route returned between these points");
+      return null;
+    }
+
+    return {
+      polyline: encoded,
+      distanceMeters: Number.isFinite(route.distanceMeters) ? route.distanceMeters : null,
+      duration: parseDurationSeconds(route.duration),
+      bounds: viewportToBounds(route.viewport),
+    };
+  } catch (err) {
+    logRouteError(err?.name === "AbortError" ? "Request timed out" : err?.message);
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
 /**
- * Returns { polyline, bounds, distanceMeters } from Directions API with Redis cache.
+ * Payload returned when no route could be fetched (map shows the "Route unavailable" note).
  */
 function degradedPayload() {
   return { polyline: null, bounds: null, distanceMeters: null, duration: null, degraded: true };
@@ -115,8 +180,8 @@ function isRouteCacheCompatible(cached, origin, dest, phase, mode) {
 }
 
 /**
- * Returns { polyline, bounds, distanceMeters, degraded } from Directions API with Redis + Firebase cache.
- * Requires GOOGLE_MAPS_API_KEY and Directions API enabled in Google Cloud (billing on).
+ * Returns { polyline, bounds, distanceMeters, degraded } from the Google Routes API with Redis + Firebase cache.
+ * Requires GOOGLE_MAPS_API_KEY and "Routes API" enabled in Google Cloud (billing on).
  * Does not cache failed or empty routes so fixing the key takes effect immediately.
  * 
  * @param {Object} origin - { lat, lng }
@@ -129,7 +194,12 @@ export async function getCachedRoute(origin, dest, mode = "driving", orderId = n
   // Try Firebase cache first if orderId is provided
   if (orderId) {
     try {
-      const firebaseRoute = await getRoutePolyline(orderId);
+      // Bounded: an unreachable Realtime Database makes `once('value')` wait
+      // forever, which used to hang every route request.
+      const firebaseRoute = await withTimeout(
+        getRoutePolyline(orderId),
+        FIREBASE_CACHE_TIMEOUT_MS,
+      );
       const cachedPhase = firebaseRoute?.phase || "pickup";
       if (isRouteCacheCompatible(firebaseRoute, origin, dest, phase, mode)) {
         return {
@@ -172,36 +242,15 @@ export async function getCachedRoute(origin, dest, mode = "driving", orderId = n
   }
 
   try {
-    const resp = await client.directions({
-      params: {
-        origin: `${origin.lat},${origin.lng}`,
-        destination: `${dest.lat},${dest.lng}`,
-        mode,
-        key: apiKey,
-      },
-      timeout: 10000,
-    });
-
-    const status = resp.data?.status;
-    if (status && status !== "OK") {
+    const route = await computeRoute(origin, dest, mode, apiKey);
+    if (!route) {
       return degradedPayload();
     }
-
-    const route = resp.data.routes?.[0];
-    const leg = route?.legs?.[0];
-    const mergedFromSteps = mergeRouteStepPolylines(route);
-    const polyline =
-      mergedFromSteps || route?.overview_polyline?.points || null;
-    const distanceMeters = leg?.distance?.value ?? null;
-    const duration = leg?.duration?.value ?? null;
-
-    if (!polyline) {
-      return degradedPayload();
-    }
+    const { polyline, distanceMeters, duration, bounds } = route;
 
     const payload = {
       polyline,
-      bounds: route?.bounds || null,
+      bounds,
       distanceMeters,
       duration,
       degraded: false,
@@ -218,22 +267,22 @@ export async function getCachedRoute(origin, dest, mode = "driving", orderId = n
       }
     }
 
-    // Cache in Firebase if orderId is provided
+    // Cache in Firebase if orderId is provided. Fire-and-forget: an RTDB write
+    // only resolves once the server acknowledges it, so awaiting it would hang
+    // the response whenever Firebase is unreachable.
     if (orderId) {
-      try {
-        await writeRoutePolyline(orderId, {
-          polyline,
-          phase,
-          origin,
-          destination: dest,
-          mode,
-          bounds: route?.bounds || null,
-          distance: distanceMeters,
-          duration,
-        });
-      } catch {
+      writeRoutePolyline(orderId, {
+        polyline,
+        phase,
+        origin,
+        destination: dest,
+        mode,
+        bounds: route?.bounds || null,
+        distance: distanceMeters,
+        duration,
+      }).catch(() => {
         /* ignore firebase write errors */
-      }
+      });
     }
 
     return payload;

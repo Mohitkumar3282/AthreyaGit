@@ -171,23 +171,22 @@ const CheckoutPage = () => {
   const [savingsTotal, setSavingsTotal] = useState(0);
   const postOrderNavigateRef = useRef(null);
   const previewDebounceRef = useRef(null);
-  const [currentAddress, setCurrentAddress] = useState({
+  // Starts empty and is filled from the logged-in customer (name/phone) and
+  // their chosen location. Never seed it with sample data: it is sent as the
+  // order's delivery address.
+  const EMPTY_ADDRESS = {
     type: "Home",
-    name: "Harshvardhan Panchal",
-    address: "81 Pipliyahana Road, Near 214",
+    name: "",
+    address: "",
     landmark: "",
-    city: "Indore - 452018",
-    phone: "6268423925",
-  });
+    city: "",
+    phone: "",
+  };
+  const [currentAddress, setCurrentAddress] = useState(EMPTY_ADDRESS);
+  // True once the customer picks/edits an address, so auto-fill stops.
+  const addressChosenRef = useRef(false);
   const [isEditAddressOpen, setIsEditAddressOpen] = useState(false);
-  const [editAddressForm, setEditAddressForm] = useState({
-    type: "Home",
-    name: "Harshvardhan Panchal",
-    address: "81 Pipliyahana Road, Near 214",
-    landmark: "",
-    city: "Indore - 452018",
-    phone: "6268423925",
-  });
+  const [editAddressForm, setEditAddressForm] = useState(EMPTY_ADDRESS);
   const [showRecipientForm, setShowRecipientForm] = useState(false);
   const [recipientData, setRecipientData] = useState({
     completeAddress: "",
@@ -248,12 +247,53 @@ const CheckoutPage = () => {
   const RECIPIENT_STORAGE_KEY = STORAGE_KEYS.RECIPIENT_ADDRESS;
 
   // Derived display values for primary delivery card
-  const displayName = savedRecipient?.name || currentAddress.name;
+  const displayName = savedRecipient?.name || currentAddress.name || "Add your name";
   const displayPhone =
-    savedRecipient?.phone || currentAddress.phone || "6268423925";
+    savedRecipient?.phone || currentAddress.phone || "Add phone number";
   const displayAddress = savedRecipient
     ? `${savedRecipient.completeAddress}${savedRecipient.landmark ? `, ${savedRecipient.landmark}` : ""}${savedRecipient.pincode ? ` - ${savedRecipient.pincode}` : ""}`
-    : `${currentAddress.address}${currentAddress.landmark ? `, ${currentAddress.landmark}` : ""}, ${currentAddress.city}`;
+    : currentAddress.address
+      ? [currentAddress.address, currentAddress.landmark, currentAddress.city].filter(Boolean).join(", ")
+      : "No delivery address yet. Tap Change, Edit or use your live location.";
+
+  // Fill name + phone from the logged-in customer (only into empty fields).
+  useEffect(() => {
+    const name = String(user?.name || "").trim();
+    const phone = String(user?.phone || "").replace(/\D/g, "").slice(-10);
+    if (!name && !phone) return;
+    setCurrentAddress((prev) => ({
+      ...prev,
+      name: prev.name || name,
+      phone: prev.phone || phone,
+    }));
+  }, [user?.name, user?.phone]);
+
+  // Until the customer picks an address, use the location they set in the app
+  // (GPS / location search) — never the built-in placeholder location.
+  useEffect(() => {
+    if (addressChosenRef.current) return;
+    if (!currentLocation?.name || currentLocation.isPlaceholder) return;
+    setCurrentAddress((prev) => ({
+      ...prev,
+      address: currentLocation.name,
+      landmark: "",
+      city: [currentLocation.city, currentLocation.state, currentLocation.pincode]
+        .filter(Boolean)
+        .join(", "),
+      ...(typeof currentLocation.latitude === "number" &&
+        typeof currentLocation.longitude === "number"
+        ? { location: { lat: currentLocation.latitude, lng: currentLocation.longitude } }
+        : {}),
+    }));
+  }, [
+    currentLocation?.name,
+    currentLocation?.isPlaceholder,
+    currentLocation?.city,
+    currentLocation?.state,
+    currentLocation?.pincode,
+    currentLocation?.latitude,
+    currentLocation?.longitude,
+  ]);
 
   useEffect(() => {
     if (!paymentMethods.length) return;
@@ -462,6 +502,7 @@ const CheckoutPage = () => {
         return;
       }
 
+      addressChosenRef.current = true;
       setCurrentAddress({
         type: addr.label,
         name: user?.name || currentAddress.name,
@@ -548,6 +589,7 @@ const CheckoutPage = () => {
       );
     }
 
+    addressChosenRef.current = true;
     setCurrentAddress({
       ...editAddressForm,
       ...(location ? { location } : {}),
@@ -871,6 +913,18 @@ const CheckoutPage = () => {
   const handlePlaceOrder = async () => {
     if (previewError) {
       showToast(previewError, "error");
+      return;
+    }
+    // Never send an order without the customer's own delivery details.
+    const orderAddress = buildAddressForOrder();
+    const orderPhone = String(orderAddress?.phone || "").replace(/\D/g, "");
+    if (
+      !String(orderAddress?.name || "").trim() ||
+      orderPhone.length < 10 ||
+      !String(orderAddress?.address || "").trim()
+    ) {
+      showToast("Please add your name, phone number and delivery address", "error");
+      if (!savedRecipient) handleOpenEditAddress();
       return;
     }
     setIsPlacingOrder(true);

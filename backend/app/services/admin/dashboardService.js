@@ -19,7 +19,8 @@ export async function getAdminDashboardStats() {
   const activeSellers = await Seller.countDocuments({ isVerified: true });
 
   const revenueData = await Order.aggregate([
-    { $match: { status: "delivered" } },
+    // Revenue = delivered orders only (and not a workflow that ended cancelled).
+    { $match: { status: "delivered", workflowStatus: { $ne: "CANCELLED" } } },
     { $group: { _id: null, total: { $sum: "$pricing.total" } } },
   ]);
   const totalRevenue = revenueData[0]?.total || 0;
@@ -28,7 +29,7 @@ export async function getAdminDashboardStats() {
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
   const historyAggregation = await Order.aggregate([
-    { $match: { createdAt: { $gte: thirtyDaysAgo }, status: "delivered" } },
+    { $match: { createdAt: { $gte: thirtyDaysAgo }, status: "delivered", workflowStatus: { $ne: "CANCELLED" } } },
     {
       $group: {
         _id: {

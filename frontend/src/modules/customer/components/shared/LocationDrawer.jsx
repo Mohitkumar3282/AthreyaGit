@@ -4,6 +4,7 @@ import { X, Search, MapPin, Plus, Home, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "../../context/LocationContext";
 import { loadGoogleMaps } from "../../../../core/services/googleMapsLoader";
+import { fetchPlaceSuggestions } from "../../../../core/services/placesAutocomplete";
 import { customerApi } from "../../services/customerApi";
 import { getCachedGeocode, setCachedGeocode } from "@/core/utils/geocodeCache";
 
@@ -29,7 +30,6 @@ const LocationDrawer = ({ isOpen, onClose }) => {
   const CACHE_TTL_MS = 3 * 60 * 1000;
 
   const mapsReadyRef = React.useRef(false);
-  const autocompleteServiceRef = React.useRef(null);
   const geocoderRef = React.useRef(null);
   const latestPlacesRequestRef = React.useRef(0);
   const autocompleteSessionTokenRef = React.useRef(null);
@@ -66,12 +66,11 @@ const LocationDrawer = ({ isOpen, onClose }) => {
 
     try {
       await loadGoogleMaps(apiKey);
-      if (!window.google?.maps?.places) {
-        setPlacesError("Google Places library is unavailable");
+      if (!window.google?.maps) {
+        setPlacesError("Google Maps is unavailable");
         return false;
       }
-      autocompleteServiceRef.current =
-        new window.google.maps.places.AutocompleteService();
+      // Suggestions come from Places API (New) via fetchPlaceSuggestions.
       geocoderRef.current = new window.google.maps.Geocoder();
       mapsReadyRef.current = true;
       return true;
@@ -316,62 +315,48 @@ const LocationDrawer = ({ isOpen, onClose }) => {
 
     const timer = setTimeout(async () => {
       const ready = await initGooglePlaces();
-      if (!ready || !autocompleteServiceRef.current) return;
+      if (!ready) return;
 
       const requestId = latestPlacesRequestRef.current + 1;
       latestPlacesRequestRef.current = requestId;
       const querySnapshot = query;
+      const isStale = () =>
+        requestId !== latestPlacesRequestRef.current ||
+        querySnapshot !== searchQuery.trim();
 
       setIsSearchingPlaces(true);
       setPlacesError("");
 
-      const request = {
-        input: query,
-        types: ["geocode"],
-        componentRestrictions: { country: "in" },
-        sessionToken: getAutocompleteSessionToken(),
-      };
-
+      // Prefer results within ~30 km of the user.
       const lat = Number(currentLocation?.latitude);
       const lng = Number(currentLocation?.longitude);
-      if (Number.isFinite(lat) && Number.isFinite(lng)) {
-        request.location = new window.google.maps.LatLng(lat, lng);
-        request.radius = 30000;
+      const locationBias =
+        Number.isFinite(lat) && Number.isFinite(lng)
+          ? { center: { lat, lng }, radius: 30000 }
+          : undefined;
+
+      try {
+        const predictions = await fetchPlaceSuggestions({
+          input: query,
+          sessionToken: getAutocompleteSessionToken(),
+          locationBias,
+          limit: MAX_SUGGESTIONS,
+        });
+        // Ignore stale responses from older keystrokes.
+        if (isStale()) return;
+        setIsSearchingPlaces(false);
+        setPlacePredictions(predictions);
+        placesCacheRef.current.set(cacheKey, {
+          predictions,
+          expiresAt: Date.now() + CACHE_TTL_MS,
+        });
+      } catch (err) {
+        if (isStale()) return;
+        console.warn("Place suggestions failed:", err);
+        setIsSearchingPlaces(false);
+        setPlacePredictions([]);
+        setPlacesError("Google search is temporarily unavailable");
       }
-
-      autocompleteServiceRef.current.getPlacePredictions(
-        request,
-        (predictions, status) => {
-          // Ignore stale responses from older keystrokes.
-          if (
-            requestId !== latestPlacesRequestRef.current ||
-            querySnapshot !== searchQuery.trim()
-          ) {
-            return;
-          }
-
-          setIsSearchingPlaces(false);
-          if (status === window.google.maps.places.PlacesServiceStatus.OK) {
-            const trimmedPredictions = Array.isArray(predictions)
-              ? predictions.slice(0, MAX_SUGGESTIONS)
-              : [];
-            setPlacePredictions(trimmedPredictions);
-            placesCacheRef.current.set(cacheKey, {
-              predictions: trimmedPredictions,
-              expiresAt: Date.now() + CACHE_TTL_MS,
-            });
-            return;
-          }
-          if (
-            status === window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS
-          ) {
-            setPlacePredictions([]);
-            return;
-          }
-          setPlacePredictions([]);
-          setPlacesError("Google search is temporarily unavailable");
-        },
-      );
     }, SEARCH_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);

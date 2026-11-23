@@ -28,6 +28,10 @@ export const LocationProvider = ({ children }) => {
     pincode: "452018",
     latitude: 22.711140989838025,
     longitude: 75.9001552518043,
+    // Built-in fallback, not the customer's real location. Any real location
+    // (GPS, search, saved/stored) replaces this object and drops the flag, so
+    // checkout never pre-fills this demo address as someone's delivery address.
+    isPlaceholder: true,
   });
 
   // Address list for drawer UI – will be hydrated from profile API.

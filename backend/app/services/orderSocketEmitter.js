@@ -108,6 +108,28 @@ export function emitToOrder(orderId, { event, payload }) {
 }
 
 /**
+ * Riders (from `ids`) who have NOT yet been sent a request notification for
+ * this order. Lets each wider retry push-notify newly reached riders without
+ * buzzing riders who were already alerted on an earlier attempt.
+ */
+async function ridersNotYetAlerted(orderId, ids) {
+  if (!orderId || !ids.length) return ids;
+  try {
+    const alreadyAlerted = await Notification.distinct("recipient", {
+      recipientModel: "Delivery",
+      type: "order",
+      "data.orderId": orderId,
+      recipient: { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) },
+    });
+    const alerted = new Set(alreadyAlerted.map((r) => String(r)));
+    return ids.filter((id) => !alerted.has(String(id)));
+  } catch (e) {
+    console.warn("[ridersNotYetAlerted]", e.message);
+    return [];
+  }
+}
+
+/**
  * Notify only delivery partners whose live location is within the seller's
  * service radius (see Delivery model location + Seller.serviceRadius).
  */
@@ -136,19 +158,24 @@ export async function emitDeliveryBroadcastForSeller(sellerId, payload, { exclud
     }
   }
 
-  // Trigger Push Notifications for nearby riders
-  if (ids.length > 0 && !payload.retryAttempt) {
+  // Push + in-app notification for riders not alerted yet. On a wider retry
+  // this reaches the newly included riders only (previously retries sent no
+  // push at all, so riders who came into range never got a notification).
+  const newIds = payload.retryAttempt
+    ? await ridersNotYetAlerted(payload.orderId, ids)
+    : ids;
+
+  if (newIds.length > 0) {
     emitNotificationEvent(NOTIFICATION_EVENTS.NEW_DELIVERY_BROADCAST, {
       orderId: payload.orderId,
-      deliveryIds: ids,
+      deliveryIds: newIds,
     });
   }
 
-  // Avoid duplicate DB rows when delivery search retries with wider ring
-  if (!payload.retryAttempt) {
+  if (newIds.length > 0) {
     try {
       await Notification.insertMany(
-        ids.map((id) => ({
+        newIds.map((id) => ({
           recipient: new mongoose.Types.ObjectId(id),
           recipientModel: "Delivery",
           title: "New delivery order",
@@ -208,15 +235,20 @@ export async function emitDeliveryBroadcastNearLocation(location, payload, { exc
     }
   }
 
-  if (!payload.retryAttempt) {
+  // See emitDeliveryBroadcastForSeller: retries alert newly reached riders.
+  const newIds = payload.retryAttempt
+    ? await ridersNotYetAlerted(payload.orderId, ids)
+    : ids;
+
+  if (newIds.length > 0) {
     emitNotificationEvent(NOTIFICATION_EVENTS.NEW_DELIVERY_BROADCAST, {
       orderId: payload.orderId,
-      deliveryIds: ids,
+      deliveryIds: newIds,
     });
 
     try {
       await Notification.insertMany(
-        ids.map((id) => ({
+        newIds.map((id) => ({
           recipient: new mongoose.Types.ObjectId(id),
           recipientModel: "Delivery",
           title: "New Athreya Express request",

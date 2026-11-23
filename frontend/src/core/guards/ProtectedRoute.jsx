@@ -30,10 +30,10 @@ const ProtectedRoute = ({ children }) => {
     if (location.pathname.startsWith('/seller')) {
         const applicationStatus =
             user?.applicationStatus || (user?.isVerified ? 'approved' : 'pending');
+        // Approval only: `isActive` is the seller's shop Active/Inactive switch.
         const isApprovedSeller =
             Boolean(user) &&
             user.isVerified === true &&
-            user.isActive === true &&
             applicationStatus === 'approved';
 
         if (!isApprovedSeller) {

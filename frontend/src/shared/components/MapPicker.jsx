@@ -3,12 +3,11 @@ import {
   GoogleMap,
   useJsApiLoader,
   Marker,
-  Autocomplete,
 } from "@react-google-maps/api";
-import { Search, MapPin, Navigation, Loader2, X } from "lucide-react";
+import { MapPin, Navigation, Loader2, X } from "lucide-react";
 import Modal from "./ui/Modal";
 import Button from "./ui/Button";
-import Input from "./ui/Input";
+import PlaceSearchInput from "./PlaceSearchInput";
 import { GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_SCRIPT_ID } from "@/core/services/googleMapsLoader";
 
 // Fill the screen instead of a fixed 340px box.
@@ -88,7 +87,6 @@ const MapPicker = ({
   const [address, setAddress] = useState("");
   const [isGeocoding, setIsGeocoding] = useState(false);
   const mapRef = useRef(null);
-  const autocompleteRef = useRef(null);
   const circleRef = useRef(null);
   const pickedPlaceRef = useRef(null); // last place chosen from suggestions
 
@@ -166,38 +164,20 @@ const MapPicker = ({
     setAddress(""); // the pin moved: any previously searched address no longer applies
   }, [clearCircleOverlay]);
 
-  // Keep Google's suggestions centred on the map: nearby places rank first
-  // (not strict, so a farther address can still be found).
-  useEffect(() => {
-    if (!isLoaded || !autocompleteRef.current || !window.google?.maps) return;
-    try {
-      const bounds = new window.google.maps.Circle({ center, radius: 15000 }).getBounds();
-      if (bounds) autocompleteRef.current.setBounds(bounds);
-    } catch {
-      /* bias is best-effort */
-    }
-  }, [center, isLoaded]);
-
-  const handlePlaceChanged = () => {
-    if (autocompleteRef.current) {
-      const place = autocompleteRef.current.getPlace();
-      if (place.geometry) {
-        clearCircleOverlay();
-        const newPos = {
-          lat: place.geometry.location.lat(),
-          lng: place.geometry.location.lng(),
-        };
-        pickedPlaceRef.current = newPos;
-        setCenter(newPos);
-        setMarker(newPos);
-        setAddress(
-          [place.name, place.formatted_address].filter(Boolean).join(", ") ||
-            place.formatted_address ||
-            "",
-        );
-      }
-    }
-  };
+  // A suggestion was picked in PlaceSearchInput (Places API New). Suggestions
+  // are biased to the current map centre, so nearby places rank first.
+  const handlePlaceSelected = useCallback(
+    (place) => {
+      clearCircleOverlay();
+      const newPos = { lat: place.lat, lng: place.lng };
+      pickedPlaceRef.current = newPos;
+      setCenter(newPos);
+      setMarker(newPos);
+      const name = place.name && !place.address?.startsWith(place.name) ? place.name : "";
+      setAddress([name, place.address].filter(Boolean).join(", "));
+    },
+    [clearCircleOverlay],
+  );
 
   const getCurrentLocation = ({
     silent = false,
@@ -386,21 +366,12 @@ const MapPicker = ({
           <div className="flex gap-2 pointer-events-auto">
             <div className="relative flex-1">
               {isLoaded && (
-                <Autocomplete
-                  onLoad={(ref) => (autocompleteRef.current = ref)}
-                  onPlaceChanged={handlePlaceChanged}
-                  options={{
-                    componentRestrictions: { country: "IN" },
-                    fields: ["geometry", "formatted_address", "name", "place_id"],
-                  }}>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <Input
-                      placeholder={searchPlaceholder || "Search for a place..."}
-                      className="pl-10 h-11 bg-white shadow-md"
-                    />
-                  </div>
-                </Autocomplete>
+                <PlaceSearchInput
+                  placeholder={searchPlaceholder || "Search for a place..."}
+                  inputClassName="h-11 bg-white shadow-md"
+                  biasCenter={center}
+                  onPlaceSelected={handlePlaceSelected}
+                />
               )}
             </div>
             <button
@@ -488,21 +459,11 @@ const MapPicker = ({
         <div className="flex gap-2">
           <div className="relative flex-1">
             {isLoaded && (
-              <Autocomplete
-                onLoad={(ref) => (autocompleteRef.current = ref)}
-                onPlaceChanged={handlePlaceChanged}
-                options={{
-                  componentRestrictions: { country: "IN" },
-                  fields: ["geometry", "formatted_address", "name", "place_id"],
-                }}>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    placeholder={searchPlaceholder || "Search for your shop area..."}
-                    className="pl-10"
-                  />
-                </div>
-              </Autocomplete>
+              <PlaceSearchInput
+                placeholder={searchPlaceholder || "Search for your shop area..."}
+                biasCenter={center}
+                onPlaceSelected={handlePlaceSelected}
+              />
             )}
           </div>
           <Button

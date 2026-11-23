@@ -51,6 +51,9 @@ import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.const
 
 const DELIVERY_SEARCH_MAX_ATTEMPTS = () =>
   parseInt(process.env.DELIVERY_SEARCH_MAX_ATTEMPTS || "3", 10);
+/** A rider search whose timeout is processed later than this is cancelled, not retried. */
+const STALE_DELIVERY_SEARCH_MS = () =>
+  parseInt(process.env.STALE_DELIVERY_SEARCH_MINUTES || "10", 10) * 60 * 1000;
 
 const DELIVERY_RADIUS_MULTIPLIER = () =>
   parseFloat(process.env.DELIVERY_RADIUS_MULTIPLIER || "1.5");
@@ -762,7 +765,15 @@ export async function processDeliveryTimeoutJob({ orderId, attempt }) {
   const currentAttempt = meta.attempt || attempt || 1;
   const maxAttempts = DELIVERY_SEARCH_MAX_ATTEMPTS();
 
-  if (currentAttempt < maxAttempts) {
+  // If this timeout is being processed long after it was due (the sweeper or
+  // queue wasn't running), don't re-broadcast an old request to riders —
+  // close it out so the customer isn't left waiting on a ghost order.
+  const overdueMs = order.deliverySearchExpiresAt
+    ? now.getTime() - new Date(order.deliverySearchExpiresAt).getTime()
+    : 0;
+  const searchIsStale = overdueMs > STALE_DELIVERY_SEARCH_MS();
+
+  if (currentAttempt < maxAttempts && !searchIsStale) {
     const nextRadius = Math.round(
       (meta.radiusMeters || INITIAL_DELIVERY_RADIUS_M()) *
         DELIVERY_RADIUS_MULTIPLIER(),

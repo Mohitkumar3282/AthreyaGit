@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
-import { Loader2 } from "lucide-react";
+import { Loader2, MapPin, Navigation } from "lucide-react";
 import customerPin from "@/assets/customer-pin.png";
 import { deliveryApi } from "../services/deliveryApi";
 import deliveryIcon from "@/assets/deliveryIcon.png";
@@ -18,6 +18,10 @@ const ROUTE_REQUOTE_MIN_GAP_MS = 30 * 1000;
 const RECENTER_INTERVAL_MS = 15000;
 const RIDER_FOCUS_RADIUS_M = 500;
 const LOCATION_POST_INTERVAL_MS = 5000;
+// Rider counts as "on the route" within this distance of the drawn line.
+const ON_ROUTE_TOLERANCE_M = 120;
+// After the rider pans the map, stop auto-following for this long.
+const USER_PAN_PAUSE_MS = 30 * 1000;
 
 // Container style will be 100% to fill parent
 const containerStyle = {
@@ -102,6 +106,44 @@ function destinationForPhase(order, phase) {
     return { lat: loc.lat, lng: loc.lng };
   }
   return null;
+}
+
+/** Where the rider is heading in this phase, for the on-map address card. */
+function destinationInfoForPhase(order, phase) {
+  const isReturn = order?.returnStatus && order.returnStatus !== "none";
+  const seller = order?.seller || {};
+  const sellerAddress = [seller.shopName, seller.address].filter(Boolean).join(", ");
+  const customer = order?.address || {};
+  const customerAddress = [customer.address, customer.landmark].filter(Boolean).join(", ");
+
+  if (phase === "pickup") {
+    if (isReturn) return { title: "Pick up from customer", name: customer.name, address: customerAddress };
+    if (order?.orderType === "custom_pickup") {
+      const p = order?.pickupAddress || {};
+      return {
+        title: "Pick up from sender",
+        name: p.name,
+        address: [p.address, p.landmark].filter(Boolean).join(", "),
+      };
+    }
+    return { title: "Pick up from store", name: seller.shopName, address: seller.address || sellerAddress };
+  }
+  if (isReturn) return { title: "Return to store", name: seller.shopName, address: seller.address || sellerAddress };
+  return { title: "Deliver to customer", name: customer.name, address: customerAddress };
+}
+
+/** Index of the path vertex nearest to `point`, and its distance in meters. */
+function nearestPathIndex(path, point) {
+  let best = -1;
+  let bestDist = Infinity;
+  for (let i = 0; i < path.length; i += 1) {
+    const d = distanceMeters({ lat: path[i].lat(), lng: path[i].lng() }, point);
+    if (d != null && d < bestDist) {
+      bestDist = d;
+      best = i;
+    }
+  }
+  return { index: best, distance: bestDist };
 }
 
 /**
@@ -196,7 +238,8 @@ const DeliveryTrackingMapComponent = ({
   const routeAbortRef = useRef(null);
   const routeInFlightRef = useRef(false);
 
-  const fetchRoute = useCallback(async () => {
+  // `force` skips the "route is still fresh" check (used when the rider leaves the route).
+  const fetchRoute = useCallback(async (force = false) => {
     const currentRider = riderRef.current;
     if (!orderId || !currentRider) return;
     if (routeInFlightRef.current) return;
@@ -210,6 +253,7 @@ const DeliveryTrackingMapComponent = ({
         : null;
 
     if (
+      force !== true &&
       sameRouteContext &&
       lastFetchRef.current.at &&
       now - lastFetchRef.current.at < ROUTE_REFRESH_INTERVAL_MS &&
@@ -325,11 +369,36 @@ const DeliveryTrackingMapComponent = ({
     }
   }, [routeData?.polyline, isLoaded, mapInstance]);
 
-  /** Only the road polyline from the API — never a 2-point geodesic “fallback”. */
-  const linePath = useMemo(() => {
-    if (decodedPath?.length) return decodedPath;
-    return [];
-  }, [decodedPath]);
+  /**
+   * The part of the road route still ahead of the rider (Zomato-style: the line
+   * shrinks as they ride). If the rider is off the route, the full route is
+   * shown and a fresh one is requested (see effect below).
+   */
+  const { linePath, offRouteMeters } = useMemo(() => {
+    if (!decodedPath?.length) return { linePath: [], offRouteMeters: null };
+    if (!rider || !window.google?.maps) return { linePath: decodedPath, offRouteMeters: null };
+    const { index, distance } = nearestPathIndex(decodedPath, rider);
+    if (index < 0 || distance > ON_ROUTE_TOLERANCE_M) {
+      return { linePath: decodedPath, offRouteMeters: distance };
+    }
+    const ahead = decodedPath.slice(index + 1);
+    return {
+      linePath: [new window.google.maps.LatLng(rider.lat, rider.lng), ...ahead],
+      offRouteMeters: distance,
+    };
+  }, [decodedPath, rider]);
+
+  // Re-route when the rider has clearly left the drawn route.
+  useEffect(() => {
+    if (offRouteMeters == null || offRouteMeters <= ON_ROUTE_TOLERANCE_M) return;
+    if (Date.now() - lastFetchRef.current.at < ROUTE_REQUOTE_MIN_GAP_MS) return;
+    fetchRoute(true);
+  }, [offRouteMeters, fetchRoute]);
+
+  const destinationInfo = useMemo(() => destinationInfoForPhase(order, phase), [order, phase]);
+  const navigateUrl = dest
+    ? `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=two-wheeler`
+    : null;
 
   const riderMarkerIcon = useMemo(() => {
     if (!isLoaded || !window.google?.maps) return undefined;
@@ -388,74 +457,82 @@ const DeliveryTrackingMapComponent = ({
     map.fitBounds(bounds, 24);
   }, []);
 
-  const strokeColor = "#2563eb";
-
+  // Route line: a dark outline under a bright blue line (easier to see on a
+  // phone in sunlight). Both overlays are created once and only their path is
+  // updated as the rider moves, so there is never a second/stale line.
+  const routeOutlineRef = useRef(null);
   useEffect(() => {
     if (!isLoaded || !mapInstance || !window.google?.maps) return undefined;
-
-    // Clear previous polyline
-    if (routePolylineRef.current) {
-      routePolylineRef.current.setMap(null);
-      routePolylineRef.current = null;
-    }
-
-    if (!linePath?.length) return undefined;
-
-    const pl = new window.google.maps.Polyline({
-      path: linePath,
+    routeOutlineRef.current = new window.google.maps.Polyline({
+      strokeColor: "#1e3a8a",
+      strokeOpacity: 0.9,
+      strokeWeight: 9,
+      map: mapInstance,
+      zIndex: 9,
+    });
+    routePolylineRef.current = new window.google.maps.Polyline({
       strokeColor: "#2563eb",
-      strokeOpacity: 0.95,
+      strokeOpacity: 1,
       strokeWeight: 5,
       map: mapInstance,
       zIndex: 10,
     });
-    routePolylineRef.current = pl;
-
     return () => {
-      if (routePolylineRef.current) {
-        routePolylineRef.current.setMap(null);
-        routePolylineRef.current = null;
-      }
+      routeOutlineRef.current?.setMap(null);
+      routePolylineRef.current?.setMap(null);
+      routeOutlineRef.current = null;
+      routePolylineRef.current = null;
     };
-  }, [isLoaded, mapInstance, linePath]);
+  }, [isLoaded, mapInstance]);
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !window.google) return;
+    const path = linePath?.length ? linePath : [];
+    routeOutlineRef.current?.setPath(path);
+    routePolylineRef.current?.setPath(path);
+  }, [linePath]);
 
-    if (rider) {
-      focusOnRider500m(map, rider);
+  // Camera: keep the rider, the remaining route and the destination in view.
+  // Pauses briefly after the rider drags the map so they can look around.
+  const userPannedAtRef = useRef(0);
+  useEffect(() => {
+    if (!mapInstance || !window.google?.maps) return undefined;
+    const listener = mapInstance.addListener("dragstart", () => {
+      userPannedAtRef.current = Date.now();
+    });
+    return () => listener.remove();
+  }, [mapInstance]);
+
+  const fitRouteInView = useCallback(() => {
+    const map = mapRef.current;
+    if (!map || !window.google?.maps) return;
+    if (Date.now() - userPannedAtRef.current < USER_PAN_PAUSE_MS) return;
+    const points = [...(linePath || [])];
+    if (rider) points.push(new window.google.maps.LatLng(rider.lat, rider.lng));
+    if (dest) points.push(new window.google.maps.LatLng(dest.lat, dest.lng));
+    if (points.length < 2) {
+      if (rider) focusOnRider500m(map, rider);
       return;
     }
-
-    try {
-      const bounds = new window.google.maps.LatLngBounds();
-      if (linePath?.length) {
-        linePath.forEach((p) => bounds.extend(p));
-      }
-      if (rider) bounds.extend(rider);
-      if (dest) bounds.extend(dest);
-      map.fitBounds(bounds, 32);
-    } catch {
-      /* ignore */
-    }
+    const bounds = new window.google.maps.LatLngBounds();
+    points.forEach((p) => bounds.extend(p));
+    // Extra top padding leaves room for the address card.
+    map.fitBounds(bounds, { top: 96, right: 40, bottom: 40, left: 40 });
   }, [linePath, rider, dest, focusOnRider500m]);
 
-  // Smoothly keep rider centered and zoomed to 500m view.
+  const fitRouteInViewRef = useRef(fitRouteInView);
+  fitRouteInViewRef.current = fitRouteInView;
+
+  // Fit once when the route (or destination) first appears / changes.
   useEffect(() => {
-    if (!isLoaded || !rider) return undefined;
-    const map = mapRef.current;
-    if (!map) return undefined;
+    fitRouteInViewRef.current();
+  }, [decodedPath, dest?.lat, dest?.lng, mapInstance]);
 
-    const id = setInterval(() => {
-      const currentMap = mapRef.current;
-      if (!currentMap || !rider) return;
-      currentMap.panTo(rider);
-      focusOnRider500m(currentMap, rider);
-    }, RECENTER_INTERVAL_MS);
-
+  // Then keep following the rider periodically.
+  useEffect(() => {
+    if (!isLoaded) return undefined;
+    const id = setInterval(() => fitRouteInViewRef.current(), RECENTER_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [isLoaded, rider?.lat, rider?.lng, focusOnRider500m]);
+  }, [isLoaded]);
 
   // Add resize observer to handle dynamic height changes
   useEffect(() => {
@@ -464,19 +541,9 @@ const DeliveryTrackingMapComponent = ({
 
     const handleResize = () => {
       window.google.maps.event.trigger(map, 'resize');
-      // Re-focus rider after resize when available
+      // Re-fit rider + remaining route + destination after a size change.
       try {
-        if (rider) {
-          focusOnRider500m(map, rider);
-          return;
-        }
-        const bounds = new window.google.maps.LatLngBounds();
-        if (linePath?.length) {
-          linePath.forEach((p) => bounds.extend(p));
-        }
-        if (rider) bounds.extend(rider);
-        if (dest) bounds.extend(dest);
-        map.fitBounds(bounds, 32);
+        fitRouteInViewRef.current();
       } catch {
         /* ignore */
       }
@@ -502,7 +569,8 @@ const DeliveryTrackingMapComponent = ({
         resizeObserver.disconnect();
       }
     };
-  }, [linePath, rider, dest, focusOnRider500m]);
+  // Only re-attach when the map changes; GPS ticks must not re-trigger a fit.
+  }, [mapInstance]);
 
   if (!apiKey) {
     return (
@@ -579,15 +647,42 @@ const DeliveryTrackingMapComponent = ({
           />
         )}
       </GoogleMap>
+      {/* Where the rider is heading (Zomato-style address card) */}
+      {destinationInfo?.address && (
+        <div className="absolute top-2 left-2 right-2 flex items-start gap-2 rounded-xl border border-slate-200 bg-white/95 p-2.5 shadow-md backdrop-blur">
+          <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+              {destinationInfo.title}
+              {routeData?.distanceMeters && !routeData?.degraded
+                ? ` · ${(Number(routeData.distanceMeters) / 1000).toFixed(1)} km`
+                : ""}
+            </p>
+            {destinationInfo.name && (
+              <p className="truncate text-sm font-bold text-slate-900">{destinationInfo.name}</p>
+            )}
+            <p className="line-clamp-2 text-xs leading-snug text-slate-600">{destinationInfo.address}</p>
+          </div>
+          {navigateUrl && (
+            <a
+              href={navigateUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex shrink-0 items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-2 text-xs font-bold text-white"
+            >
+              <Navigation className="h-3.5 w-3.5" /> Navigate
+            </a>
+          )}
+        </div>
+      )}
       <div className="absolute bottom-2 right-2 bg-white/95 backdrop-blur px-2 py-1 rounded-md text-[13.5px] text-slate-600 font-bold border border-slate-200 shadow-sm">
         {routeLoading ? "Updating route…" : "Tracking View"}
       </div>
       {routeData?.degraded && (
-        <div className="absolute top-2 left-2 bg-amber-50/95 text-amber-900 text-[13.5px] px-2 py-1 rounded border border-amber-200 max-w-[85%] leading-snug">
-          Route unavailable. Add{" "}
-          <span className="font-mono">GOOGLE_MAPS_API_KEY</span> to the{" "}
-          <strong>backend</strong> <span className="font-mono">.env</span>, enable
-          Directions API + billing, then restart the API server.
+        <div className="absolute top-24 left-2 bg-amber-50/95 text-amber-900 text-[13.5px] px-2 py-1 rounded border border-amber-200 max-w-[85%] leading-snug">
+          Route unavailable right now. Check that <strong>Routes API</strong> is
+          enabled for the backend <span className="font-mono">GOOGLE_MAPS_API_KEY</span>{" "}
+          (billing on). The server log shows Google&apos;s exact error.
         </div>
       )}
     </div>

@@ -308,9 +308,12 @@ export const loginSeller = async (req, res) => {
 
         const applicationStatus =
             seller.applicationStatus || (seller.isVerified ? "approved" : "pending");
+        // Login depends on the admin's approval only. `isActive` is the seller's
+        // own shop Active/Inactive switch (Profile page); gating login on it
+        // locked out any seller who switched their shop off.
         const isApproved =
             seller.isVerified === true &&
-            seller.isActive === true &&
+            !seller.deletedAt &&
             applicationStatus === "approved";
 
         if (!isApproved) {
