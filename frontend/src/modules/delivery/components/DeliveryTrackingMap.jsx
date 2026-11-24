@@ -156,6 +156,10 @@ const DeliveryTrackingMapComponent = ({
   phase,
   order,
   onRouteStatsChange,
+  // Optional: show a "Navigate" button that opens the in-app full-screen map.
+  onNavigate,
+  // Optional heading for the address card (e.g. "Pick up from customer").
+  destinationTitle,
 }) => {
   const mapRef = useRef(null);
   const routePolylineRef = useRef(null);
@@ -395,10 +399,10 @@ const DeliveryTrackingMapComponent = ({
     fetchRoute(true);
   }, [offRouteMeters, fetchRoute]);
 
-  const destinationInfo = useMemo(() => destinationInfoForPhase(order, phase), [order, phase]);
-  const navigateUrl = dest
-    ? `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=two-wheeler`
-    : null;
+  const destinationInfo = useMemo(() => {
+    const info = destinationInfoForPhase(order, phase);
+    return destinationTitle ? { ...info, title: destinationTitle } : info;
+  }, [order, phase, destinationTitle]);
 
   const riderMarkerIcon = useMemo(() => {
     if (!isLoaded || !window.google?.maps) return undefined;
@@ -663,15 +667,15 @@ const DeliveryTrackingMapComponent = ({
             )}
             <p className="line-clamp-2 text-xs leading-snug text-slate-600">{destinationInfo.address}</p>
           </div>
-          {navigateUrl && (
-            <a
-              href={navigateUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+          {/* In-app navigation only: never hand the rider off to an external maps app. */}
+          {typeof onNavigate === "function" && dest && (
+            <button
+              type="button"
+              onClick={onNavigate}
               className="flex shrink-0 items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-2 text-xs font-bold text-white"
             >
               <Navigation className="h-3.5 w-3.5" /> Navigate
-            </a>
+            </button>
           )}
         </div>
       )}

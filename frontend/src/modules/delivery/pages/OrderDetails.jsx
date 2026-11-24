@@ -186,6 +186,8 @@ const OrderDetails = () => {
   const [showPickupOtpInput, setShowPickupOtpInput] = useState(false); // Athreya Express: OTP from sender at pickup
   const [pickupProofSubmitted, setPickupProofSubmitted] = useState(false);
   const [routeStats, setRouteStats] = useState(null);
+  // Full-screen in-app navigation map (replaces opening Google Maps).
+  const [isNavMapOpen, setIsNavMapOpen] = useState(false);
   const [clockTick, setClockTick] = useState(Date.now());
   const [shopBillImage, setShopBillImage] = useState("");
   const [isUploadingBill, setIsUploadingBill] = useState(false);
@@ -509,32 +511,11 @@ const OrderDetails = () => {
     }
   };
 
+  // Navigation stays inside the app: open the live route map full-screen
+  // instead of handing the rider off to the Google Maps app (they couldn't
+  // find their way back to the order from there).
   const handleNavigate = () => {
-    const sellerLocation = getPickupLocation(order);
-    const customerLocation = order?.address?.location;
-
-    const dest = isReturn
-      ? step <= 1
-        ? customerLocation
-        : sellerLocation
-      : step >= 3
-        ? customerLocation
-        : sellerLocation;
-
-    if (
-      dest &&
-      typeof dest.lat === "number" &&
-      typeof dest.lng === "number" &&
-      Number.isFinite(dest.lat) &&
-      Number.isFinite(dest.lng)
-    ) {
-      window.open(
-        `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}`,
-        "_blank"
-      );
-      return;
-    }
-    window.open("https://maps.google.com", "_blank");
+    setIsNavMapOpen(true);
   };
 
   const handleRiderCancelOrder = async () => {
@@ -849,7 +830,7 @@ const OrderDetails = () => {
 
 
         {/* Map Section - Hidden when completed */}
-        {(isReturn ? step < 5 : step < 4) && (!isReturn || isAssignedRider) && (
+        {(isReturn ? step < 5 : step < 4) && (!isReturn || isAssignedRider) && !isNavMapOpen && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -861,9 +842,37 @@ const OrderDetails = () => {
                 phase={currentPhase}
                 order={order}
                 onRouteStatsChange={setRouteStats}
+                onNavigate={handleNavigate}
               />
             </div>
           </motion.div>
+        )}
+
+        {/* Full-screen in-app navigation. Only one map instance is mounted at a
+            time, so GPS tracking / location posts never run twice. */}
+        {isNavMapOpen && (
+          <div className="fixed inset-0 z-[700] flex flex-col bg-white">
+            <div className="flex items-center gap-3 border-b border-slate-200 bg-white px-3 py-3 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setIsNavMapOpen(false)}
+                className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white"
+              >
+                ‹ Back to order
+              </button>
+              <p className="truncate text-sm font-bold text-slate-700">
+                Order #{String(order?.orderId || orderId).slice(-8)}
+              </p>
+            </div>
+            <div className="relative flex-1">
+              <DeliveryTrackingMap
+                orderId={orderId}
+                phase={currentPhase}
+                order={order}
+                onRouteStatsChange={setRouteStats}
+              />
+            </div>
+          </div>
         )}
 
         {publicStatusStage === 3 ? (

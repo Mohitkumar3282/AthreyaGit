@@ -4,6 +4,7 @@ import handleResponse from "../utils/helper.js";
 import mongoose from "mongoose";
 import Wallet from "../models/wallet.js";
 import { getSellerStats as getSellerStatsFromService } from "../services/seller/sellerStatsService.js";
+import { SELLER_VISIBLE_ORDER_SCOPE } from "../services/orderQueryService.js";
 
 /* ===============================
    GET SELLER DASHBOARD STATS
@@ -54,6 +55,8 @@ export const getSellerEarnings = async (req, res) => {
                     seller: sellerOid,
                     status: 'delivered',
                     workflowStatus: { $ne: 'CANCELLED' },
+                    // Only this shop's own orders (see SELLER_VISIBLE_ORDER_SCOPE).
+                    ...SELLER_VISIBLE_ORDER_SCOPE,
                 },
             },
             {

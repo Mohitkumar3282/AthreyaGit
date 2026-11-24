@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Loader2, ArrowLeft, MapPin, Phone, CheckCircle2, Camera, Upload, ShieldCheck, ShoppingBag } from "lucide-react";
 import Card from "@/shared/components/ui/Card";
 import Button from "@/shared/components/ui/Button";
+import DeliveryTrackingMap from "../components/DeliveryTrackingMap";
 
 const ReturnTaskDetail = () => {
     const { returnRequestId } = useParams();
@@ -176,13 +177,9 @@ const ReturnTaskDetail = () => {
         }
     };
 
-    const handleOpenInMaps = (lat, lng) => {
-        if (lat && lng) {
-            window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, "_blank");
-        } else {
-            window.open("https://maps.google.com", "_blank");
-        }
-    };
+    // In-app navigation only ("customer" | "seller"); no external Google Maps.
+    const [navTarget, setNavTarget] = useState(null);
+    const handleOpenInMaps = (target) => setNavTarget(target);
 
     if (loading) {
         return (
@@ -207,8 +204,42 @@ const ReturnTaskDetail = () => {
     const customer = task.customer_id || {};
     const seller = task.seller_id || order.seller || {};
 
+    // In-app route map. Return orders route customer -> store as "pickup" ->
+    // "delivery"; a cancellation order has no return status, so its legs are
+    // the regular ones (store = pickup, customer = delivery).
+    const isReturnOrder = Boolean(order.returnStatus && order.returnStatus !== "none");
+    const navPhase =
+        navTarget === "customer"
+            ? (isReturnOrder ? "pickup" : "delivery")
+            : (isReturnOrder ? "delivery" : "pickup");
+    const navTitle = navTarget === "customer" ? "Pick up from customer" : "Drop at store";
+
     return (
         <div className="bg-slate-50 min-h-screen pb-24 font-sans">
+            {navTarget && order.orderId && (
+                <div className="fixed inset-0 z-[700] flex flex-col bg-white">
+                    <div className="flex items-center gap-3 border-b border-slate-200 bg-white px-3 py-3 shadow-sm">
+                        <button
+                            type="button"
+                            onClick={() => setNavTarget(null)}
+                            className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white"
+                        >
+                            ‹ Back to task
+                        </button>
+                        <p className="truncate text-sm font-bold text-slate-700">
+                            Order #{String(order.orderId).slice(-8)}
+                        </p>
+                    </div>
+                    <div className="relative flex-1">
+                        <DeliveryTrackingMap
+                            orderId={order.orderId}
+                            phase={navPhase}
+                            order={{ ...order, seller }}
+                            destinationTitle={navTitle}
+                        />
+                    </div>
+                </div>
+            )}
             {/* Header */}
             <div className="bg-white sticky top-0 z-30 px-4 py-3 flex items-center justify-between border-b border-slate-100">
                 <button onClick={() => navigate("/delivery/return-tasks")} className="p-2 -ml-2 rounded-full hover:bg-slate-100 transition-colors">
@@ -247,7 +278,7 @@ const ReturnTaskDetail = () => {
                                     <p className="font-bold text-slate-800">Customer Location</p>
                                     <p className="text-slate-700 mt-0.5">{order.address?.address || "Address N/A"}</p>
                                     <button 
-                                        onClick={() => handleOpenInMaps(order.address?.location?.lat, order.address?.location?.lng)}
+                                        onClick={() => handleOpenInMaps("customer")}
                                         className="text-primary font-bold mt-1.5 flex items-center gap-1 hover:underline"
                                     >
                                         📍 Get Directions
@@ -353,7 +384,7 @@ const ReturnTaskDetail = () => {
                                     <p className="text-slate-700 mt-0.5">{seller.address || "Seller address N/A"}</p>
                                     {seller.location?.coordinates && (
                                         <button 
-                                            onClick={() => handleOpenInMaps(seller.location.coordinates[1], seller.location.coordinates[0])}
+                                            onClick={() => handleOpenInMaps("seller")}
                                             className="text-primary font-bold mt-1.5 flex items-center gap-1 hover:underline"
                                         >
                                             📍 Get Directions
