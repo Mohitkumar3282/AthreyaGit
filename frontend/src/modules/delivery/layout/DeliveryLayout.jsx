@@ -203,7 +203,8 @@ const DeliveryLayout = () => {
     }
     const total = typeof p.total === "number" ? p.total : Number(p.total) || 0;
     const dropLabel = typeof p.drop === "string" ? p.drop : String(p.drop);
-    const earnings = typeof p.earnings === "number" ? p.earnings : Math.round(total * 0.1);
+    // Real payout sent by the backend; never guess from the order total.
+    const earnings = Number.isFinite(Number(p.earnings)) ? Number(p.earnings) : 0;
     const tripInfo = estimateRequestTrip({
       tripKm: p.distanceKm,
       pickup: toLatLng(p.pickupLocation),
@@ -245,7 +246,10 @@ const DeliveryLayout = () => {
     const total = newOrder.pricing?.total || 0;
     const isReturnPickup = newOrder.isReturnPickup || false;
     const isExpress = newOrder.orderType === "custom_pickup";
-    const earnings = newOrder.riderEarnings || Math.round(total * 0.1);
+    // Rider payout frozen on the order (base + distance + bonus + tip).
+    const earnings = isReturnPickup
+      ? Number(newOrder.returnDeliveryCommission) || 0
+      : Number(newOrder.paymentBreakdown?.riderPayoutTotal) || 0;
     const tripInfo = isReturnPickup
       ? { distance: null, estTime: null }
       : estimateRequestTrip({
@@ -657,7 +661,8 @@ const DeliveryLayout = () => {
 
           // Compute earnings
           const totalAmount = returnRequest.refund_amount || 0;
-          const earnings = 15; // standard / mock return payout
+          // Rider's real return-pickup payout (was a hard-coded ₹15).
+          const earnings = Number(returnRequest.order_id?.returnDeliveryCommission) || 0;
 
           // Format items
           const items = returnRequest.order_id?.items || [];

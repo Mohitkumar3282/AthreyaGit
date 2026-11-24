@@ -130,6 +130,9 @@ function deliveryBroadcastPayloadFromOrder(order, extra = {}) {
       pickup,
       drop,
       total: order.pricing?.total ?? 0,
+      // What the rider will actually earn (base + distance + bonus + tip),
+      // frozen at placement. The app used to guess 10% of the order total.
+      earnings: Number(order.paymentBreakdown?.riderPayoutTotal) || 0,
       // Trip length (pickup -> drop) and where the pickup is, so the rider's
       // request card can show a real distance and travel time instead of a
       // placeholder. The rider's own position is added client-side.
@@ -879,7 +882,8 @@ function returnPickupBroadcastPayloadFromOrder(order, extra = {}) {
       pickup: order.address?.completeAddress || "Customer Address",
       drop: order.sellerBranchArea || "Seller Store",
       total: order.pricing?.total ?? 0,
-      earnings: order.riderEarnings ?? 0,
+      // Rider's real payout for the return pickup (was a non-existent field -> ₹0).
+      earnings: Number(order.returnDeliveryCommission) || 0,
     },
     deliverySearchExpiresAt: order.returnSearchExpiresAt,
     ...extra,

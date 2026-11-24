@@ -26,6 +26,7 @@ import mongoose from "mongoose";
 import Order from "../../models/order.js";
 import Product from "../../models/product.js";
 import { buildKey, getOrSet, getTTL } from "../cacheService.js";
+import { SELLER_VISIBLE_ORDER_SCOPE } from "../orderQueryService.js";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = [
@@ -119,6 +120,8 @@ async function computeSellerStats(sellerOid, range) {
         seller: sellerOid,
         status: { $ne: "cancelled" },
         workflowStatus: { $ne: "CANCELLED" },
+        // Only this shop's own orders (not express bookings anchored to it).
+        ...SELLER_VISIBLE_ORDER_SCOPE,
       },
     },
     {

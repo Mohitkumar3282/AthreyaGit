@@ -28,6 +28,8 @@ const Dashboard = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeTab, setActiveTab] = useState("delivery"); // 'delivery' or 'return'
   const [availableOrders, setAvailableOrders] = useState([]);
+  // Orders this rider has accepted and not finished (can be more than one).
+  const [myActiveOrders, setMyActiveOrders] = useState([]);
   const [earnings, setEarnings] = useState({
     today: 0,
     deliveries: 0,
@@ -85,6 +87,39 @@ const Dashboard = () => {
     fetchNotifications();
     if (isOnline) fetchAvailableOrders();
   }, [isOnline, activeTab]);
+
+  // Keep the rider's accepted orders visible so a second accepted order is
+  // never "lost" after leaving its page.
+  useEffect(() => {
+    let cancelled = false;
+    const loadActive = async () => {
+      try {
+        const res = await deliveryApi.getOrderHistory({ status: "active" });
+        const list = res.data?.results ?? res.data?.result ?? [];
+        if (!cancelled) setMyActiveOrders(Array.isArray(list) ? list : []);
+      } catch {
+        /* keep the last known list */
+      }
+    };
+    loadActive();
+    const timer = setInterval(loadActive, 30000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") loadActive();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
+
+  const activeOrderStepLabel = (order) => {
+    const ws = String(order.workflowStatus || "").toUpperCase();
+    if (ws === "OUT_FOR_DELIVERY" || order.status === "out_for_delivery") return "Out for delivery";
+    if (ws === "PICKUP_READY") return "At pickup";
+    return "Go to pickup";
+  };
 
   const handleOnlineToggle = async () => {
     const newStatus = !isOnline;
@@ -331,6 +366,43 @@ const Dashboard = () => {
             </div>
           </div>
         </Card>
+
+        {/* Rider's accepted, unfinished orders */}
+        {myActiveOrders.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-[16px] font-bold text-gray-800">
+              Your active orders ({myActiveOrders.length})
+            </h3>
+            {myActiveOrders.map((order) => {
+              const isExpress = order.orderType === "custom_pickup";
+              const pickup = isExpress
+                ? order.pickupAddress?.address || "Pickup point"
+                : order.seller?.shopName || "Store";
+              return (
+                <button
+                  type="button"
+                  key={order._id || order.orderId}
+                  onClick={() => navigate(`/delivery/order-details/${encodeURIComponent(String(order.orderId))}`)}
+                  className="w-full text-left bg-white rounded-2xl p-4 border-2 border-primary/30 shadow-sm flex items-center gap-3 active:scale-[0.99] transition"
+                >
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Package className="text-primary" size={20} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-black uppercase tracking-wider text-primary">
+                      {activeOrderStepLabel(order)}
+                    </p>
+                    <p className="font-bold text-gray-900 truncate">#{String(order.orderId).slice(-8)}</p>
+                    <p className="text-[13px] text-gray-600 truncate">
+                      {pickup} → {order.address?.address || "Customer"}
+                    </p>
+                  </div>
+                  <span className="text-[13px] font-bold text-primary shrink-0">Open ›</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Active Order / Status */}
         <AnimatePresence mode="wait">

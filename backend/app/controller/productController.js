@@ -102,6 +102,23 @@ function parseSellerIdFilters({ sellerId, sellerIds }) {
   return [];
 }
 
+/**
+ * Variant prices are what checkout charges, so they are the single source of
+ * truth. Copy the first variant's price / sale price onto the product-level
+ * fields the storefront cards display; otherwise editing a variant price left
+ * the app showing the old product price while the bill used the new one.
+ */
+function syncProductPriceFromVariants(productData) {
+  const first = Array.isArray(productData?.variants) ? productData.variants[0] : null;
+  if (!first) return;
+  const price = Number(first.price);
+  if (!Number.isFinite(price) || price <= 0) return;
+  const sale = Number(first.salePrice);
+  productData.price = price;
+  // Mirror checkout exactly (it charges variant.salePrice whenever it is set).
+  productData.salePrice = Number.isFinite(sale) && sale > 0 ? sale : 0;
+}
+
 function makeProductSku(name, index = 1) {
   const prefix = String(name || "")
     .toLowerCase()
@@ -768,6 +785,7 @@ export const createProduct = async (req, res) => {
             : makeProductSku(productData.name, idx + 1),
       }));
     }
+    syncProductPriceFromVariants(productData);
 
     // Auto-infer missing headerId / categoryId hierarchy if subcategory or category provided
     if (!productData.headerId && productData.categoryId) {
@@ -981,6 +999,7 @@ export const updateProduct = async (req, res) => {
             : makeProductSku(skuBaseName, idx + 1),
       }));
     }
+    syncProductPriceFromVariants(productData);
 
     // Auto-infer missing headerId / categoryId hierarchy if subcategory or category provided
     if (!productData.headerId && productData.categoryId) {

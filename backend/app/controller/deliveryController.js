@@ -263,6 +263,35 @@ export const getMyDeliveryOrders = async (req, res) => {
                     },
                 ],
             };
+        } else if (normalized === "active") {
+            // Orders this rider has accepted and not finished yet. Riders can
+            // hold more than one at a time, so the app lists all of them.
+            query = {
+                $and: [
+                    assignedToPartner,
+                    {
+                        $or: [
+                            {
+                                workflowVersion: { $gte: 2 },
+                                workflowStatus: {
+                                    $in: [
+                                        WORKFLOW_STATUS.DELIVERY_ASSIGNED,
+                                        WORKFLOW_STATUS.PICKUP_READY,
+                                        WORKFLOW_STATUS.OUT_FOR_DELIVERY,
+                                    ],
+                                },
+                            },
+                            {
+                                $or: [
+                                    { workflowVersion: { $exists: false } },
+                                    { workflowVersion: { $lt: 2 } },
+                                ],
+                                status: { $in: ["confirmed", "packed", "out_for_delivery"] },
+                            },
+                        ],
+                    },
+                ],
+            };
         } else if (normalized === "returns") {
             query = {
                 returnStatus: { $ne: "none" },

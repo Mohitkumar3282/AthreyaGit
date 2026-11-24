@@ -172,7 +172,7 @@ const OrderHistory = () => {
 
         {/* Status Filters */}
         <div className="-mx-4 px-4 flex gap-2 overflow-x-auto pb-2 no-scrollbar snap-x snap-mandatory">
-          {["All", "Delivered", "Cancelled", "Returns"].map((status) => (
+          {["All", "Active", "Delivered", "Cancelled", "Returns"].map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status.toLowerCase())}

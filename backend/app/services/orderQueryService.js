@@ -25,6 +25,22 @@ function refToIdString(ref) {
   return String(ref);
 }
 
+/**
+ * Orders a seller should see. Athreya Express bookings (home-to-home, cargo,
+ * rider pickup) are anchored to a fallback "operations store" seller only for
+ * bookkeeping — they are not that shop's orders, so they must not appear in
+ * its order list. Shop to Home bookings from a listed shop do involve the shop
+ * (it accepts them), so those stay visible.
+ */
+export const SELLER_VISIBLE_ORDER_SCOPE = Object.freeze({
+  $or: [
+    { orderType: { $ne: "custom_pickup" } },
+    { requiresSellerAcceptance: true },
+    // Shop to Home bookings created before `requiresSellerAcceptance` existed.
+    { expressService: "shop_to_home", requiresSellerAcceptance: { $exists: false } },
+  ],
+});
+
 function normalizeSellerStatusFilter(statusParam) {
   if (!statusParam) {
     return {};
@@ -95,7 +111,13 @@ export function buildSellerOrdersQuery({
   startDate,
   endDate,
 }) {
-  const base = role === "admin" ? {} : { seller: new mongoose.Types.ObjectId(userId) };
+  const base =
+    role === "admin"
+      ? {}
+      : {
+          seller: new mongoose.Types.ObjectId(userId),
+          ...SELLER_VISIBLE_ORDER_SCOPE,
+        };
   const withStatus = {
     ...base,
     ...normalizeSellerStatusFilter(statusParam),
