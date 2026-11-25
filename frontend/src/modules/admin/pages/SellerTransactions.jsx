@@ -80,15 +80,17 @@ const SellerTransactions = () => {
                         minute: '2-digit'
                     }),
                     seller: t.user?.shopName || t.user?.name || 'Unknown',
-                    type: t.type === 'Seller Earning' ? 'sale' :
+                    // "Seller Earning" rows come from delivered-order payouts.
+                    type: (t.type === 'Seller Earning' || t.type === 'Order Payment') ? 'sale' :
                         (t.type === 'Withdrawal' || t.type === 'Payout') ? 'payout' :
-                            t.type.toLowerCase(),
-                    amount: t.amount,
+                            String(t.type || '').toLowerCase(),
+                    // For a sale: the order's product value; the seller gets netPayable.
+                    amount: t.type === 'Seller Earning' ? Number(t.grossAmount ?? t.amount ?? 0) : t.amount,
                     commissionRate: t.order?.pricing?.platformFeeRate || 0,
-                    commissionAmount: t.order?.pricing?.platformFee || 0,
+                    commissionAmount: Number(t.commissionAmount ?? t.order?.pricing?.platformFee ?? 0),
                     taxAmount: t.order?.pricing?.tax || 0,
-                    netPayable: t.amount,
-                    status: t.status.toLowerCase(),
+                    netPayable: Number(t.amount || 0),
+                    status: String(t.status || "").toLowerCase(),
                     paymentMethod: t.paymentMethod || 'Wallet',
                     bankDetails: t.bankDetails || t.user?.bankDetails || 'N/A',
                     items: t.order?.items?.map(item => ({
@@ -119,7 +121,10 @@ const SellerTransactions = () => {
             totalGross: transactions.filter(t => t.type === 'sale').reduce((acc, t) => acc + t.amount, 0),
             totalCommission: transactions.filter(t => t.type === 'sale').reduce((acc, t) => acc + (t.commissionAmount || 0), 0),
             totalPayouts: Math.abs(transactions.filter(t => t.type === 'payout').reduce((acc, t) => acc + t.amount, 0)),
-            pendingSettlements: transactions.filter(t => t.status === 'pending').reduce((acc, t) => acc + Math.abs(t.amount), 0)
+            // Seller earnings not paid out yet (pending or held for the return window).
+            pendingSettlements: transactions
+                .filter(t => t.type === 'sale' && (t.status === 'pending' || t.status === 'on hold'))
+                .reduce((acc, t) => acc + Math.abs(t.netPayable || 0), 0)
         };
     }, [transactions]);
 
@@ -191,9 +196,9 @@ const SellerTransactions = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
                     { label: 'Total Sales', value: `₹${stats.totalGross.toLocaleString()}`, icon: ShoppingBag, bg: 'bg-brand-50', color: 'text-brand-600' },
-                    { label: 'Our Share', value: `₹${stats.totalCommission.toLocaleString()}`, icon: Percent, bg: 'bg-orange-50', color: 'text-orange-600' },
+                    { label: 'Platform Commission', value: `₹${stats.totalCommission.toLocaleString()}`, icon: Percent, bg: 'bg-orange-50', color: 'text-orange-600' },
                     { label: 'Total Paid Out', value: `₹${stats.totalPayouts.toLocaleString()}`, icon: Banknote, bg: 'bg-brand-50', color: 'text-brand-600' },
-                    { label: 'Pending Total', value: `₹${stats.pendingSettlements.toLocaleString()}`, icon: Clock, bg: 'bg-amber-50', color: 'text-amber-600' },
+                    { label: 'Owed to Sellers', value: `₹${stats.pendingSettlements.toLocaleString()}`, icon: Clock, bg: 'bg-amber-50', color: 'text-amber-600' },
                 ].map((stat, i) => (
                     <Card key={i} className="px-5 py-4 border-none shadow-sm ring-1 ring-slate-100 hover:ring-orange-200 transition-all bg-white group overflow-hidden relative">
                         <div className="relative z-10">

@@ -85,44 +85,42 @@ const AdminDashboard = () => {
     };
 
     const stats = [
+        // Real counts only — the old cards had made-up trends (+12.5% etc.)
+        // and labels that didn't match the numbers.
         {
-            label: 'Total Users',
-            value: overview.totalUsers?.toLocaleString() || '0',
+            label: 'Customers',
+            value: (overview.totalCustomers ?? overview.totalUsers ?? 0).toLocaleString(),
             icon: Users,
             color: 'text-brand-600',
             bg: 'bg-brand-50',
-            trend: '+12.5%',
-            description: 'Active this month',
+            description: `Registered accounts · ${overview.totalRiders ?? 0} riders`,
             path: '/admin/customers'
         },
         {
-            label: 'Active Sellers',
-            value: overview.activeSellers?.toLocaleString() || '0',
+            label: 'Approved Sellers',
+            value: (overview.approvedSellers ?? overview.activeSellers ?? 0).toLocaleString(),
             icon: Store,
             color: 'text-purple-600',
             bg: 'bg-purple-50',
-            trend: '+5.2%',
-            description: 'Verified stores',
+            description: `${overview.openShops ?? 0} shops open now`,
             path: '/admin/sellers/active'
         },
         {
-            label: 'Total Orders',
-            value: overview.totalOrders?.toLocaleString() || '0',
+            label: 'Orders',
+            value: (overview.ordersLast30Days ?? overview.totalOrders ?? 0).toLocaleString(),
             icon: Truck,
             color: 'text-orange-600',
             bg: 'bg-orange-50',
-            trend: '+18.4%',
-            description: 'Last 30 days',
+            description: `Last 30 days · ${overview.totalOrders ?? 0} all time`,
             path: '/admin/orders/all'
         },
         {
-            label: 'Revenue',
-            value: `₹${overview.totalRevenue?.toLocaleString() || '0'}`,
+            label: 'Delivered Sales',
+            value: `₹${(overview.totalRevenue ?? 0).toLocaleString()}`,
             icon: BarChart3,
             color: 'text-brand-600',
             bg: 'bg-brand-50',
-            trend: '+8.2%',
-            description: 'Net earnings',
+            description: 'Value of delivered orders',
             path: '/admin/wallet'
         },
     ];

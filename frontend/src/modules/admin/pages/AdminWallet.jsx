@@ -144,18 +144,18 @@ const AdminWallet = () => {
 
     const stats = [
         {
-            label: 'Total Platform Earning',
+            label: 'Delivered Order Value',
             value: `₹${(walletData.stats?.totalPlatformEarning || 0).toLocaleString()}`,
-            description: 'Total money collected',
+            description: 'Value of all delivered orders (COD + online)',
             icon: TrendingUp,
             color: 'blue',
             bg: 'bg-brand-50',
             iconColor: 'text-brand-500'
         },
         {
-            label: 'Total Admin Earning',
+            label: 'Platform Profit',
             value: `₹${(walletData.stats?.totalAdminEarning || 0).toLocaleString()}`,
-            description: 'Net profit for platform',
+            description: 'Fees & commission from delivered online orders',
             icon: DollarSign,
             color: 'purple',
             bg: 'bg-purple-50',
@@ -164,16 +164,16 @@ const AdminWallet = () => {
         {
             label: 'Available Balance',
             value: `₹${(walletData.stats?.availableBalance || 0).toLocaleString()}`,
-            description: 'Available in business wallet',
+            description: 'Delivered order value minus payouts still owed',
             icon: Building2,
             color: 'emerald',
             bg: 'bg-brand-50',
             iconColor: 'text-brand-500'
         },
         {
-            label: 'System Float (COD)',
+            label: 'COD Cash With Riders',
             value: `₹${(walletData.stats?.systemFloat || 0).toLocaleString()}`,
-            description: 'Cash with delivery partners',
+            description: 'Cash riders collected and must still hand over',
             icon: Clock,
             color: 'amber',
             bg: 'bg-orange-50',
@@ -182,16 +182,16 @@ const AdminWallet = () => {
         {
             label: 'Seller Pending Payouts',
             value: `₹${(walletData.stats?.sellerPendingPayouts || 0).toLocaleString()}`,
-            description: 'Owed to sellers',
+            description: 'Seller earnings not yet paid out',
             icon: CreditCard,
             color: 'blue',
             bg: 'bg-brand-50',
             iconColor: 'text-brand-500'
         },
         {
-            label: 'Delivery Pending Payouts',
+            label: 'Rider Pending Payouts',
             value: `₹${(walletData.stats?.deliveryPendingPayouts || 0).toLocaleString()}`,
-            description: 'Owed to delivery partners',
+            description: 'Rider earnings not yet paid out',
             icon: CreditCard,
             color: 'purple',
             bg: 'bg-purple-50',
@@ -389,7 +389,7 @@ const AdminWallet = () => {
                                             activeTab === tab ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"
                                         )}
                                     >
-                                        {tab.replace('_', ' ')}
+                                        {{ all: 'All', earnings: 'Money In', payouts: 'Money Out', seller_requests: 'Seller Requests' }[tab] || tab}
                                         {tab === 'seller_requests' && pendingRequests.length > 0 && (
                                             <span className="absolute -top-1 -right-1 flex h-4 w-4">
                                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
@@ -623,17 +623,17 @@ const AdminWallet = () => {
                             <div className="p-2 bg-brand-50 text-brand-600 rounded-lg">
                                 <BarChart3 className="h-5 w-5" />
                             </div>
-                            <h2 className="text-xl font-black text-slate-900">Analytics</h2>
+                            <h2 className="text-xl font-black text-slate-900">Related Pages</h2>
                         </div>
                         <div className="space-y-3">
                             {[
-                                { label: 'Platform Revenue Report', icon: TrendingUp, path: '/admin' },
-                                { label: 'Settlement History', icon: History, path: '/admin/delivery-funds' },
-                                { label: 'Tax Statements', icon: DollarSign, path: '#' },
+                                { label: 'Money Requests (withdrawals)', icon: History, path: '/admin/withdrawals' },
+                                { label: 'Seller Payments', icon: TrendingUp, path: '/admin/seller-transactions' },
+                                { label: 'Collect COD Cash from Riders', icon: DollarSign, path: '/admin/cash-collection' },
                             ].map((link, i) => (
                                 <button
                                     key={i}
-                                    onClick={() => link.path !== '#' ? navigate(link.path) : alert('Tax Statements generation is coming soon!')}
+                                    onClick={() => navigate(link.path)}
                                     className="w-full p-4 bg-white ring-1 ring-slate-100 rounded-[24px] flex items-center justify-between group hover:ring-primary/20 hover:shadow-lg transition-all"
                                 >
                                     <div className="flex items-center gap-3">

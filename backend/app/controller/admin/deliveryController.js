@@ -38,25 +38,64 @@ export const getDeliveryPartners = async (req, res) => {
       Delivery.countDocuments(query),
     ]);
 
-    // Real completed-order count per rider on this page — one aggregate for
-    // the whole page rather than a query per row.
-    let completedById = new Map();
+    // Real per-rider figures for this page in one aggregate: delivered count,
+    // orders in progress (drives the "Busy" status) and today's earnings
+    // (rider payout of orders delivered since midnight IST).
+    let statsById = new Map();
     if (deliveryPartners.length) {
-      const counts = await Order.aggregate([
+      const istNow = new Date(Date.now() + 5.5 * 3600 * 1000);
+      const todayStartIst = new Date(
+        Date.UTC(istNow.getUTCFullYear(), istNow.getUTCMonth(), istNow.getUTCDate()) -
+          5.5 * 3600 * 1000,
+      );
+      const isDelivered = { $eq: ["$workflowStatus", WORKFLOW_STATUS.DELIVERED] };
+      const rows = await Order.aggregate([
+        { $match: { deliveryBoy: { $in: deliveryPartners.map((d) => d._id) } } },
         {
-          $match: {
-            deliveryBoy: { $in: deliveryPartners.map((d) => d._id) },
-            workflowStatus: WORKFLOW_STATUS.DELIVERED,
+          $group: {
+            _id: "$deliveryBoy",
+            delivered: { $sum: { $cond: [isDelivered, 1, 0] } },
+            active: {
+              $sum: {
+                $cond: [
+                  {
+                    $in: [
+                      "$workflowStatus",
+                      [
+                        WORKFLOW_STATUS.DELIVERY_ASSIGNED,
+                        WORKFLOW_STATUS.PICKUP_READY,
+                        WORKFLOW_STATUS.OUT_FOR_DELIVERY,
+                      ],
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            todayEarnings: {
+              $sum: {
+                $cond: [
+                  { $and: [isDelivered, { $gte: ["$deliveredAt", todayStartIst] }] },
+                  { $ifNull: ["$paymentBreakdown.riderPayoutTotal", 0] },
+                  0,
+                ],
+              },
+            },
           },
         },
-        { $group: { _id: "$deliveryBoy", count: { $sum: 1 } } },
       ]);
-      completedById = new Map(counts.map((c) => [String(c._id), c.count]));
+      statsById = new Map(rows.map((r) => [String(r._id), r]));
     }
-    const items = deliveryPartners.map((d) => ({
-      ...d,
-      totalOrders: completedById.get(String(d._id)) || 0,
-    }));
+    const items = deliveryPartners.map((d) => {
+      const s = statsById.get(String(d._id)) || {};
+      return {
+        ...d,
+        totalOrders: s.delivered || 0,
+        activeOrders: s.active || 0,
+        todayEarnings: Math.round((s.todayEarnings || 0) * 100) / 100,
+      };
+    });
 
     return handleResponse(res, 200, "Delivery partners fetched successfully", {
       items,

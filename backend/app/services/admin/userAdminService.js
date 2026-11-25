@@ -24,7 +24,42 @@ export async function getUsersData({ page, limit, skip }) {
           $cond: [{ $eq: ["$isActive", false] }, "inactive", "active"],
         },
         totalOrders: { $size: "$userOrders" },
-        totalSpent: { $sum: "$userOrders.pricing.total" },
+        // Money actually spent = delivered orders only (cancelled / undelivered
+        // orders were counted before).
+        totalSpent: {
+          $sum: {
+            $map: {
+              input: {
+                $filter: {
+                  input: "$userOrders",
+                  as: "o",
+                  cond: {
+                    $and: [
+                      { $eq: ["$$o.status", "delivered"] },
+                      { $ne: ["$$o.workflowStatus", "CANCELLED"] },
+                    ],
+                  },
+                },
+              },
+              as: "d",
+              in: { $ifNull: ["$$d.pricing.total", 0] },
+            },
+          },
+        },
+        deliveredOrders: {
+          $size: {
+            $filter: {
+              input: "$userOrders",
+              as: "o",
+              cond: {
+                $and: [
+                  { $eq: ["$$o.status", "delivered"] },
+                  { $ne: ["$$o.workflowStatus", "CANCELLED"] },
+                ],
+              },
+            },
+          },
+        },
         lastOrderDate: { $max: "$userOrders.createdAt" },
         avatar: {
           $concat: [
@@ -105,7 +140,42 @@ export async function getUserByIdData(id) {
           $cond: [{ $eq: ["$isActive", false] }, "inactive", "active"],
         },
         totalOrders: { $size: "$userOrders" },
-        totalSpent: { $sum: "$userOrders.pricing.total" },
+        // Money actually spent = delivered orders only (cancelled / undelivered
+        // orders were counted before).
+        totalSpent: {
+          $sum: {
+            $map: {
+              input: {
+                $filter: {
+                  input: "$userOrders",
+                  as: "o",
+                  cond: {
+                    $and: [
+                      { $eq: ["$$o.status", "delivered"] },
+                      { $ne: ["$$o.workflowStatus", "CANCELLED"] },
+                    ],
+                  },
+                },
+              },
+              as: "d",
+              in: { $ifNull: ["$$d.pricing.total", 0] },
+            },
+          },
+        },
+        deliveredOrders: {
+          $size: {
+            $filter: {
+              input: "$userOrders",
+              as: "o",
+              cond: {
+                $and: [
+                  { $eq: ["$$o.status", "delivered"] },
+                  { $ne: ["$$o.workflowStatus", "CANCELLED"] },
+                ],
+              },
+            },
+          },
+        },
         lastOrderDate: { $max: "$userOrders.createdAt" },
         avatar: {
           $concat: [

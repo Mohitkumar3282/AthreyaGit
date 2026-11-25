@@ -233,9 +233,19 @@ const SellerProfile = () => {
   const toggleStatus = async () => {
     try {
       const newStatus = !profile.isActive;
+      // Turning this off hides the shop and all its products from customers
+      // (it was easy to tap by accident). Ask first.
+      if (
+        !newStatus &&
+        !window.confirm(
+          "Hide your shop from customers?\n\nCustomers will not see your shop or products until you turn it back on. To close for the day, use your opening hours / Close Shop instead.",
+        )
+      ) {
+        return;
+      }
       await sellerApi.updateProfile({ isActive: newStatus });
       setProfile((prev) => ({ ...prev, isActive: newStatus }));
-      toast.success(`Shop is now ${newStatus ? "Active" : "Inactive"}`);
+      toast.success(newStatus ? "Your shop is visible to customers" : "Your shop is hidden from customers");
     } catch (error) {
       toast.error("Failed to update shop status");
     }
@@ -324,7 +334,7 @@ const SellerProfile = () => {
                     profile?.isActive ? "bg-emerald-200" : "bg-rose-200"
                   }`}
                 />
-                {profile?.isActive ? "Active" : "Inactive"}
+                {profile?.isActive ? "Visible to customers" : "Hidden from customers"}
               </button>
             </div>
             <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-tight md:tracking-tighter drop-shadow-sm mb-1 break-words">

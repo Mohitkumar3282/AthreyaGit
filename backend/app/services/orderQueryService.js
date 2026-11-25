@@ -168,6 +168,21 @@ export async function fetchSellerOrdersPage({
           _id: null,
           totalOrders: { $sum: 1 },
           totalAmount: { $sum: { $ifNull: ["$pricing.total", 0] } },
+          // Value of orders actually delivered (what counts as sales).
+          deliveredAmount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ["$status", "delivered"] },
+                    { $ne: ["$workflowStatus", "CANCELLED"] },
+                  ],
+                },
+                { $ifNull: ["$pricing.total", 0] },
+                0,
+              ],
+            },
+          },
           pending: {
             $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] },
           },
@@ -210,6 +225,7 @@ export async function fetchSellerOrdersPage({
   const summary = {
     totalOrders: Number(rawSummary.totalOrders || 0),
     totalAmount: Number(rawSummary.totalAmount || 0),
+    deliveredAmount: Number(rawSummary.deliveredAmount || 0),
     pending: Number(rawSummary.pending || 0),
     confirmed: Number(rawSummary.confirmed || 0),
     packed: Number(rawSummary.packed || 0),

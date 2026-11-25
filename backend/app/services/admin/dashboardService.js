@@ -7,16 +7,36 @@ import Product from "../../models/product.js";
 const DASHBOARD_CATEGORY_COLORS = ["#4f46e5", "#10b981", "#f59e0b", "#ef4444"];
 
 export async function getAdminDashboardStats() {
-  const [totalCustomers, totalSellers, totalRiders, totalOrders] =
-    await Promise.all([
-      User.countDocuments({ role: "user" }),
-      Seller.countDocuments(),
-      Delivery.countDocuments(),
-      Order.countDocuments(),
-    ]);
+  const thirtyDaysAgoForCounts = new Date(Date.now() - 30 * 24 * 3600 * 1000);
+  const approvedSellerQuery = {
+    isVerified: true,
+    applicationStatus: "approved",
+    deletedAt: null,
+  };
 
+  const [
+    totalCustomers,
+    totalSellers,
+    totalRiders,
+    totalOrders,
+    ordersLast30Days,
+    approvedSellers,
+    openShops,
+  ] = await Promise.all([
+    // Registered customer accounts (deleted accounts excluded).
+    User.countDocuments({ role: "user", deletedAt: null }),
+    Seller.countDocuments({ deletedAt: null }),
+    Delivery.countDocuments({ deletedAt: null }),
+    Order.countDocuments(),
+    Order.countDocuments({ createdAt: { $gte: thirtyDaysAgoForCounts } }),
+    Seller.countDocuments(approvedSellerQuery),
+    // Approved sellers whose shop is switched on (taking orders).
+    Seller.countDocuments({ ...approvedSellerQuery, isActive: true }),
+  ]);
+
+  // Kept for older clients; the dashboard now shows customers separately.
   const totalUsers = totalCustomers + totalSellers + totalRiders;
-  const activeSellers = await Seller.countDocuments({ isVerified: true });
+  const activeSellers = approvedSellers;
 
   const revenueData = await Order.aggregate([
     // Revenue = delivered orders only (and not a workflow that ended cancelled).
@@ -112,8 +132,14 @@ export async function getAdminDashboardStats() {
   return {
     overview: {
       totalUsers,
+      totalCustomers,
+      totalSellers,
+      totalRiders,
       activeSellers,
+      approvedSellers,
+      openShops,
       totalOrders,
+      ordersLast30Days,
       totalRevenue,
     },
     revenueHistory,
@@ -127,8 +153,17 @@ export async function getAdminDashboardStats() {
           : order.status === "cancelled"
             ? "error"
             : "warning",
-      amount: `\u20B9${order.pricing.total}`,
-      time: "Recently",
+      amount: `\u20B9${order.pricing?.total ?? 0}`,
+      // When the order was placed (was always the text "Recently").
+      time: order.createdAt
+        ? new Date(order.createdAt).toLocaleString("en-IN", {
+            timeZone: "Asia/Kolkata",
+            day: "numeric",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "",
     })),
     categoryData: categoryData.map((category, index) => ({
       ...category,
@@ -138,7 +173,8 @@ export async function getAdminDashboardStats() {
       name: product.name,
       sales: product.sales,
       rev: `\u20B9${product.rev.toFixed(2)}`,
-      trend: "+5%",
+      // Was a fixed "+5%"; show units sold instead of a made-up trend.
+      trend: `${product.sales} sold`,
       cat: "Product",
       image: product.image,
       icon: "\u{1F4E6}", // Fallback package icon

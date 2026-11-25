@@ -65,10 +65,13 @@ const ActiveDeliveryBoys = () => {
                 name: r.name,
                 phone: r.phone,
                 email: r.email,
-                status: r.isOnline ? 'available' : 'offline',
+                // Online with an order in progress = busy; online and free = available.
+                status: !r.isOnline ? 'offline' : (r.activeOrders > 0 ? 'busy' : 'available'),
+                activeOrders: r.activeOrders || 0,
                 vehicle: r.vehicleType,
                 vehicleNum: r.vehicleNumber || 'N/A',
-                rating: typeof r.rating === "number" ? r.rating : 5.0,
+                // No ratings yet = no rating (was shown as a perfect 5.0).
+                rating: typeof r.rating === "number" && (r.ratingCount || 0) > 0 ? r.rating : null,
                 ratingCount: r.ratingCount || 0,
                 totalOrders: r.totalOrders || 0,
                 isVerified: !!r.isVerified,
@@ -77,9 +80,10 @@ const ActiveDeliveryBoys = () => {
                 flaggedForReview: !!r.flaggedForReview,
                 cashLimit: r.cashLimit ?? null,
                 cancellationLog: Array.isArray(r.cancellationLog) ? r.cancellationLog : [],
-                todayEarnings: 0, // TODO: wire to real per-rider daily earnings (earnings-dashboard pass)
+                todayEarnings: Number(r.todayEarnings || 0),
                 location: r.currentArea || 'Unknown',
-                lastSync: 'Now',
+                // When the rider's app last sent a location (was always "Now").
+                lastSync: r.lastLocationAt ? new Date(r.lastLocationAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Never',
                 joinDate: new Date(r.createdAt).toLocaleDateString()
             }));
 
@@ -252,7 +256,7 @@ const stats = [
     { label: 'Total Riders', value: riders.length, color: 'indigo', icon: Users, description: 'Total fleet size' },
     { label: 'Available', value: riders.filter(r => r.status === 'available').length, color: 'emerald', icon: UserCheck, description: 'Ready for orders' },
     { label: 'Busy (On Task)', value: riders.filter(r => r.status === 'busy').length, color: 'amber', icon: Activity, description: 'Currently delivering' },
-    { label: 'Top Earners', value: riders.filter(r => r.rating >= 4.5).length, color: 'rose', icon: Trophy, description: 'High performance' },
+    { label: 'Top Rated', value: riders.filter(r => typeof r.rating === 'number' && r.rating >= 4.5).length, color: 'rose', icon: Trophy, description: 'Rated 4.5 or higher' },
 ];
 
 return (
@@ -389,7 +393,7 @@ return (
                                         </div>
                                         <div className="flex items-center gap-1 bg-amber-50 text-amber-600 px-2 py-1 rounded-lg">
                                             <Star className="h-3 w-3 fill-current" />
-                                            <span className="text-[10px] font-black">{rider.rating}</span>
+                                            <span className="text-[10px] font-black">{rider.rating ?? "New"}</span>
                                         </div>
                                     </div>
 
@@ -571,7 +575,7 @@ return (
                                     <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Lifetime Rating</p>
                                     <div className="flex justify-center items-center gap-1">
                                         <Star className="h-4 w-4 text-amber-500 fill-current" />
-                                        <span className="text-lg font-black text-slate-900">{viewingRider.rating}</span>
+                                        <span className="text-lg font-black text-slate-900">{viewingRider.rating ?? "New"}</span>
                                     </div>
                                 </div>
                                 <div className="text-center border-l border-slate-200">

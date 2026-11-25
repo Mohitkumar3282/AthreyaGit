@@ -227,6 +227,7 @@ const OrdersList = () => {
                 setSummary({
                     totalOrders: Number(payload.summary?.totalOrders || payload.total || formatted.length || 0),
                     totalAmount: Number(payload.summary?.totalAmount || 0),
+                    deliveredAmount: Number(payload.summary?.deliveredAmount || 0),
                     pending: Number(payload.summary?.pending || 0),
                     confirmed: Number(payload.summary?.confirmed || 0),
                     packed: Number(payload.summary?.packed || 0),
@@ -291,15 +292,16 @@ const OrdersList = () => {
         [orders]
     );
 
+    // Real figures only (the old cards had made-up trends, a fixed "18m" prep
+    // time and a fixed "98.2%" delivery rate, and counted cancelled orders as
+    // earnings).
     const stats = useMemo(() => {
-        const totalEarnings = summary.totalAmount;
-        const activeOrders = summary.activeOrders;
-
+        const deliveredSales = Number(summary.deliveredAmount || 0);
         return [
-            { label: 'Total Earnings', value: `₹${totalEarnings.toLocaleString('en-IN')}`, trend: '+12.5%', icon: IndianRupee, color: 'emerald' },
-            { label: 'Active Orders', value: activeOrders, trend: '+5', icon: ShoppingBag, color: 'blue' },
-            { label: 'Average Prep Time', value: '18m', trend: '-2m', icon: Clock, color: 'amber' },
-            { label: 'Delivery Rate', value: '98.2%', trend: '+0.4%', icon: CheckCircle2, color: 'fuchsia' },
+            { label: 'Delivered Sales', value: `₹${deliveredSales.toLocaleString('en-IN')}`, trend: 'delivered orders only', icon: IndianRupee, color: 'emerald' },
+            { label: 'Active Orders', value: summary.activeOrders || 0, trend: 'not yet delivered', icon: ShoppingBag, color: 'blue' },
+            { label: 'Delivered', value: summary.delivered || 0, trend: `of ${summary.totalOrders || 0} orders`, icon: CheckCircle2, color: 'fuchsia' },
+            { label: 'Cancelled', value: summary.cancelled || 0, trend: `of ${summary.totalOrders || 0} orders`, icon: Clock, color: 'amber' },
         ];
     }, [summary]);
 

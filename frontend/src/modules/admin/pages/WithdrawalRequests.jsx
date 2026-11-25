@@ -99,16 +99,23 @@ const WithdrawalRequests = () => {
         const sData = Array.isArray(sellerRequests) ? sellerRequests : [];
         const dData = Array.isArray(deliveryRequests) ? deliveryRequests : [];
 
+        // "Settled Today" must only count requests settled today (it used to
+        // count every settled request ever).
+        const todayKey = new Date().toDateString();
+        const settledToday = (r) =>
+            r.status === 'Settled' &&
+            new Date(r.updatedAt || r.createdAt).toDateString() === todayKey;
+
         return {
             sellers: {
                 pending: sData.filter(r => r.status === 'Pending' || r.status === 'Processing').length,
                 amount: Math.abs(sData.filter(r => r.status === 'Pending' || r.status === 'Processing').reduce((acc, r) => acc + (Number(r.amount) || 0), 0)),
-                processed: sData.filter(r => r.status === 'Settled').length
+                processed: sData.filter(settledToday).length
             },
             delivery: {
                 pending: dData.filter(r => r.status === 'Pending' || r.status === 'Processing').length,
                 amount: Math.abs(dData.filter(r => r.status === 'Pending' || r.status === 'Processing').reduce((acc, r) => acc + (Number(r.amount) || 0), 0)),
-                processed: dData.filter(r => r.status === 'Settled').length
+                processed: dData.filter(settledToday).length
             }
         };
     }, [sellerRequests, deliveryRequests]);

@@ -5,3 +5,5 @@ logs/
 *.log
 
 coverage/
+# Data backups from reset/clear scripts contain customer personal data
+backups/
