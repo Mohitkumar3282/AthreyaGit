@@ -52,6 +52,7 @@ import { COIN_CREDIT_TRIGGER, COIN_TRANSACTION_TYPE } from "../constants/coins.j
 import { emitNotificationEvent } from "../modules/notifications/notification.emitter.js";
 import { NOTIFICATION_EVENTS } from "../modules/notifications/notification.constants.js";
 import * as logger from "./logger.js";
+import { sellerShareOfOrder } from "./seller/sellerEarningsAmount.js";
 
 const IDEMPOTENCY_RECORD_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -805,7 +806,8 @@ export async function placeOrderAtomic({
       userModel: "Seller",
       order: order._id,
       type: "Order Payment",
-      amount: Number(order.paymentBreakdown?.grandTotal || order.pricing?.total || 0),
+      // The seller's share only (products) — not the customer's full bill.
+      amount: Number(sellerShareOfOrder(order) ?? 0),
       status: "Pending",
       reference: order.orderId,
       meta: {

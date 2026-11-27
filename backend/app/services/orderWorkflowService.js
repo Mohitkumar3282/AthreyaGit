@@ -175,8 +175,19 @@ async function broadcastExpressOrder(order, extra = {}) {
 
 const PICKUP_RADIUS_M = () =>
   parseInt(process.env.PICKUP_RADIUS_METERS || "1000", 10);
-const OTP_RADIUS_M = () =>
-  parseInt(process.env.DELIVERY_OTP_RADIUS_METERS || "1000", 10);
+// Default 5 km (business choice); override with DELIVERY_OTP_RADIUS_METERS.
+const OTP_RADIUS_M = () => {
+  const n = parseInt(process.env.DELIVERY_OTP_RADIUS_METERS || "5000", 10);
+  return Number.isFinite(n) && n > 0 ? n : 5000;
+};
+// Phones report how accurate a GPS fix is (metres). Allow for that error,
+// capped so a very poor fix can't open the gate from far away.
+const MAX_GPS_ACCURACY_ALLOWANCE_M = 300;
+const otpAllowedDistanceM = (accuracy) => {
+  const acc = Number(accuracy);
+  const extra = Number.isFinite(acc) && acc > 0 ? Math.min(acc, MAX_GPS_ACCURACY_ALLOWANCE_M) : 0;
+  return OTP_RADIUS_M() + extra;
+};
 const OTP_EXPIRY_MS = () =>
   parseInt(process.env.DELIVERY_OTP_EXPIRY_MS || "300000", 10);
 
@@ -1475,6 +1486,17 @@ async function resolveRiderLocation(deliveryId, bodyLat, bodyLng) {
       err.code = "LOCATION_REQUIRED";
       throw err;
     }
+    // A fresh GPS fix sent with the request is the most accurate position
+    // we have — store it so the customer's map and later checks use it too.
+    Delivery.updateOne(
+      { _id: deliveryId },
+      {
+        $set: {
+          location: { type: "Point", coordinates: [bodyLng, bodyLat] },
+          lastLocationAt: new Date(),
+        },
+      },
+    ).catch(() => {});
     return { lat: bodyLat, lng: bodyLng };
   }
 
@@ -1530,7 +1552,7 @@ async function resolveRiderLocation(deliveryId, bodyLat, bodyLng) {
   return { lat, lng };
 }
 
-export async function requestHandoffOtpAtomic(deliveryId, orderId, lat, lng) {
+export async function requestHandoffOtpAtomic(deliveryId, orderId, lat, lng, accuracy) {
   const order = await Order.findOne({
     orderId,
     deliveryBoy: deliveryId,
@@ -1634,9 +1656,10 @@ export async function requestHandoffOtpAtomic(deliveryId, orderId, lat, lng) {
   }
 
   const d = distanceMeters(rider.lat, rider.lng, cust.lat, cust.lng);
-  if (d > OTP_RADIUS_M()) {
+  if (d > otpAllowedDistanceM(accuracy)) {
     const err = new Error(
-      `Delivery person must be within ${OTP_RADIUS_M()} meters of delivery location. Current distance: ${Math.round(d)}m`,
+      `You are ${Math.round(d)} m from the customer's map location (allowed: ${OTP_RADIUS_M()} m). ` +
+        "Move closer, or call the customer to confirm their address.",
     );
     err.statusCode = 403;
     err.code = "PROXIMITY_OUT_OF_RANGE";
@@ -1998,7 +2021,7 @@ export async function verifyHandoffOtpAndDeliver(deliveryId, orderId, code) {
  * Only meaningful for Athreya Express jobs — regular orders pick up from a
  * seller's shop, which doesn't need sender verification.
  */
-export async function requestPickupOtpAtomic(deliveryId, orderId, lat, lng) {
+export async function requestPickupOtpAtomic(deliveryId, orderId, lat, lng, accuracy) {
   orderId = await requireCanonicalOrderId(orderId);
   const order = await Order.findOne({
     orderId,
@@ -2042,9 +2065,10 @@ export async function requestPickupOtpAtomic(deliveryId, orderId, lat, lng) {
     Number.isFinite(pickup.lng)
   ) {
     const d = distanceMeters(rider.lat, rider.lng, pickup.lat, pickup.lng);
-    if (d > OTP_RADIUS_M()) {
+    if (d > otpAllowedDistanceM(accuracy)) {
       const err = new Error(
-        `You must be within ${OTP_RADIUS_M()} meters of the pickup location. Current distance: ${Math.round(d)}m`,
+        `You are ${Math.round(d)} m from the pickup location (allowed: ${OTP_RADIUS_M()} m). ` +
+          "Move closer, or call the sender to confirm the pickup address.",
       );
       err.statusCode = 403;
       err.code = "PROXIMITY_OUT_OF_RANGE";

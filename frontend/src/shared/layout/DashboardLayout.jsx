@@ -438,7 +438,18 @@ const DashboardLayout = ({ children, navItems, title }) => {
 
                                 <h2 className="text-2xl font-black text-slate-900 mb-2">New Order Received!</h2>
                                 <p className="text-slate-600 font-medium mb-6">
-                                    You have a new order <span className="text-primary font-bold">#{newOrderAlert.orderId}</span> for <span className="text-slate-900 font-bold">₹{newOrderAlert.pricing?.total || newOrderAlert.total}</span>
+                                    You have a new order <span className="text-primary font-bold">#{newOrderAlert.orderId}</span>
+                                    {(() => {
+                                        // Sellers don't receive the order-level bill, so show the
+                                        // value of the items ordered from them (was a blank "₹").
+                                        const itemsValue = (newOrderAlert.items || []).reduce(
+                                            (sum, it) => sum + Number(it.price || 0) * Number(it.quantity || 1),
+                                            0,
+                                        );
+                                        return itemsValue > 0 ? (
+                                            <> for <span className="text-slate-900 font-bold">₹{itemsValue.toLocaleString('en-IN')}</span></>
+                                        ) : null;
+                                    })()}
                                 </p>
 
                                 {/* Timer Bar — width from real server deadline */}

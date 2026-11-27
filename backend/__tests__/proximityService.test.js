@@ -1,7 +1,30 @@
-import { checkProximity } from '../app/services/proximityService.js';
+import { checkProximity, getOtpRadiusMeters } from '../app/services/proximityService.js';
 
 describe('proximityService', () => {
+  const savedRadius = process.env.DELIVERY_OTP_RADIUS_METERS;
+  afterAll(() => {
+    if (savedRadius === undefined) delete process.env.DELIVERY_OTP_RADIUS_METERS;
+    else process.env.DELIVERY_OTP_RADIUS_METERS = savedRadius;
+  });
+
+  describe('getOtpRadiusMeters', () => {
+    it('defaults to 5000m when DELIVERY_OTP_RADIUS_METERS is not set', () => {
+      delete process.env.DELIVERY_OTP_RADIUS_METERS;
+      expect(getOtpRadiusMeters()).toBe(5000);
+    });
+
+    it('uses DELIVERY_OTP_RADIUS_METERS when set', () => {
+      process.env.DELIVERY_OTP_RADIUS_METERS = '1500';
+      expect(getOtpRadiusMeters()).toBe(1500);
+    });
+  });
+
   describe('checkProximity', () => {
+    // Boundary cases below are written for a 1000m radius.
+    beforeAll(() => {
+      process.env.DELIVERY_OTP_RADIUS_METERS = '1000';
+    });
+
     // Test coordinates (Bangalore area)
     const customerLocation = { lat: 12.9716, lng: 77.5946 };
     

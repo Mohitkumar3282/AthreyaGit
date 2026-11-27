@@ -6,6 +6,10 @@ import { invalidateSellerName } from "../services/entityNameCache.js";
 import { getShopStatus } from "../services/shopHoursService.js";
 import { deleteSellerAccount } from "../services/accountDeletionService.js";
 import { buildKey, getOrSet, getTTL, delPattern } from "../services/cacheService.js";
+import {
+  computeSellerTxnBalances,
+  loadSellerTransactions,
+} from "../services/seller/sellerEarningsAmount.js";
 
 // Shops stay listed when closed; status is computed live from store timings
 // (the cached rows may be up to a few minutes old).
@@ -107,26 +111,10 @@ export const requestWithdrawal = async (req, res) => {
       return handleResponse(res, 400, "Please enter a valid amount");
     }
 
-    // 1. Calculate current available balance
-    // Consistent with getSellerEarnings logic in sellerStatsController.js
-    const transactions = await Transaction.find({
-      user: sellerId,
-      userModel: "Seller",
-    })
-      .select("status amount type")
-      .lean();
-
-    const settledBalance = transactions
-      .filter((t) => t.status === "Settled")
-      .reduce((acc, t) => acc + (t.amount || 0), 0);
-
-    const pendingPayouts = transactions
-      .filter(
-        (t) =>
-          t.type === "Withdrawal" &&
-          (t.status === "Pending" || t.status === "Processing"),
-      )
-      .reduce((acc, t) => acc + Math.abs(t.amount || 0), 0);
+    // 1. Calculate current available balance — same rule as the Earnings
+    // page (order rows count only the seller's product share).
+    const transactions = await loadSellerTransactions(sellerId);
+    const { settledBalance, pendingPayouts } = computeSellerTxnBalances(transactions);
 
     const availableBalance = settledBalance - pendingPayouts;
 

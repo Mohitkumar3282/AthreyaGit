@@ -22,6 +22,7 @@ import {
 import { createPendingPayoutForOrder } from "./payoutService.js";
 import { creditCoins, debitCoins, getCoinBalance } from "../coinsService.js";
 import { COIN_TRANSACTION_TYPE } from "../../constants/coins.js";
+import { WORKFLOW_STATUS } from "../../constants/orderWorkflow.js";
 import {
   computeCashbackForSavings,
   resolveSavingsBase,
@@ -559,6 +560,17 @@ export async function settleDeliveredOrder(orderOrId, { actorId = null } = {}) {
       order.status = "delivered";
     }
     order.orderStatus = "delivered";
+    // Keep the v2 workflow in step with the legacy status. Without this an
+    // order marked delivered outside the OTP flow stayed OUT_FOR_DELIVERY,
+    // and the rider's app kept asking for the delivery OTP.
+    if (
+      (order.workflowVersion || 1) >= 2 &&
+      order.workflowStatus &&
+      order.workflowStatus !== WORKFLOW_STATUS.DELIVERED &&
+      order.workflowStatus !== WORKFLOW_STATUS.CANCELLED
+    ) {
+      order.workflowStatus = WORKFLOW_STATUS.DELIVERED;
+    }
     if (!order.deliveredAt) {
       order.deliveredAt = new Date();
     }
@@ -774,12 +786,14 @@ export async function reconcileCodCash(
     const nextRemitted = addMoney(codRemitted, requested);
     const nextPending = roundCurrency(codCollected - nextRemitted);
 
-    order.paymentBreakdown = {
-      ...(order.paymentBreakdown || {}),
-      codCollectedAmount: codCollected,
-      codRemittedAmount: nextRemitted,
-      codPendingAmount: nextPending,
-    };
+    // Update the three COD fields in place. Spreading the Mongoose
+    // sub-document (`{ ...order.paymentBreakdown }`) copied internals instead
+    // of its stored fields, left `snapshots` undefined, and the save failed —
+    // so no COD cash could ever be settled (admin or rider).
+    if (!order.paymentBreakdown) order.paymentBreakdown = {};
+    order.paymentBreakdown.codCollectedAmount = codCollected;
+    order.paymentBreakdown.codRemittedAmount = nextRemitted;
+    order.paymentBreakdown.codPendingAmount = nextPending;
 
     order.paymentStatus =
       nextPending <= 0

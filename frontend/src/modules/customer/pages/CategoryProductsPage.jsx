@@ -264,7 +264,7 @@ const CategoryProductsPage = () => {
                     _id: sellerIdStr,
                     shopName: matchedSeller?.shopName || product.sellerId?.shopName || 'Athreya Store',
                     shopLogo: matchedSeller?.shopLogo || matchedSeller?.storeFrontImage || '',
-                    rating: matchedSeller?.rating || '4.5',
+                    rating: matchedSeller?.rating || 'New',
                     storeTimings: matchedSeller?.storeTimings || '20-25 mins',
                     isOpen: matchedSeller?.isOpen,
                     minimumOrderAmount: matchedSeller?.minimumOrderAmount || 0,

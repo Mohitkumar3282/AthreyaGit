@@ -50,13 +50,17 @@ function hasValidLatLng(location) {
 const LiveTrackingMap = memo(({
   status = "out for delivery",
   eta = "--",
-  riderName = "Ramesh Kumar",
+  riderName = null,
+  riderPhone = null,
+  riderRating = null,
   riderLocation,
   sellerLocation,
   destinationLocation,
   routePhase = "pickup",
   routePolyline,
   onOpenInMaps,
+  // Fill the parent (full-screen tracking view) instead of a fixed height.
+  fullHeight = false,
 }) => {
   const mapRef = useRef(null);
   const [mapInstance, setMapInstance] = useState(null);
@@ -224,7 +228,7 @@ const LiveTrackingMap = memo(({
   const norm = status?.toLowerCase?.() || "";
   if (norm === "cancelled" || norm === "canceled") {
     return (
-      <div className="relative w-full min-h-[220px] bg-slate-50 overflow-hidden rounded-b-[2rem] flex flex-col items-center justify-center gap-3 px-6 py-10 border-b border-[#1a6e2e]/20">
+      <div className={`relative w-full ${fullHeight ? "h-full" : "min-h-[220px]"} bg-slate-50 overflow-hidden rounded-b-[2rem] flex flex-col items-center justify-center gap-3 px-6 py-10 border-b border-[#1a6e2e]/20`}>
         <div className="h-14 w-14 rounded-full bg-slate-200 flex items-center justify-center text-slate-600">
           <Clock size={28} />
         </div>
@@ -241,7 +245,7 @@ const LiveTrackingMap = memo(({
 
   if (norm === "seller_pending") {
     return (
-      <div className="relative w-full min-h-[260px] bg-[#1a6e2e]/10 overflow-hidden rounded-b-[2rem] flex flex-col items-center justify-center gap-3 px-6 py-10 border-b border-[#1a6e2e]/20">
+      <div className={`relative w-full ${fullHeight ? "h-full" : "min-h-[260px]"} bg-[#1a6e2e]/10 overflow-hidden rounded-b-[2rem] flex flex-col items-center justify-center gap-3 px-6 py-10 border-b border-[#1a6e2e]/20`}>
         <motion.div
           animate={{ scale: [1, 1.05, 1] }}
           transition={{ duration: 2, repeat: Infinity }}
@@ -262,7 +266,7 @@ const LiveTrackingMap = memo(({
   // ─── SEARCHING STATE ───────────────────────────────────────────────────
   if (isSearching) {
     return (
-      <div className="relative w-full h-[320px] bg-[#1a6e2e]/10 overflow-hidden rounded-b-[2rem] flex flex-col items-center justify-center gap-4 border-b border-[#1a6e2e]/20">
+      <div className={`relative w-full ${fullHeight ? "h-full" : "h-[320px]"} bg-[#1a6e2e]/10 overflow-hidden rounded-b-[2rem] flex flex-col items-center justify-center gap-4 border-b border-[#1a6e2e]/20`}>
         {/* Animated radar rings */}
         {[1, 2, 3].map((i) => (
           <motion.div
@@ -318,7 +322,7 @@ const LiveTrackingMap = memo(({
   // If Google Maps is not loaded or no API key
   if (!apiKey) {
     return (
-      <div className="relative w-full h-[350px] bg-slate-100 rounded-b-[2rem] flex items-center justify-center text-center px-4">
+      <div className={`relative w-full ${fullHeight ? "h-full" : "h-[350px]"} bg-slate-100 rounded-b-[2rem] flex items-center justify-center text-center px-4`}>
         <p className="text-xs text-slate-500">
           Set <code className="font-mono">VITE_GOOGLE_MAPS_API_KEY</code> to show live tracking.
         </p>
@@ -328,7 +332,7 @@ const LiveTrackingMap = memo(({
 
   if (loadError) {
     return (
-      <div className="relative w-full h-[350px] bg-rose-50 rounded-b-[2rem] flex items-center justify-center text-xs text-rose-700 px-4">
+      <div className={`relative w-full ${fullHeight ? "h-full" : "h-[350px]"} bg-rose-50 rounded-b-[2rem] flex items-center justify-center text-xs text-rose-700 px-4`}>
         Map failed to load. Check the API key and billing.
       </div>
     );
@@ -336,14 +340,14 @@ const LiveTrackingMap = memo(({
 
   if (!isLoaded) {
     return (
-      <div className="relative w-full h-[350px] bg-slate-50 rounded-b-[2rem] flex items-center justify-center">
+      <div className={`relative w-full ${fullHeight ? "h-full" : "h-[350px]"} bg-slate-50 rounded-b-[2rem] flex items-center justify-center`}>
         <Loader2 className="animate-spin text-[#1a6e2e]" size={28} />
       </div>
     );
   }
 
   return (
-    <div className="relative w-full h-[350px] bg-[#E5E3DF] overflow-hidden rounded-b-[2rem] border-b border-[#1a6e2e]/20">
+    <div className={`relative w-full ${fullHeight ? "h-full" : "h-[350px]"} bg-[#E5E3DF] overflow-hidden rounded-b-[2rem] border-b border-[#1a6e2e]/20`}>
       {/* Google Map */}
       <GoogleMap
         mapContainerStyle={containerStyle}
@@ -450,31 +454,39 @@ const LiveTrackingMap = memo(({
             className="bg-white rounded-2xl p-3 border border-[#1a6e2e]/20">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="h-10 w-10 rounded-full bg-gray-100 overflow-hidden border-2 border-[#1a6e2e]/20">
-                  <img
-                    src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&auto=format&fit=crop&q=60"
-                    alt="Rider"
-                    className="h-full w-full object-cover"
-                  />
+                <div className="h-10 w-10 rounded-full bg-[#1a6e2e]/10 overflow-hidden border-2 border-[#1a6e2e]/20 flex items-center justify-center text-sm font-bold text-[#1a6e2e]">
+                  {String(riderName).trim().charAt(0).toUpperCase() || "R"}
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 bg-[#1a6e2e] text-white text-[7px] font-bold px-1 py-0.5 rounded-full flex items-center gap-0.5">
-                  4.8 <Star size={5} fill="white" />
-                </div>
+                {Number(riderRating) > 0 && (
+                  <div className="absolute -bottom-0.5 -right-0.5 bg-[#1a6e2e] text-white text-[7px] font-bold px-1 py-0.5 rounded-full flex items-center gap-0.5">
+                    {Number(riderRating).toFixed(1)} <Star size={5} fill="white" />
+                  </div>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-gray-900 text-xs truncate">{riderName}</h3>
                 <p className="text-[12px] text-gray-500 flex items-center gap-1">
                   <Shield size={8} />
-                  Vaccinated
+                  Your delivery partner
                 </p>
               </div>
               <div className="flex items-center gap-1.5">
-                <button className="h-8 w-8 rounded-full bg-[#1a6e2e]/10 flex items-center justify-center text-[#1a6e2e] hover:bg-[#1a6e2e]/20 transition-colors">
-                  <Phone size={14} />
-                </button>
-                <button className="h-8 w-8 rounded-full bg-[#1a6e2e]/10 flex items-center justify-center text-[#1a6e2e] hover:bg-[#1a6e2e]/20 transition-colors">
-                  <MessageSquare size={14} />
-                </button>
+                {riderPhone && (
+                  <>
+                    <a
+                      href={`tel:${riderPhone}`}
+                      aria-label="Call delivery partner"
+                      className="h-8 w-8 rounded-full bg-[#1a6e2e]/10 flex items-center justify-center text-[#1a6e2e] hover:bg-[#1a6e2e]/20 transition-colors">
+                      <Phone size={14} />
+                    </a>
+                    <a
+                      href={`sms:${riderPhone}`}
+                      aria-label="Message delivery partner"
+                      className="h-8 w-8 rounded-full bg-[#1a6e2e]/10 flex items-center justify-center text-[#1a6e2e] hover:bg-[#1a6e2e]/20 transition-colors">
+                      <MessageSquare size={14} />
+                    </a>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>
@@ -501,8 +513,11 @@ const LiveTrackingMap = memo(({
   // Only re-render if these props actually change
   return (
     prevProps.status === nextProps.status &&
+    prevProps.fullHeight === nextProps.fullHeight &&
     prevProps.eta === nextProps.eta &&
     prevProps.riderName === nextProps.riderName &&
+    prevProps.riderPhone === nextProps.riderPhone &&
+    prevProps.riderRating === nextProps.riderRating &&
     prevProps.riderLocation?.lat === nextProps.riderLocation?.lat &&
     prevProps.riderLocation?.lng === nextProps.riderLocation?.lng &&
     prevProps.sellerLocation?.lat === nextProps.sellerLocation?.lat &&

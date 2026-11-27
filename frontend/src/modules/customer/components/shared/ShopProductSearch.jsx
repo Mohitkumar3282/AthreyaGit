@@ -99,7 +99,7 @@ const ShopProductSearch = ({ query }) => {
           id: sid,
           name: s.shopName || p.sellerId?.shopName || "Store",
           logo: s.shopLogo || s.storeFrontImage || "",
-          rating: s.rating || "4.5",
+          rating: s.rating || "New",
           hours: s.storeTimings || "",
           isOpen: s.isOpen,
           closedMessage: s.closedMessage || "",

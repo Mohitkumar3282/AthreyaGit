@@ -101,7 +101,14 @@ export const requestDeliveryOtp = async (req, res) => {
         : typeof location?.lng === "number"
           ? location.lng
           : undefined;
-    const result = await requestHandoffOtpAtomic(req.user.id, orderId, lat, lng);
+    const accuracy = Number(req.body?.accuracy);
+    const result = await requestHandoffOtpAtomic(
+      req.user.id,
+      orderId,
+      lat,
+      lng,
+      Number.isFinite(accuracy) ? accuracy : undefined,
+    );
     return handleResponse(
       res,
       200,
@@ -171,7 +178,14 @@ export const requestPickupOtp = async (req, res) => {
         : typeof location?.lng === "number"
           ? location.lng
           : undefined;
-    const result = await requestPickupOtpAtomic(req.user.id, orderId, lat, lng);
+    const accuracy = Number(req.body?.accuracy);
+    const result = await requestPickupOtpAtomic(
+      req.user.id,
+      orderId,
+      lat,
+      lng,
+      Number.isFinite(accuracy) ? accuracy : undefined,
+    );
     return handleResponse(
       res,
       200,

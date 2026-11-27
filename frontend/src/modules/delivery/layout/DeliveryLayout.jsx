@@ -281,11 +281,10 @@ const DeliveryLayout = () => {
     });
   }, []);
 
+  // No ringtone for new order requests (removed on request). The full-screen
+  // request pop-up and the push notification still alert the rider.
+  // stopOrderRingtone() stays so any sound started elsewhere is still cut off.
   useEffect(() => {
-    if (activeOrder) {
-      startOrderRingtone();
-      return undefined;
-    }
     stopOrderRingtone();
     return undefined;
   }, [activeOrder]);
@@ -550,7 +549,7 @@ const DeliveryLayout = () => {
 
         // Always refresh the local cache so the map / route fetch always
         // has the freshest coords when they mount.
-        saveDeliveryPartnerLocation(lat, lng);
+        saveDeliveryPartnerLocation(lat, lng, pos.coords.accuracy);
 
         if (
           typeof document !== "undefined" &&

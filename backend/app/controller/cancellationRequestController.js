@@ -598,10 +598,10 @@ export const getCancellationRequestByOrderId = async (req, res) => {
     }
 
     const { id: userId, role } = req.user;
-    if (role === "customer" && order.customer.toString() !== userId) {
+    if ((role === "customer" || role === "user") && String(order.customer) !== String(userId)) {
       return handleResponse(res, 403, "Access denied. Order does not belong to you.");
     }
-    if (role === "seller" && order.seller.toString() !== userId) {
+    if (role === "seller" && String(order.seller) !== String(userId)) {
       return handleResponse(res, 403, "Access denied");
     }
 
@@ -612,8 +612,11 @@ export const getCancellationRequestByOrderId = async (req, res) => {
       .populate("delivery_boy_id", "name phone rating")
       .sort({ createdAt: -1 });
 
+    // No request yet is the normal case for almost every order — answer 200
+    // with null instead of a 404 so the app doesn't log a failed call on
+    // every order page.
     if (!cancellationRequest) {
-      return handleResponse(res, 404, "Cancellation request not found for this order");
+      return handleResponse(res, 200, "No cancellation request for this order", null);
     }
 
     return handleResponse(res, 200, "Cancellation request fetched successfully", cancellationRequest);

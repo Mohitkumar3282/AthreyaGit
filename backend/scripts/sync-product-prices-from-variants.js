@@ -7,6 +7,8 @@
  * Apply the changes:              node scripts/sync-product-prices-from-variants.js --apply
  */
 import "dotenv/config";
+import fs from "fs";
+import path from "path";
 import mongoose from "mongoose";
 
 const APPLY = process.argv.includes("--apply");
@@ -29,6 +31,7 @@ const cursor = products.find(
 
 let mismatched = 0;
 let updated = 0;
+const backup = [];
 for await (const p of cursor) {
   const t = targetPrices(p);
   if (!t) continue;
@@ -40,9 +43,17 @@ for await (const p of cursor) {
     `${APPLY ? "UPDATE" : "would update"}: ${p.name} | price ${curPrice} -> ${t.price} | sale ${curSale} -> ${t.salePrice}`,
   );
   if (APPLY) {
+    backup.push({ _id: String(p._id), name: p.name, price: p.price ?? null, salePrice: p.salePrice ?? null });
     await products.updateOne({ _id: p._id }, { $set: { price: t.price, salePrice: t.salePrice } });
     updated += 1;
   }
+}
+
+if (APPLY && backup.length) {
+  fs.mkdirSync("backups", { recursive: true });
+  const file = path.join("backups", `product-prices-before-sync-${new Date().toISOString().replace(/[:.]/g, "-")}.json`);
+  fs.writeFileSync(file, JSON.stringify(backup, null, 1));
+  console.log(`Old prices saved -> ${file}`);
 }
 
 console.log(

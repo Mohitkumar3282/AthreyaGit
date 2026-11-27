@@ -1,6 +1,7 @@
 import React from "react";
 import { ShoppingBag, Star, ArrowRight, ShoppingCart, Sparkles, Check } from "lucide-react";
 import walletCoinsImg from "@/assets/coins/wallet_coins.jpg";
+import { useSettings } from "@core/context/SettingsContext";
 
 /**
  * CoinsPromoBanner
@@ -9,6 +10,14 @@ import walletCoinsImg from "@/assets/coins/wallet_coins.jpg";
  *   variant: 'full' | 'compact' | 'footer' | 'checkout'
  */
 export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
+  const { settings: appSettings } = useSettings();
+  // Coin value comes from the admin's Athreya Coins settings (falls back to
+  // the backend default of 1,000 coins = ₹1 until settings load).
+  const coinsPerRupee = Math.max(
+    1,
+    Math.round(1 / Number(appSettings?.athreyaCoins?.rupeeValuePerCoin || 0.001)),
+  );
+  const coinsPerRupeeLabel = coinsPerRupee.toLocaleString("en-IN");
   if (variant === "footer") {
     return (
       <div className={`w-full rounded-2xl bg-[#0a3f22] text-white p-3 md:p-4 flex flex-col md:flex-row items-center justify-between gap-3 shadow-md ${className}`}>
@@ -29,7 +38,7 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
           </div>
           <ArrowRight size={14} className="text-emerald-300" />
           <div className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-lg">
-            <span className="text-yellow-300">⭐</span> 1,000 Coins = ₹1.00
+            <span className="text-yellow-300">⭐</span> {coinsPerRupeeLabel} Coins = ₹1.00
           </div>
           <ArrowRight size={14} className="text-emerald-300" />
           <div className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-lg">
@@ -48,7 +57,7 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
             </span>
           </div>
           <p className="text-xs font-black text-[#f7d154] tracking-tight mt-0.5">
-            1,000 COINS = ₹1.00 IN YOUR WALLET
+            {coinsPerRupeeLabel} COINS = ₹1.00 IN YOUR WALLET
           </p>
         </div>
       </div>
@@ -73,7 +82,7 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
                   EARN ATHREYA COINS!
                 </h4>
                 <span className="bg-[#fcd34d] text-[#0d4d29] text-[11px] md:text-[12px] font-[1000] px-1.5 py-0.5 rounded shadow-2xs">
-                  1,000 Coins = ₹1.00
+                  {coinsPerRupeeLabel} Coins = ₹1.00
                 </span>
               </div>
               <p className="text-[12.5px] font-semibold text-emerald-100 mt-0.5 leading-snug">
@@ -109,10 +118,10 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
               EARN COINS, SAVE MONEY!
             </h2>
             <div className="inline-block mt-1 px-3 py-1 bg-[#f7d154] text-[#0a3f22] text-sm md:text-base font-black rounded-lg shadow-sm">
-              1,000 ATHREYA COINS = ₹1.00
+              {coinsPerRupeeLabel} ATHREYA COINS = ₹1.00
             </div>
             <p className="text-xs md:text-sm font-semibold text-emerald-100 mt-2">
-              Earn Coins on every order and use on your next purchase (1,000 Coins = ₹1.00)
+              Earn Coins on every order and use on your next purchase ({coinsPerRupeeLabel} Coins = ₹1.00)
             </p>
           </div>
 
@@ -169,7 +178,7 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
             </span>
             <div className="h-14 w-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-3 gap-1">
               <span className="h-8 px-1.5 rounded-full bg-[#f7d154] text-[#7a5200] text-[11px] font-black flex items-center justify-center shadow-sm">
-                1,000
+                {coinsPerRupeeLabel}
               </span>
               <span className="text-xs font-black text-slate-400">=</span>
               <span className="h-8 w-8 rounded-full bg-[#0d592e] text-white text-[12.5px] font-black flex items-center justify-center shadow-sm">
@@ -177,7 +186,7 @@ export const CoinsPromoBanner = ({ variant = "full", className = "" }) => {
               </span>
             </div>
             <p className="text-xs font-semibold text-slate-600">
-              1,000 Coins = ₹1.00 in your wallet
+              {coinsPerRupeeLabel} Coins = ₹1.00 in your wallet
             </p>
           </div>
 

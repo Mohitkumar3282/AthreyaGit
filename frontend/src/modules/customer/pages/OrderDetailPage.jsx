@@ -49,6 +49,7 @@ import {
   leaveOrderRoom,
   onOrderStatusUpdate,
   onCustomerOtp,
+  onRiderLocation,
   onReturnPickupOtp,
   onReturnDropOtp,
   onCancellationPickupOtp,
@@ -138,6 +139,9 @@ const OrderDetailPage = () => {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [returnEligibility, setReturnEligibility] = useState({ eligible: false });
   const [showCoinsEarnedModal, setShowCoinsEarnedModal] = useState(false);
+  // While an order is being tracked the page opens as a full-screen map;
+  // the full details / bill are one tap away.
+  const [showFullDetails, setShowFullDetails] = useState(false);
   const fileInputRef = useRef(null);
 
   const [cancellationDetails, setCancellationDetails] = useState(null);
@@ -150,7 +154,7 @@ const OrderDetailPage = () => {
     if (!ord) return;
     try {
       const res = await customerApi.getCancellationRequestByOrderId(ord.orderId);
-      const data = res.data.result || res.data;
+      const data = res.data?.result ?? null;
       setCancellationDetails(data);
       if (data?.pickup_otp) {
         setHandoffOtp(data.pickup_otp);
@@ -187,6 +191,18 @@ const OrderDetailPage = () => {
     }
   };
   const [liveLocation, setLiveLocation] = useState(null);
+  // Seed the map with the rider's last known position (from the order API)
+  // so the customer sees the rider immediately, even if no new GPS ping has
+  // arrived since the page opened. Live socket/Firebase updates override it.
+  useEffect(() => {
+    const coords = order?.deliveryBoy?.location?.coordinates;
+    if (!Array.isArray(coords) || coords.length < 2) return;
+    const [lng, lat] = coords.map(Number);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || (lat === 0 && lng === 0)) return;
+    setLiveLocation((prev) =>
+      prev ? prev : { lat, lng, lastUpdatedAt: order?.deliveryBoy?.lastLocationAt || null },
+    );
+  }, [order?.deliveryBoy?.location?.coordinates?.[0], order?.deliveryBoy?.location?.coordinates?.[1]]);
   const [trail, setTrail] = useState([]);
   const [routePolyline, setRoutePolyline] = useState(null);
   const [handoffOtp, setHandoffOtp] = useState(null);
@@ -393,6 +409,18 @@ const OrderDetailPage = () => {
       console.log(`[OrderDetailPage] Location update:`, loc);
       setLiveLocation(loc);
     });
+    // Same position pushed over the app socket — keeps live tracking working
+    // when the Firebase Realtime Database is unavailable.
+    const offSocketLocation = onRiderLocation(
+      createSocketTokenReader(STORAGE_KEYS.AUTH_CUSTOMER),
+      (payload) => {
+        if (!payload || payload.orderId !== trackingId) return;
+        const lat = Number(payload.lat);
+        const lng = Number(payload.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+        setLiveLocation({ lat, lng, heading: payload.heading, lastUpdatedAt: payload.lastUpdatedAt });
+      },
+    );
     const offTrail = subscribeToOrderTrail(trackingId, (t) => {
       console.log(`[OrderDetailPage] Trail update: ${t.length} points`);
       setTrail(t);
@@ -405,6 +433,7 @@ const OrderDetailPage = () => {
     return () => {
       console.log(`[OrderDetailPage] Cleaning up Firebase subscriptions for order ${trackingId}`);
       offLocation && offLocation();
+      offSocketLocation && offSocketLocation();
       offTrail && offTrail();
       offRoute && offRoute();
     };
@@ -823,6 +852,99 @@ const OrderDetailPage = () => {
     );
   }
 
+  // Order confirmed and on its way (paid, not delivered/cancelled): show the
+  // live map full-screen with only what the customer needs right now.
+  const isLiveTracking =
+    !isAwaitingOnlinePayment &&
+    ["confirmed", "packed", "out_for_delivery"].includes(status);
+
+  if (isLiveTracking && !showFullDetails) {
+    const trackingLabel =
+      status === "out_for_delivery"
+        ? "On the way to you"
+        : order.deliveryBoy
+          ? "Rider is heading to pickup"
+          : "Order confirmed · finding a rider";
+    return (
+      <div className="fixed inset-0 z-[550] flex flex-col bg-white font-sans">
+        {/* Top bar */}
+        <div className="flex items-center gap-3 bg-[#0d4d29] px-3 py-3 text-white shadow-md">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-white/15"
+            aria-label="Back"
+          >
+            <ChevronLeft size={24} />
+          </button>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-black">{trackingLabel}</p>
+            <p className="text-[12px] font-bold text-emerald-200">#{order.orderId.slice(-8)}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowFullDetails(true)}
+            className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold hover:bg-white/25"
+          >
+            Details
+          </button>
+        </div>
+
+        {/* Full-screen live map */}
+        <div className="relative min-h-0 flex-1">
+          <LiveTrackingMap
+            fullHeight
+            status={order.workflowStatus || order.status}
+            eta={estimatedArrival.arrivingInText}
+            riderName={order.deliveryBoy ? order.deliveryBoy.name || "Delivery Partner" : null}
+            riderPhone={order.deliveryBoy?.phone || null}
+            riderRating={order.deliveryBoy?.rating ?? null}
+            riderLocation={liveLocation}
+            sellerLocation={pickupLocation}
+            destinationLocation={
+              order.address?.location?.lat
+                ? order.address.location
+                : activeRoutePolyline?.destination || null
+            }
+            routePhase={routePhase}
+            routePolyline={activeRoutePolyline}
+            onOpenInMaps={handleOpenInMaps}
+          />
+        </div>
+
+        {/* Compact bottom sheet: OTPs the customer must share + details link */}
+        <div className="max-h-[45vh] space-y-3 overflow-y-auto rounded-t-3xl border-t border-slate-200 bg-white px-4 pb-5 pt-3 shadow-[0_-8px_30px_rgba(0,0,0,0.12)]">
+          <div className="mx-auto h-1.5 w-10 rounded-full bg-slate-200" />
+          {order?.orderType === "custom_pickup" &&
+            ["DELIVERY_ASSIGNED", "PICKUP_READY"].includes(
+              String(order?.workflowStatus || "").toUpperCase(),
+            ) && (
+              <DeliveryOtpDisplay
+                stage="pickup"
+                orderId={order?.orderId || orderId}
+                checkoutGroupId={order?.checkoutGroupId || orderId}
+                initialOtp={order?.pickupOtp}
+                initialOtpExpiresAt={order?.pickupOtpExpiresAt}
+              />
+            )}
+          <DeliveryOtpDisplay
+            orderId={order?.orderId || orderId}
+            checkoutGroupId={order?.checkoutGroupId || orderId}
+            initialOtp={order?.deliveryOtp}
+            initialOtpExpiresAt={order?.deliveryOtpExpiresAt}
+          />
+          <button
+            type="button"
+            onClick={() => setShowFullDetails(true)}
+            className="w-full rounded-2xl border border-[#1a6e2e]/30 py-3 text-sm font-bold text-[#0d4d29] hover:bg-emerald-50"
+          >
+            View order details & bill
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white pb-24 font-sans">
       {/* Coins Earned Modal */}
@@ -847,7 +969,17 @@ const OrderDetailPage = () => {
           <h1 className="text-base font-[1000] tracking-widest uppercase text-white">ORDER SUMMARY</h1>
           <p className="text-[12px] font-bold text-emerald-200">#{order.orderId.slice(-8)}</p>
         </div>
-        <div className="w-8" />
+        {isLiveTracking ? (
+          <button
+            type="button"
+            onClick={() => setShowFullDetails(false)}
+            className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold hover:bg-white/25"
+          >
+            Map
+          </button>
+        ) : (
+          <div className="w-8" />
+        )}
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
@@ -934,7 +1066,9 @@ const OrderDetailPage = () => {
             <LiveTrackingMap
               status={order.workflowStatus || order.status}
               eta={estimatedArrival.arrivingInText}
-              riderName={order.deliveryBoy?.name || "Delivery Partner"}
+              riderName={order.deliveryBoy ? order.deliveryBoy.name || "Delivery Partner" : null}
+            riderPhone={order.deliveryBoy?.phone || null}
+            riderRating={order.deliveryBoy?.rating ?? null}
               riderLocation={liveLocation}
               sellerLocation={pickupLocation}
               destinationLocation={

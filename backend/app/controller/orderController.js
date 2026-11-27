@@ -942,6 +942,24 @@ export const updateOrderStatus = async (req, res) => {
     }
     // -----------------------------
 
+    // Delivery is proven by the customer's OTP, entered by the rider. Only an
+    // admin may override it (support cases). A seller setting "delivered" or
+    // "out_for_delivery" by hand skipped the OTP and left the order stuck
+    // half-way (status delivered, workflow still out for delivery).
+    if (
+      !isAdmin &&
+      (status === "delivered" ||
+        (status === "out_for_delivery" && order.workflowVersion >= 2))
+    ) {
+      return handleResponse(
+        res,
+        403,
+        status === "delivered"
+          ? "Orders are marked delivered when the rider enters the customer's OTP."
+          : "Out for delivery is set by the rider when they pick up the order.",
+      );
+    }
+
     const oldStatus = order.status;
     if (status) {
       order.status = status;
@@ -1011,6 +1029,13 @@ export const updateOrderStatus = async (req, res) => {
       // - mark COD cash collected (system float)
       await order.save();
       await applyDeliveredSettlement(order, canonicalOrderId);
+      // Tell the customer's and rider's open screens (settlement already
+      // moved a v2 order's workflow to DELIVERED).
+      emitOrderStatusUpdate(
+        canonicalOrderId,
+        { status: "delivered", workflowStatus: WORKFLOW_STATUS.DELIVERED },
+        order.customer,
+      );
 
       emitNotificationEvent(NOTIFICATION_EVENTS.ORDER_DELIVERED, {
         orderId: canonicalOrderId,

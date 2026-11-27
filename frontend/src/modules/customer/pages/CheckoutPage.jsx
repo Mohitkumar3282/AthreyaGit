@@ -75,6 +75,15 @@ import CheckoutWishlistSection from "./checkout/components/CheckoutWishlistSecti
 import CheckoutOrderSuccess from "./checkout/components/CheckoutOrderSuccess";
 import CoinsPromoBanner from "../components/CoinsPromoBanner";
 
+// Straight-line distance in km between two lat/lng points.
+function distanceKm(lat1, lng1, lat2, lng2) {
+  const toRad = (d) => (d * Math.PI) / 180;
+  const a =
+    Math.sin(toRad(lat2 - lat1) / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(toRad(lng2 - lng1) / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(a));
+}
+
 const CheckoutPage = () => {
   const {
     cart,
@@ -253,7 +262,21 @@ const CheckoutPage = () => {
   const displayAddress = savedRecipient
     ? `${savedRecipient.completeAddress}${savedRecipient.landmark ? `, ${savedRecipient.landmark}` : ""}${savedRecipient.pincode ? ` - ${savedRecipient.pincode}` : ""}`
     : currentAddress.address
-      ? [currentAddress.address, currentAddress.landmark, currentAddress.city].filter(Boolean).join(", ")
+      ? [
+          currentAddress.address,
+          currentAddress.landmark,
+          // Geocoded addresses already include city/state/pincode — only add
+          // the parts that aren't in the address line yet.
+          String(currentAddress.city || "")
+            .split(",")
+            .map((part) => part.trim())
+            .filter(
+              (part) =>
+                part &&
+                !String(currentAddress.address || "").toLowerCase().includes(part.toLowerCase()),
+            )
+            .join(", "),
+        ].filter(Boolean).join(", ")
       : "No delivery address yet. Tap Change, Edit or use your live location.";
 
   // Fill name + phone from the logged-in customer (only into empty fields).
@@ -347,7 +370,7 @@ const CheckoutPage = () => {
   const coinsOrderBase =
     Number(pricingPreview?.grandTotal || fallbackGrandTotal) + Number(appliedCoinsDiscount || 0);
   const maxRedeemableCoins = useMemo(() => {
-    const perCoin = Number(coinSettings.rupeeValuePerCoin || 1);
+    const perCoin = Number(coinSettings.rupeeValuePerCoin || 0.001);
     const percent = Number(coinSettings.maxRedeemPercentOfOrder ?? 100);
     if (!coinBalance || coinsOrderBase <= 0 || perCoin <= 0) return 0;
     const capRupees = Math.min((coinsOrderBase * percent) / 100, coinsOrderBase);
@@ -557,7 +580,31 @@ const CheckoutPage = () => {
         .filter(Boolean)
         .join(", ");
       const resp = await customerApi.geocodeAddress(query);
-      const loc = resp.data?.result?.location;
+      let loc = resp.data?.result?.location;
+      // A loosely typed address ("B3/6 Godavari Street, 507116") often only
+      // matches a town or pincode, and Google returns the CENTRE of that
+      // area — which can be 1–2 km from the house, and then the rider can't
+      // generate the delivery OTP at the door. If the match is only
+      // area-level and we already have a pin nearby (from GPS / a picked
+      // place), keep that pin.
+      const PRECISE_TYPES = [
+        "street_address", "premise", "subpremise", "establishment",
+        "point_of_interest", "plus_code", "intersection", "route",
+      ];
+      const geoTypes = resp.data?.result?.types || [];
+      const isAreaLevelMatch =
+        Array.isArray(geoTypes) && !geoTypes.some((t) => PRECISE_TYPES.includes(t));
+      const prevLoc = currentAddress?.location;
+      if (
+        loc &&
+        isAreaLevelMatch &&
+        prevLoc &&
+        Number.isFinite(prevLoc.lat) &&
+        Number.isFinite(prevLoc.lng) &&
+        distanceKm(prevLoc.lat, prevLoc.lng, loc.lat, loc.lng) <= 10
+      ) {
+        loc = { lat: prevLoc.lat, lng: prevLoc.lng };
+      }
       if (
         loc &&
         typeof loc.lat === "number" &&
@@ -1329,7 +1376,7 @@ const CheckoutPage = () => {
               cartMrpTotal={cartMrpTotal}
               selectedCoupon={selectedCoupon}
               discountAmount={discountAmount}
-              coinValue={coinSettings.rupeeValuePerCoin ?? 0.01}
+              coinValue={coinSettings.rupeeValuePerCoin ?? 0.001}
             />
 
             {/* Payment Selector */}

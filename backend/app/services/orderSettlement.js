@@ -4,6 +4,7 @@ import {
   handleCodOrderFinance,
   settleDeliveredOrder,
 } from "./finance/orderFinanceService.js";
+import { sellerShareOfOrder } from "./seller/sellerEarningsAmount.js";
 
 /**
  * Financial side effects when order becomes delivered (mirrors orderController).
@@ -20,9 +21,14 @@ export async function applyDeliveredSettlement(order, orderIdString) {
   }
 
   // Legacy transaction compatibility for existing seller/rider dashboards.
+  // Also correct the amount to the seller's share (products only).
+  const sellerShare = sellerShareOfOrder(settled);
   await Transaction.findOneAndUpdate(
     { reference: orderIdString, userModel: "Seller" },
-    { status: "Settled" },
+    {
+      status: "Settled",
+      ...(sellerShare !== null ? { amount: sellerShare } : {}),
+    },
   );
 
   if (settled.deliveryBoy) {

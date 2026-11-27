@@ -41,7 +41,16 @@ const CheckoutCoinsSection = React.memo(function CheckoutCoinsSection({
 }) {
   const [draft, setDraft] = useState(null);
 
-  const rupeePerCoin = Number(settings.rupeeValuePerCoin || 0.0001);
+  // Defaults match the backend (DEFAULT_COIN_SETTINGS): 1,000 coins = ₹1,
+  // 10 coins per ₹1 saved. Admin-configured settings override them.
+  const rupeePerCoin = Number(settings.rupeeValuePerCoin || 0.001);
+  const coinsPerRupee = Math.round(1 / rupeePerCoin);
+  const coinsPerRupeeSaved = Number(settings.coinsPerRupeeSaved ?? 10);
+  const coinsPerRupeeLabel = coinsPerRupee.toLocaleString("en-IN");
+  const coinsPerRupeeShort =
+    coinsPerRupee >= 1000 && coinsPerRupee % 1000 === 0
+      ? `${coinsPerRupee / 1000}k`
+      : coinsPerRupeeLabel;
   const minRedeem = Number(settings.minRedeemCoins || 1);
   const canRedeem = maxRedeemable >= Math.max(1, minRedeem);
 
@@ -60,7 +69,8 @@ const CheckoutCoinsSection = React.memo(function CheckoutCoinsSection({
               Athreya Coin Wallet
             </h4>
             <p className="text-[12.5px] font-semibold text-slate-600">
-              10,000 Coins = ₹1.00 · ₹1 Saved = 100 Coins
+              {coinsPerRupeeLabel} Coins = ₹1.00
+              {coinsPerRupeeSaved > 0 ? ` · ₹1 Saved = ${coinsPerRupeeSaved} Coin${coinsPerRupeeSaved === 1 ? "" : "s"}` : ""}
             </p>
           </div>
         </div>
@@ -104,7 +114,7 @@ const CheckoutCoinsSection = React.memo(function CheckoutCoinsSection({
                 Athreya Coin Wallet
               </span>
               <span className="bg-[#fcd34d] text-[#0d4d29] text-[11px] font-[1000] px-1.5 py-0.5 rounded">
-                10k = ₹1
+                {coinsPerRupeeShort} = ₹1
               </span>
             </div>
             <div className="text-sm font-[1000] text-[#fcd34d] tracking-tight mt-0.5">

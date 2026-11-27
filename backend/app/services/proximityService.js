@@ -5,8 +5,8 @@ import { distanceMeters } from '../utils/geoUtils.js';
  * Shared with orderWorkflowService via DELIVERY_OTP_RADIUS_METERS.
  */
 export function getOtpRadiusMeters() {
-  const parsed = parseInt(process.env.DELIVERY_OTP_RADIUS_METERS || '1000', 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1000;
+  const parsed = parseInt(process.env.DELIVERY_OTP_RADIUS_METERS || '5000', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 5000;
 }
 
 /**

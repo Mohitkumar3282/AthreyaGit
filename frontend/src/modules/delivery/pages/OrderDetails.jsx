@@ -236,6 +236,15 @@ const OrderDetails = () => {
   const isReturn = order?.returnStatus && order.returnStatus !== "none";
   const isExpress = order?.orderType === "custom_pickup";
 
+  // A delivery OTP was already sent to the customer (e.g. the app reloaded):
+  // go straight back to the OTP entry boxes instead of asking the rider to
+  // generate a new code, which would replace the one the customer has.
+  useEffect(() => {
+    if (!isReturn && step === 3 && order?.deliveryOtpPending) {
+      setShowOtpInput(true);
+    }
+  }, [isReturn, step, order?.deliveryOtpPending]);
+
   useEffect(() => {
     const fetchOrderDetails = async () => {
       try {
@@ -465,7 +474,9 @@ const OrderDetails = () => {
       } else {
         const location = await new Promise((resolve, reject) => {
           getCurrentPositionWithCache(resolve, reject, {
-            maxCacheAgeMs: 5 * 60 * 1000,
+            // Store-arrival / pickup checks compare against the shop, so a
+            // position minutes old (rider was still riding) must not be used.
+            maxCacheAgeMs: 30 * 1000,
           });
         });
 
@@ -1258,7 +1269,7 @@ const OrderDetails = () => {
                             </span>
                             <span className="text-gray-800 font-medium">{item.name}</span>
                           </div>
-                          <span className="font-bold text-gray-600">Rs.{item.price * item.quantity}</span>
+                          {/* Per-item prices are not shown to riders — only the total bill below. */}
                         </div>
                       ))}
                       <div className="pt-3 mt-2 border-t border-gray-200 flex justify-between items-center">
@@ -1281,7 +1292,9 @@ const OrderDetails = () => {
         >
           <AlertTriangle className="text-yellow-600 mr-3 mt-0.5 flex-shrink-0" size={18} />
           <p className="text-[16px] text-yellow-800 leading-relaxed">
-            <strong>Note:</strong> Handle eggs with care. Call customer if location is hard to find.
+            <strong>Note:</strong>{" "}
+            {order?.expressMeta?.instructions?.trim() ||
+              "Handle the order with care. Call the customer if the location is hard to find."}
           </p>
         </motion.div>
 

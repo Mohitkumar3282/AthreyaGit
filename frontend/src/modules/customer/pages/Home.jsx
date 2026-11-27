@@ -334,6 +334,8 @@ const Home = () => {
   }, [searchQuery, shops]);
 
   useEffect(() => {
+    // Guests have no orders — skip the call (it would only 401).
+    if (!user) return;
     customerApi.getMyOrders()
       .then(res => {
         const items = res.data?.result?.items || res.data?.results || [];
@@ -348,7 +350,7 @@ const Home = () => {
         }
       })
       .catch(e => console.log("Guest session or no live orders:", e));
-  }, []);
+  }, [user]);
 
   // Session-bound brand animation state
   const [showBikeAnimation, setShowBikeAnimation] = useState(() => {
@@ -517,7 +519,7 @@ const Home = () => {
   const partnerStores = shops.map(shop => ({
     name: shop.shopName,
     teluguName: shop.locality || "",
-    rating: shop.rating || "4.5",
+    rating: shop.rating || "New",
     time: shop.storeTimings || "20-30 mins",
     isOpen: shop.isOpen !== false,
     image: applyCloudinaryTransform(shop.shopLogo || shop.shopBanner || "https://images.unsplash.com/photo-1534723452862-4c874018d66d?q=80&w=400&fit=crop"),
@@ -642,9 +644,11 @@ const Home = () => {
           >
             <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/20 relative">
               <ShoppingCart size={18} />
-              <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[11px] font-black rounded-full h-4 w-4 flex items-center justify-center border border-[#042A0F]">
-                {cartCount > 0 ? cartCount : 3}
-              </span>
+              {cartCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[11px] font-black rounded-full h-4 w-4 flex items-center justify-center border border-[#042A0F]">
+                  {cartCount}
+                </span>
+              )}
             </div>
             <span className="text-[11px] font-black text-slate-300 mt-1">కార్ట్</span>
           </button>

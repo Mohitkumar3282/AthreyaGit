@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import walletCoinsImg from "@/assets/coins/wallet_coins.jpg";
 import { playCoinSound } from "@/utils/soundEffects";
+import { useSettings } from "@core/context/SettingsContext";
 
 /**
  * CoinsEarnedModal / View
@@ -25,10 +26,18 @@ export const CoinsEarnedModal = ({
   isInline = false,
 }) => {
   const navigate = useNavigate();
+  const { settings: appSettings } = useSettings();
+  // Coin value comes from the admin's Athreya Coins settings (falls back to
+  // the backend default of 1,000 coins = ₹1 until settings load).
+  const coinsPerRupee = Math.max(
+    1,
+    Math.round(1 / Number(appSettings?.athreyaCoins?.rupeeValuePerCoin || 0.001)),
+  );
+  const coinsPerRupeeLabel = coinsPerRupee.toLocaleString("en-IN");
 
   const formattedCoins = Number(coinsEarned || 0);
   const calculatedRupee = Number(
-    rupeeValue !== undefined ? rupeeValue : formattedCoins * 0.001,
+    rupeeValue !== undefined ? rupeeValue : formattedCoins / coinsPerRupee,
   ).toFixed(2);
 
   // Play celebratory sound on modal open
@@ -73,7 +82,7 @@ export const CoinsEarnedModal = ({
         {/* Conversion & Value Box */}
         <div className="w-full bg-[#f6faf7] border border-emerald-100/80 rounded-2xl p-5 space-y-4">
           <div className="text-xs font-black text-slate-800 tracking-wide uppercase">
-            1,000 Athreya Coins = ₹1.00 Rupee
+            {coinsPerRupeeLabel} Athreya Coins = ₹1.00
           </div>
 
           {/* Yellow Coin Badge -> Green Rupee Badge Conversion */}
@@ -102,7 +111,7 @@ export const CoinsEarnedModal = ({
           </div>
 
           <div className="bg-white py-2 px-3 rounded-xl border border-slate-200/80 shadow-2xs text-xs font-bold text-slate-700">
-            1,000 Coins = <span className="text-[#0d592e] font-[1000]">₹1.00 Rupee</span> in your wallet
+            {coinsPerRupeeLabel} Coins = <span className="text-[#0d592e] font-[1000]">₹1.00</span> in your wallet
           </div>
         </div>
 

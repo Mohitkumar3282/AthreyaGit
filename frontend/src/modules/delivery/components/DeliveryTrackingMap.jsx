@@ -200,7 +200,7 @@ const DeliveryTrackingMapComponent = ({
         const heading = pos.coords.heading;
         const speed = pos.coords.speed;
         
-        saveDeliveryPartnerLocation(lat, lng);
+        saveDeliveryPartnerLocation(lat, lng, accuracy);
         setRider({ lat, lng });
         riderRef.current = { lat, lng };
         

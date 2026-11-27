@@ -12,7 +12,8 @@ import { getJSON, setJSON, STORAGE_KEYS } from "@core/utils/storage";
 
 const LocationContext = createContext(undefined);
 const STORAGE_KEY = STORAGE_KEYS.LOCATION;
-const LOCATION_PROMPTED_KEY = "athreya_location_permission_prompted_v1";
+// "Not now" on the location popup hides it for this visit only (sessionStorage).
+const LOCATION_PROMPT_DISMISSED_KEY = "athreya_location_prompt_dismissed_visit";
 // 30 days — refresh the cached coordinates if a user comes back to a stale tab
 // after roughly a month so we don't keep serving locations from a previous
 // address indefinitely.
@@ -108,9 +109,11 @@ export const LocationProvider = ({ children }) => {
       const fallbackFromCoords = (latitude, longitude) => ({
         name: `Lat ${Number(latitude).toFixed(5)}, Lng ${Number(longitude).toFixed(5)}`,
         time: "12-15 mins",
-        city: currentLocation?.city || "Indore",
-        state: currentLocation?.state || "Madhya Pradesh",
-        pincode: currentLocation?.pincode || "452018",
+        // Never fall back to the built-in placeholder's Indore city/pincode —
+        // it ended up inside real customers' delivery addresses.
+        city: currentLocation?.isPlaceholder ? "" : currentLocation?.city || "",
+        state: currentLocation?.isPlaceholder ? "" : currentLocation?.state || "",
+        pincode: currentLocation?.isPlaceholder ? "" : currentLocation?.pincode || "",
         latitude,
         longitude,
       });
@@ -193,7 +196,14 @@ export const LocationProvider = ({ children }) => {
             liveLocation = {
               name: friendlyName,
               time: "12-15 mins",
-              city: locality || liveLocation.city,
+              // Small towns often have no "locality" — use the next best area
+              // name instead of an unrelated city.
+              city:
+                locality ||
+                getComponent(["administrative_area_level_3"]) ||
+                getComponent(["administrative_area_level_2"]) ||
+                sublocality ||
+                liveLocation.city,
               state: state || liveLocation.state,
               pincode: pincode || liveLocation.pincode,
               latitude: latitude,
@@ -223,7 +233,8 @@ export const LocationProvider = ({ children }) => {
         const message = typeof error === 'string' ? error : (error.message || "Location permission denied");
         setLocationError(message);
         setIsFetchingLocation(false);
-        resolve({ ok: false, error: message });
+        // code: 1 = permission denied, 2 = position unavailable (GPS off), 3 = timeout
+        resolve({ ok: false, error: message, code: typeof error === "object" ? error?.code : undefined });
       };
 
       // Native Flutter Bridge
@@ -294,30 +305,132 @@ export const LocationProvider = ({ children }) => {
     refreshAddresses();
   }, [refreshAddresses]);
 
-  // Show the one-time location explanation on the customer's first visit.
-  useEffect(() => {
+  // ------------------------------------------------------------------
+  // Location check every time the app is opened / brought to the front.
+  //
+  // Reasons for the popup:
+  //   "permission" — not allowed yet (browsers need a tap to ask)
+  //   "denied"     — blocked; must be re-enabled in phone/browser settings
+  //   "gps_off"    — allowed, but the phone's Location (GPS) is off
+  // "Not now" hides it for this visit only (sessionStorage), so it shows
+  // again the next time the customer opens the app.
+  // ------------------------------------------------------------------
+  const [locationPromptReason, setLocationPromptReason] = useState(null);
+  const fetchLocationRef = React.useRef(null);
+  fetchLocationRef.current = fetchAndCacheLocation;
+  const hasRealLocationRef = React.useRef(false);
+  hasRealLocationRef.current = !currentLocation?.isPlaceholder;
+
+  const promptDismissedThisVisit = () => {
     try {
-      if (!window.localStorage.getItem(LOCATION_PROMPTED_KEY)) {
-        setShowLocationPrompt(true);
-      }
+      return window.sessionStorage.getItem(LOCATION_PROMPT_DISMISSED_KEY) === "1";
     } catch {
-      // If storage is unavailable, still offer the prompt for this visit.
-      setShowLocationPrompt(true);
+      return false;
     }
+  };
+
+  const openLocationPrompt = useCallback((reason) => {
+    setLocationPromptReason(reason);
+    setShowLocationPrompt(Boolean(reason));
   }, []);
+
+  /** Ask the device for a position without changing the chosen location. */
+  const probeDeviceLocation = () =>
+    new Promise((resolve) => {
+      if (!navigator.geolocation) return resolve({ ok: false, code: 2 });
+      navigator.geolocation.getCurrentPosition(
+        () => resolve({ ok: true }),
+        (err) => resolve({ ok: false, code: err?.code }),
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 5 * 60 * 1000 },
+      );
+    });
+
+  const checkLocationOnOpen = useCallback(async () => {
+    if (promptDismissedThisVisit()) return;
+
+    // Native app wrapper: its bridge handles the permission dialog itself.
+    if (window.Flutter) {
+      const result = await fetchLocationRef.current?.();
+      openLocationPrompt(result?.ok ? null : "gps_off");
+      return;
+    }
+    if (!navigator.geolocation) return;
+
+    let state = null;
+    try {
+      state = (await navigator.permissions?.query({ name: "geolocation" }))?.state || null;
+    } catch {
+      state = null; // Permissions API not available (e.g. some iOS versions)
+    }
+
+    if (state === "denied") {
+      openLocationPrompt("denied");
+      return;
+    }
+    if (state === "granted") {
+      // Permission is on — make sure the phone's GPS actually works.
+      const probe = await probeDeviceLocation();
+      if (!probe.ok) {
+        openLocationPrompt(probe.code === 1 ? "denied" : "gps_off");
+        return;
+      }
+      openLocationPrompt(null);
+      // Fill in a real location only if the customer doesn't have one yet;
+      // never overwrite an address they picked themselves.
+      if (!hasRealLocationRef.current) fetchLocationRef.current?.();
+      return;
+    }
+    // "prompt" or unknown: we need a tap before the browser can ask.
+    if (!hasRealLocationRef.current || state === "prompt") {
+      openLocationPrompt("permission");
+    }
+  }, [openLocationPrompt]);
+
+  useEffect(() => {
+    checkLocationOnOpen();
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") checkLocationOnOpen();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    // If the customer enables location in settings while the app is open,
+    // close the popup and pick up their location.
+    let permissionStatus = null;
+    const onPermissionChange = () => {
+      if (permissionStatus?.state === "granted") checkLocationOnOpen();
+    };
+    navigator.permissions
+      ?.query({ name: "geolocation" })
+      .then((status) => {
+        permissionStatus = status;
+        status.addEventListener?.("change", onPermissionChange);
+      })
+      .catch(() => {});
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      permissionStatus?.removeEventListener?.("change", onPermissionChange);
+    };
+  }, [checkLocationOnOpen]);
 
   const dismissLocationPrompt = () => {
     try {
-      window.localStorage.setItem(LOCATION_PROMPTED_KEY, "1");
+      window.sessionStorage.setItem(LOCATION_PROMPT_DISMISSED_KEY, "1");
     } catch {
-      // The prompt remains dismissed for this mounted app session.
+      // Stays dismissed until the page reloads.
     }
-    setShowLocationPrompt(false);
+    openLocationPrompt(null);
   };
 
-  const requestLocationPermission = () => {
-    dismissLocationPrompt();
-    fetchAndCacheLocation();
+  // Called from the popup button (a user tap, so the browser may show its dialog).
+  const requestLocationPermission = async () => {
+    const result = await fetchAndCacheLocation();
+    if (result?.ok) {
+      openLocationPrompt(null);
+      return;
+    }
+    openLocationPrompt(result?.code === 1 ? "denied" : "gps_off");
   };
 
   // Restore the saved location on mount. GPS is requested only after the
@@ -404,16 +517,31 @@ export const LocationProvider = ({ children }) => {
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
               <span aria-hidden="true" className="text-2xl">⌖</span>
             </div>
-            <h2 id="location-permission-title" className="text-xl font-bold text-slate-900">Enable your location</h2>
+            <h2 id="location-permission-title" className="text-xl font-bold text-slate-900">
+              {locationPromptReason === "denied"
+                ? "Location access is blocked"
+                : locationPromptReason === "gps_off"
+                  ? "Your location is turned off"
+                  : "Turn on your location"}
+            </h2>
             <p id="location-permission-description" className="mt-2 text-sm leading-6 text-slate-600">
-              Use your location to show nearby stores and accurate delivery availability.
+              {locationPromptReason === "denied"
+                ? "Allow location for this app in your phone or browser settings (Settings → Apps / Site settings → Location → Allow), then tap Try again."
+                : locationPromptReason === "gps_off"
+                  ? "Turn on Location (GPS) from your phone's quick settings, then tap Try again so we can show shops near you."
+                  : "Allow location so we can show shops near you and deliver to the right place."}
             </p>
             <button
               type="button"
               onClick={requestLocationPermission}
-              className="mt-5 w-full rounded-xl bg-emerald-700 px-4 py-3 font-semibold text-white hover:bg-emerald-800"
+              disabled={isFetchingLocation}
+              className="mt-5 w-full rounded-xl bg-emerald-700 px-4 py-3 font-semibold text-white hover:bg-emerald-800 disabled:opacity-60"
             >
-              Enable location
+              {isFetchingLocation
+                ? "Checking location…"
+                : locationPromptReason === "permission"
+                  ? "Allow location"
+                  : "Try again"}
             </button>
             <button
               type="button"

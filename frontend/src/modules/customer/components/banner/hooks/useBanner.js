@@ -176,6 +176,8 @@ export function useBanner() {
         const checkActiveOrder = async () => {
             // If Thank You screen is active, do not interrupt it
             if (showThankYou || currentStage === 6 || currentStage === 7) return;
+            // Guests have no orders — skip the call (it would only 401).
+            if (!getToken()) return;
 
             const order = await bannerService.getActiveOrder();
             if (order) {

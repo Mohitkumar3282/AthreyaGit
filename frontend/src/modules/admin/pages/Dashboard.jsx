@@ -229,7 +229,7 @@ const AdminDashboard = () => {
                 <div className="lg:col-span-1">
                     <Card
                         title="Top Categories"
-                        subtitle="Sales breakdown by category"
+                        subtitle="Products per category"
                         className="h-full border-none shadow-sm ring-1 ring-gray-100"
                     >
                         <div className="h-[250px] min-h-[250px] relative">
@@ -252,8 +252,11 @@ const AdminDashboard = () => {
                                 </PieChart>
                             </ResponsiveContainer>
                             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                <span className="text-2xl font-bold text-gray-900">72%</span>
-                                <span className="text-[10px] text-gray-400 font-semibold uppercase">Growth</span>
+                                {/* Real total (was a fixed "72% Growth") */}
+                                <span className="text-2xl font-bold text-gray-900">
+                                    {categoryData.reduce((sum, c) => sum + Number(c.value || 0), 0).toLocaleString()}
+                                </span>
+                                <span className="text-[10px] text-gray-400 font-semibold uppercase">Products</span>
                             </div>
                         </div>
                         <div className="space-y-3 mt-4">

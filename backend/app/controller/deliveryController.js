@@ -16,6 +16,7 @@ import {
 import { applyDeliveredSettlement } from "../services/orderSettlement.js";
 import { roundCurrency } from "../utils/money.js";
 import logger from "../services/logger.js";
+import { emitToCustomer } from "../services/orderSocketEmitter.js";
 import { shouldThrottle as throttleLocationUpdate } from "../services/delivery/locationThrottleService.js";
 import {
   getDeliveryStats as getDeliveryStatsFromService,
@@ -426,6 +427,7 @@ export const updateDeliveryLocation = async (req, res) => {
         //                                 cannot be spoofed via case-drift or
         //                                 alternate ids.
         let activeOrderId = null;
+        let activeOrderCustomerId = null;
         if (orderId) {
             const orderMatch = orderMatchQueryFromRouteParam(orderId);
             if (!orderMatch) {
@@ -433,7 +435,7 @@ export const updateDeliveryLocation = async (req, res) => {
             }
 
             const order = await Order.findOne(orderMatch)
-                .select("orderId deliveryBoy")
+                .select("orderId deliveryBoy customer")
                 .lean();
 
             if (!order) {
@@ -452,6 +454,7 @@ export const updateDeliveryLocation = async (req, res) => {
             }
 
             activeOrderId = order.orderId;
+            activeOrderCustomerId = order.customer ? String(order.customer) : null;
         }
 
         const snapshot = {
@@ -471,6 +474,21 @@ export const updateDeliveryLocation = async (req, res) => {
         writeDeliveryLocation(deliveryId, activeOrderId, snapshot).catch(() => {});
         if (activeOrderId) {
             appendTrailPoint(activeOrderId, { lat, lng, t: Date.now() }).catch(() => {});
+        }
+        // Also push the position straight to this order's customer over the
+        // app socket, so live tracking works even when the Firebase Realtime
+        // Database is unavailable (customers saw "Waiting for rider location").
+        if (activeOrderId && activeOrderCustomerId) {
+            emitToCustomer(activeOrderCustomerId, {
+                event: "order:rider-location",
+                payload: {
+                    orderId: activeOrderId,
+                    lat,
+                    lng,
+                    heading: snapshot.heading,
+                    lastUpdatedAt: snapshot.lastUpdatedAt,
+                },
+            });
         }
 
         return handleResponse(res, 200, "Location updated", {

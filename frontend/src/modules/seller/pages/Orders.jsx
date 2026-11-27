@@ -502,8 +502,8 @@ const Orders = () => {
                                                         <option value="pending">Pending</option>
                                                         <option value="confirmed">Confirmed</option>
                                                         <option value="packed">Packed</option>
-                                                        <option value="out_for_delivery">Out</option>
-                                                        <option value="delivered">Delivered</option>
+                                                        <option value="out_for_delivery" disabled>Out</option>
+                                                        <option value="delivered" disabled>Delivered (rider + OTP)</option>
                                                         <option value="cancelled">Cancelled</option>
                                                     </select>
                                                     <button
@@ -579,8 +579,8 @@ const Orders = () => {
                                                                 <option value="pending">Pending</option>
                                                                 <option value="confirmed">Confirmed</option>
                                                                 <option value="packed">Packed</option>
-                                                                <option value="out_for_delivery">Out for Delivery</option>
-                                                                <option value="delivered">Delivered</option>
+                                                                <option value="out_for_delivery" disabled>Out for Delivery</option>
+                                                                <option value="delivered" disabled>Delivered (rider + OTP)</option>
                                                                 <option value="cancelled">Cancelled</option>
                                                             </select>
                                                             <HiOutlineChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none opacity-60" />
@@ -838,8 +838,8 @@ const Orders = () => {
                                                     <option value="pending">Pending</option>
                                                     <option value="confirmed">Confirmed</option>
                                                     <option value="packed">Packed</option>
-                                                    <option value="out_for_delivery">Out for Delivery</option>
-                                                    <option value="delivered">Delivered</option>
+                                                    <option value="out_for_delivery" disabled>Out for Delivery</option>
+                                                    <option value="delivered" disabled>Delivered (rider + OTP)</option>
                                                     <option value="cancelled">Cancelled</option>
                                                 </select>
                                                 <HiOutlineChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none opacity-60" />

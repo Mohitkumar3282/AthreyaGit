@@ -27,6 +27,7 @@ import Order from "../../models/order.js";
 import Product from "../../models/product.js";
 import { buildKey, getOrSet, getTTL } from "../cacheService.js";
 import { SELLER_VISIBLE_ORDER_SCOPE } from "../orderQueryService.js";
+import { SELLER_SHARE_EXPR } from "./sellerEarningsAmount.js";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = [
@@ -67,8 +68,10 @@ const IS_DELIVERED = {
     { $ne: ["$workflowStatus", "CANCELLED"] },
   ],
 };
+// Seller revenue = products only (delivery fee, platform fee and tip go to
+// the rider / platform).
 const DELIVERED_TOTAL = {
-  $cond: [IS_DELIVERED, { $ifNull: ["$pricing.total", 0] }, 0],
+  $cond: [IS_DELIVERED, SELLER_SHARE_EXPR, 0],
 };
 
 function normalizeRange(value) {

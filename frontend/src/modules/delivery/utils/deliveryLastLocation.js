@@ -10,7 +10,7 @@ const STORAGE_KEY = STORAGE_KEYS.DELIVERY_LAST_LOCATION;
 /** Default: accept cached coords up to this age for API calls (geofencing may reject very stale). */
 const DEFAULT_MAX_CACHE_AGE_MS = 20 * 60 * 1000; // 20 minutes
 
-export function saveDeliveryPartnerLocation(lat, lng) {
+export function saveDeliveryPartnerLocation(lat, lng, accuracy) {
   if (
     typeof lat !== "number" ||
     typeof lng !== "number" ||
@@ -19,7 +19,14 @@ export function saveDeliveryPartnerLocation(lat, lng) {
   ) {
     return;
   }
-  setJSON(STORAGE_KEY, { lat, lng, savedAt: Date.now() });
+  setJSON(STORAGE_KEY, {
+    lat,
+    lng,
+    savedAt: Date.now(),
+    // GPS accuracy in metres (null when unknown) — lets callers decide
+    // whether a recent fix is precise enough for proximity checks.
+    accuracy: Number.isFinite(accuracy) ? accuracy : null,
+  });
 }
 
 /**
@@ -41,7 +48,12 @@ export function getCachedDeliveryPartnerLocation(
   }
   const savedAt = typeof o.savedAt === "number" ? o.savedAt : 0;
   if (maxAgeMs > 0 && Date.now() - savedAt > maxAgeMs) return null;
-  return { lat: o.lat, lng: o.lng, savedAt };
+  return {
+    lat: o.lat,
+    lng: o.lng,
+    savedAt,
+    accuracy: typeof o.accuracy === "number" ? o.accuracy : null,
+  };
 }
 
 /**

@@ -207,6 +207,14 @@ export function onSellerReturnRequested(getToken, handler) {
   return () => s.off("return:requested", handler);
 }
 
+/** Rider's live position for the customer's order (socket fallback to Firebase). */
+export function onRiderLocation(getToken, handler) {
+  const s = getOrderSocket(getToken);
+  if (!s || typeof handler !== "function") return () => {};
+  s.on("order:rider-location", handler);
+  return () => s.off("order:rider-location", handler);
+}
+
 export function onCustomerOtp(getToken, handler) {
   const s = getOrderSocket(getToken);
   if (!s || typeof handler !== "function") return () => {};

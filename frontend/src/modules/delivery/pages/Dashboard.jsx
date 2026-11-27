@@ -174,10 +174,16 @@ const Dashboard = () => {
             <div className="flex items-center text-[16px] font-medium">
               <span className="flex items-center bg-yellow-50 text-yellow-600 px-1.5 py-0.5 rounded border border-yellow-100">
                 <Star size={12} fill="currentColor" className="mr-1" />
-                4.8
+                {Number(user?.rating) > 0 ? Number(user.rating).toFixed(1) : "New"}
               </span>
-              <span className="text-gray-300 mx-2">•</span>
-              <span className="ds-caption text-gray-700">ID: 882190</span>
+              {(user?._id || user?.id) && (
+                <>
+                  <span className="text-gray-300 mx-2">•</span>
+                  <span className="ds-caption text-gray-700">
+                    ID: {String(user._id || user.id).slice(-6).toUpperCase()}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>

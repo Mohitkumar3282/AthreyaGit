@@ -16,7 +16,7 @@ import { STORAGE_KEYS } from "@core/utils/storage";
  * DeliveryOtpDisplay Component
  * 
  * Displays the proximity-based delivery OTP to the customer when the delivery person
- * arrives within 0-120m of the delivery location.
+ * is close to the delivery location.
  * 
  * Features:
  * - Real-time OTP display via Socket.IO
@@ -217,7 +217,7 @@ const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null, initialOtp = null
                 {isPickupStage ? "Rider Nearby for Pickup" : "Delivery Partner Nearby"}
               </p>
               <p className="text-xs text-[#1a6e2e]">
-                Within 0-120 meters of your location
+                {isPickupStage ? "Has reached the pickup point" : "Has reached your location"}
               </p>
             </div>
           </div>
@@ -289,7 +289,7 @@ const DeliveryOtpDisplay = ({ orderId, checkoutGroupId = null, initialOtp = null
         {/* Security Notice */}
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
           <p className="text-xs text-gray-600 text-center">
-            🔒 This OTP is valid for 10 minutes and will be hidden when you switch apps
+            🔒 Share this OTP only with your delivery partner, at the door
           </p>
         </div>
       </div>

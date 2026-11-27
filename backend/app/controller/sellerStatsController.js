@@ -5,6 +5,11 @@ import mongoose from "mongoose";
 import Wallet from "../models/wallet.js";
 import { getSellerStats as getSellerStatsFromService } from "../services/seller/sellerStatsService.js";
 import { SELLER_VISIBLE_ORDER_SCOPE } from "../services/orderQueryService.js";
+import {
+    SELLER_SHARE_EXPR,
+    computeSellerTxnBalances,
+    loadSellerTransactions,
+} from "../services/seller/sellerEarningsAmount.js";
 
 /* ===============================
    GET SELLER DASHBOARD STATS
@@ -30,25 +35,19 @@ export const getSellerEarnings = async (req, res) => {
         const sellerId = req.user.id;
         const sellerOid = new mongoose.Types.ObjectId(sellerId);
 
-        const transactions = await Transaction.find({ user: sellerId, userModel: 'Seller' })
-            .sort({ createdAt: -1 })
-            .populate("order", "orderId");
-
-        const settledBalance = transactions
-            .filter(t => t.status === 'Settled')
-            .reduce((acc, t) => acc + t.amount, 0);
-
-        const pendingPayouts = transactions
-            .filter(t => t.type === 'Withdrawal' && (t.status === 'Pending' || t.status === 'Processing'))
-            .reduce((acc, t) => acc + Math.abs(t.amount), 0);
+        // Order rows carry the seller's share (products only), not the
+        // customer's full bill — see loadSellerTransactions.
+        const transactions = await loadSellerTransactions(sellerId);
+        const { settledBalance, pendingPayouts, totalWithdrawn } =
+            computeSellerTxnBalances(transactions);
 
         // Fetch wallet for live pending balance (money on hold due to return window)
         const wallet = await Wallet.findOne({ ownerType: 'SELLER', ownerId: sellerId });
         const onHoldBalance = wallet ? wallet.pendingBalance : 0;
         const liveAvailableBalance = wallet ? wallet.availableBalance : settledBalance;
 
-        // Keep "Total Revenue" aligned with Dashboard definition:
-        // sum of seller orders that were delivered to the customer.
+        // "Total Revenue" = the seller's product earnings on orders delivered
+        // to the customer. Delivery fee, platform fee and tip are excluded.
         const [orderRevenueAgg] = await Order.aggregate([
             {
                 $match: {
@@ -62,33 +61,34 @@ export const getSellerEarnings = async (req, res) => {
             {
                 $group: {
                     _id: null,
-                    totalRevenue: { $sum: { $ifNull: ["$pricing.total", 0] } },
+                    totalRevenue: { $sum: SELLER_SHARE_EXPR },
                 },
             },
         ]);
         const totalRevenue = Number(orderRevenueAgg?.totalRevenue || 0);
 
-        const totalWithdrawn = transactions
-            .filter(t => t.type === 'Withdrawal' && t.status === 'Settled')
-            .reduce((acc, t) => acc + Math.abs(t.amount), 0);
-
         // Monthly Revenue Aggregation (Last 6 Months)
         const sixMonthsAgo = new Date();
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-        const monthlyAggregation = await Transaction.aggregate([
+        // Same definition as Total Revenue: delivered orders only (cancelled
+        // and failed orders never count), seller's product share, grouped by
+        // the month the order was delivered.
+        const monthlyAggregation = await Order.aggregate([
             {
                 $match: {
-                    user: new mongoose.Types.ObjectId(sellerId),
-                    userModel: 'Seller',
-                    type: 'Order Payment',
-                    createdAt: { $gte: sixMonthsAgo }
+                    seller: sellerOid,
+                    status: 'delivered',
+                    workflowStatus: { $ne: 'CANCELLED' },
+                    ...SELLER_VISIBLE_ORDER_SCOPE,
                 }
             },
+            { $addFields: { _revDate: { $ifNull: ["$deliveredAt", "$updatedAt"] } } },
+            { $match: { _revDate: { $gte: sixMonthsAgo } } },
             {
                 $group: {
-                    _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
-                    revenue: { $sum: "$amount" }
+                    _id: { $dateToString: { format: "%Y-%m", date: "$_revDate", timezone: "Asia/Kolkata" } },
+                    revenue: { $sum: SELLER_SHARE_EXPR }
                 }
             },
             { $sort: { _id: 1 } }
@@ -122,8 +122,8 @@ export const getSellerEarnings = async (req, res) => {
                 type: t.type,
                 amount: t.amount,
                 status: t.status,
-                date: t.createdAt.toISOString().split('T')[0],
-                time: t.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                date: new Date(t.createdAt).toISOString().split('T')[0],
+                time: new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 customer: t.type === 'Withdrawal' ? 'Bank Transfer' : 'Customer',
                 ref: t.order ? `#${t.order.orderId}` : t.reference || t._id
             }))

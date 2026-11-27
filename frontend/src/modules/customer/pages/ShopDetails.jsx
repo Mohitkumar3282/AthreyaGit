@@ -352,7 +352,7 @@ const ShopDetails = () => {
             <div className="flex items-center gap-4 bg-slate-50 p-4.5 rounded-2xl border border-slate-100/60 md:self-stretch">
               <div className="text-center border-r border-slate-200 pr-4">
                 <div className="flex items-center gap-1 justify-center text-amber-500 font-black text-sm md:text-base">
-                  ⭐ {shop.rating || "4.5"}
+                  ⭐ {shop.rating || "New"}
                 </div>
                 <div className="text-[12px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Rating</div>
               </div>
@@ -622,7 +622,7 @@ const ShopDetails = () => {
                       </div>
                     )}
                     <span className="absolute top-2 right-2 bg-white/95 px-2 py-0.5 rounded-full text-[11px] font-black text-slate-800 border border-[#1a6e2e]/20">
-                      ⭐ {s.rating || "4.5"}
+                      ⭐ {s.rating || "New"}
                     </span>
                   </div>
                   <div>

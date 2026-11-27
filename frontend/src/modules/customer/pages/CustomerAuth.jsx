@@ -1,7 +1,7 @@
 import OtpBoxes from '@shared/components/OtpBoxes';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@core/context/AuthContext';
 import { useSettings } from '@core/context/SettingsContext';
 import {
@@ -68,7 +68,13 @@ const CATEGORIES = [
 ];
 
 const CustomerAuth = () => {
-    const [isLogin, setIsLogin] = useState(true);
+    const { pathname } = useLocation();
+    // /signup opens the "Sign Up" tab, /login the "Login" tab. Both routes
+    // share this component, so keep the tab in sync when the path changes.
+    const [isLogin, setIsLogin] = useState(() => !/\/signup\/?$/.test(pathname));
+    useEffect(() => {
+        setIsLogin(!/\/signup\/?$/.test(pathname));
+    }, [pathname]);
     const [isLoading, setIsLoading] = useState(false);
     const [showOtp, setShowOtp] = useState(false);
     const [timer, setTimer] = useState(0);

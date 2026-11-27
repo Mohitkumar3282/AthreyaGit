@@ -543,7 +543,7 @@ export async function getOrderWithAccess(orderId, userId, role) {
   let order = await Order.findOne(orderKey)
     .populate("customer", "name email phone")
     .populate("items.product", "name mainImage price salePrice")
-    .populate("deliveryBoy", "name phone")
+    .populate("deliveryBoy", "name phone rating location lastLocationAt")
     .populate("returnDeliveryBoy", "name phone")
     .populate("seller", "shopName name address phone location")
     .lean();
@@ -673,6 +673,27 @@ export async function getOrderWithAccess(orderId, userId, role) {
     (order.workflowVersion || 1) < 2 &&
     String(order.status || "").toLowerCase() === "out_for_delivery";
 
+  // Rider's last known position is only shared while the delivery is in
+  // progress (so the customer's map can show the rider straight away).
+  // For finished/cancelled orders it is removed — a past customer must not
+  // be able to see where that rider is now.
+  const riderTrackingActive = [
+    WORKFLOW_STATUS.DELIVERY_ASSIGNED,
+    WORKFLOW_STATUS.PICKUP_READY,
+    WORKFLOW_STATUS.OUT_FOR_DELIVERY,
+  ].includes(order.workflowStatus);
+  if (order.deliveryBoy && typeof order.deliveryBoy === "object" && !riderTrackingActive) {
+    delete order.deliveryBoy.location;
+    delete order.deliveryBoy.lastLocationAt;
+  }
+
+  // SECURITY: the OTP code proves the customer received the parcel, so only
+  // the customer (and admin, for support) may see it. The rider only learns
+  // that a code is pending (so their app can show the entry boxes again after
+  // a reload) — never the digits. Previously the code was returned to every
+  // role, letting a rider read it from the API and self-confirm delivery.
+  const canSeeOtpCodes = isOwnerCustomer || roleNorm === "admin";
+
   if (isV2Out || isV1Out) {
     const activeOtp = await OrderOtp.findOne({
       orderId: order.orderId,
@@ -681,7 +702,8 @@ export async function getOrderWithAccess(orderId, userId, role) {
       expiresAt: { $gt: new Date() },
     });
     if (activeOtp) {
-      order.deliveryOtp = activeOtp.code;
+      if (canSeeOtpCodes) order.deliveryOtp = activeOtp.code;
+      order.deliveryOtpPending = true;
       order.deliveryOtpExpiresAt = activeOtp.expiresAt;
     }
   }
@@ -699,7 +721,9 @@ export async function getOrderWithAccess(orderId, userId, role) {
       expiresAt: { $gt: new Date() },
     }).sort({ createdAt: -1 });
     if (activePickupOtp) {
-      order.pickupOtp = activePickupOtp.code;
+      // Same rule as the delivery OTP: the code is for the sender only.
+      if (canSeeOtpCodes) order.pickupOtp = activePickupOtp.code;
+      order.pickupOtpPending = true;
       order.pickupOtpExpiresAt = activePickupOtp.expiresAt;
     }
   }

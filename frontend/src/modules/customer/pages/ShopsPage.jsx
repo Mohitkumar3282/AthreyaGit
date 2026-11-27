@@ -261,7 +261,7 @@ const ShopsPage = () => {
                                         </h4>
                                         <div className="flex items-center gap-1.5 mt-0.5 text-[12px] text-slate-500 font-bold flex-wrap">
                                             <span className="text-amber-500 flex items-center gap-0.5 shrink-0">
-                                                {shop.rating || "4.5"} ★
+                                                {shop.rating || "New"} ★
                                             </span>
                                             <span className="text-slate-300">•</span>
                                             <span className={`shrink-0 px-1.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wide ${shop.isOpen === false ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"}`}>{shop.isOpen === false ? "Closed" : "Open"}</span>

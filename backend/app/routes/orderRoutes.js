@@ -104,11 +104,12 @@ router.post(
   allowRoles("delivery", "admin"),
   markCodCollectedAfterDelivery,
 );
+// Marks delivered WITHOUT the customer's OTP, so it is an admin-only override.
+// Riders complete delivery through /workflow/:orderId/otp/verify.
 router.post(
   "/:id/delivered",
   verifyToken,
-  allowRoles("delivery", "admin", "seller"),
-  requireApprovedSeller,
+  allowRoles("admin"),
   markOrderDeliveredAndSettle,
 );
 router.post(

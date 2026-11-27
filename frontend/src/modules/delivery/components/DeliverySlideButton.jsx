@@ -3,13 +3,63 @@ import { motion } from "framer-motion";
 import { ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { deliveryApi } from "../services/deliveryApi";
+import {
+  getCachedDeliveryPartnerLocation,
+  saveDeliveryPartnerLocation,
+} from "../utils/deliveryLastLocation";
+
+/**
+ * Get the rider's position RIGHT NOW for the proximity check.
+ *
+ * The background tracker posts a coarse (cell-tower) fix at most every 30s
+ * and pauses while the app is in the background, so the server's stored
+ * position can be minutes old and kilometres off — which blocked riders
+ * standing at the customer's door. Order of preference:
+ *   1. a precise fix from the live map's GPS watch, if only seconds old;
+ *   2. a high-accuracy GPS reading from the phone;
+ *   3. a quicker lower-accuracy reading;
+ *   4. a cached fix up to 2 minutes old.
+ */
+function getFreshRiderFix() {
+  const recent = getCachedDeliveryPartnerLocation(15 * 1000);
+  if (recent && Number.isFinite(recent.accuracy) && recent.accuracy <= 100) {
+    return Promise.resolve({ lat: recent.lat, lng: recent.lng, accuracy: recent.accuracy });
+  }
+  const fromPos = (pos) => {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    saveDeliveryPartnerLocation(lat, lng, pos.coords.accuracy);
+    return { lat, lng, accuracy: pos.coords.accuracy };
+  };
+  const ask = (opts) =>
+    new Promise((resolve) => {
+      if (typeof navigator === "undefined" || !navigator.geolocation) {
+        resolve(null);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve(fromPos(pos)),
+        () => resolve(null),
+        opts,
+      );
+    });
+  return ask({ enableHighAccuracy: true, maximumAge: 10000, timeout: 6000 })
+    .then((fix) => fix || ask({ enableHighAccuracy: false, maximumAge: 30000, timeout: 4000 }))
+    .then((fix) => {
+      if (fix) return fix;
+      const cached = getCachedDeliveryPartnerLocation(2 * 60 * 1000);
+      return cached
+        ? { lat: cached.lat, lng: cached.lng, accuracy: cached.accuracy ?? undefined }
+        : null;
+    });
+}
 
 /**
  * DeliverySlideButton - A slide-to-confirm button for delivery actions
  * 
  * This component handles the slide gesture to trigger OTP generation.
- * It calls the generate-otp endpoint which uses the delivery person's stored location
- * from the database for proximity validation.
+ * It takes a fresh GPS fix and sends it with the generate-otp request, so the
+ * proximity check uses where the rider is now (not an old stored position).
  * 
  * @param {Object} props
  * @param {string} props.orderId - The order ID for OTP generation
@@ -54,14 +104,28 @@ const DeliverySlideButton = ({
     setIsLoading(true);
 
     try {
+      // Delivery / pickup OTPs are checked against the rider's distance from
+      // the address, so send a fresh GPS fix with the request.
+      let locationBody = {};
+      if (!isReturn && !isReturnDrop) {
+        const fix = await getFreshRiderFix();
+        if (fix) {
+          locationBody = {
+            lat: fix.lat,
+            lng: fix.lng,
+            ...(Number.isFinite(fix.accuracy) ? { accuracy: Math.round(fix.accuracy) } : {}),
+          };
+        }
+      }
+
       // Call appropriate endpoint based on flow type
       const response = isReturnDrop
         ? await deliveryApi.requestReturnDropOtp(orderId, {})
         : isReturn
           ? await deliveryApi.requestReturnOtp(orderId, {})
           : isPickup
-            ? await deliveryApi.requestPickupOtp(orderId, {})
-            : await deliveryApi.requestDeliveryOtp(orderId, {});
+            ? await deliveryApi.requestPickupOtp(orderId, locationBody)
+            : await deliveryApi.requestDeliveryOtp(orderId, locationBody);
 
       // Handle success
       toast.success(response.data?.message || (isPickup ? "OTP generated and sent to sender" : "OTP generated and sent to customer"));

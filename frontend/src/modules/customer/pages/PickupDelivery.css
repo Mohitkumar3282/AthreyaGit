@@ -1,108 +1,56 @@
+/*
+ * Athreya Express booking page — LIGHT theme (matches the rest of the
+ * customer app). This file used to force a dark theme by overriding every
+ * light Tailwind background, text and input colour with !important rules;
+ * those overrides are removed so the page's own light classes show.
+ */
 .express-booking-page {
-  --express-bg: #050b08;
-  --express-panel: #111b16;
-  --express-field: #1c2922;
-  --express-line: #293a30;
-  --express-green: #00c978;
-  color: #f4f7f5;
-  background: var(--express-bg);
+  --express-green: #0d4d29;
+  color: #0f172a;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 24px;
   padding: 16px;
   margin-top: 12px;
 }
 
-.express-booking-page [class~="bg-white"],
-.express-booking-page [class~="bg-slate-50"],
-.express-booking-page [class~="bg-slate-100"],
-.express-booking-page [class~="bg-slate-50/50"] {
-  background-color: var(--express-panel) !important;
-}
-
-.express-booking-page [class~="bg-sky-50"] {
-  color: #b8f2d5 !important;
-  background-color: #0d3524 !important;
-}
-
-.express-booking-page [class~="border-slate-200"],
-.express-booking-page [class~="border-slate-200/80"],
-.express-booking-page [class~="border-emerald-200"] {
-  border-color: var(--express-line) !important;
-}
-
-.express-booking-page [class~="border-sky-200"] {
-  border-color: var(--express-line) !important;
-}
-
-.express-booking-page a.bg-sky-50 {
-  color: var(--express-green) !important;
-  background: transparent !important;
-  border-color: transparent !important;
-}
-
-.express-booking-page [class~="text-slate-900"],
-.express-booking-page [class~="text-slate-800"],
-.express-booking-page [class~="text-slate-700"],
-.express-booking-page [class~="text-slate-600"] {
-  color: #e5ece7 !important;
-}
-
 .express-booking-page input,
 .express-booking-page textarea,
 .express-booking-page select {
-  color: #f3f7f4 !important;
-  background-color: var(--express-field) !important;
-  border-color: var(--express-line) !important;
+  color: #0f172a;
+  background-color: #ffffff;
 }
 
 .express-booking-page input::placeholder,
 .express-booking-page textarea::placeholder {
-  color: #9baaa0;
-}
-
-.express-booking-page [class~="bg-emerald-50"],
-.express-booking-page [class~="bg-emerald-50/70"] {
-  color: #b8f2d5 !important;
-  background-color: #0d3524 !important;
-}
-
-.express-booking-page [class~="text-emerald-950"],
-.express-booking-page [class~="text-emerald-900"],
-.express-booking-page [class~="text-emerald-800"] {
-  color: #8ce3b7 !important;
-}
-
-.express-booking-page [class~="border-t"],
-.express-booking-page [class~="divide-y"] > * + * {
-  border-color: var(--express-line) !important;
-}
-
-.express-booking-page button[class*="bg-emerald-50"] {
-  background-color: #06452a !important;
-  color: #eafff2 !important;
+  color: #94a3b8;
 }
 
 .express-booking-page > .flex.items-center.justify-between {
   background: transparent !important;
   border: 0 !important;
-  border-bottom: 1px solid var(--express-line) !important;
+  border-bottom: 1px solid #e2e8f0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
   padding: 4px 0 14px !important;
 }
 
 .express-booking-page > .flex.items-center.justify-between h1 {
-  color: #12d786 !important;
+  color: #0d4d29 !important;
 }
 
 .express-booking-page .express-service-badge {
   padding: 5px 10px;
   border-radius: 999px;
-  color: #28d987;
-  background: #0b2b1a;
+  color: #0d4d29;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
   font-size: 12px;
   font-weight: 800;
   white-space: nowrap;
 }
+
+/* ---- Layout: order of form sections per service (unchanged) ---- */
 
 .express-booking-page .express-shop-flow {
   display: flex;
@@ -146,11 +94,12 @@
 .express-h2h-pickup-address,
 .express-h2h-drop-address { order: 2; }
 
+/* Main "Book" button */
 .express-booking-page .mt-5 > button[type="button"] {
   min-height: 56px;
-  background: #006b3c !important;
+  background: #0d4d29 !important;
   color: white !important;
-  border: 1px solid #078b53;
+  border: 1px solid #0d4d29;
 }
 
 @media (max-width: 480px) {

@@ -21,6 +21,23 @@ const displayOrderStatus = (order) => {
   return order?.status || "active";
 };
 
+/**
+ * What the rider earns on this order: the payout frozen on the order
+ * (base + distance + bonus + tip). Return-pickup tasks pay the return
+ * commission instead. (This used to show 10% of the order total.)
+ */
+const riderEarningsFor = (order) => {
+  const isReturnTask =
+    order?.returnStatus &&
+    order.returnStatus !== "none" &&
+    order?.returnDeliveryCommission != null &&
+    !order?.paymentBreakdown?.riderPayoutTotal;
+  const value = isReturnTask
+    ? Number(order.returnDeliveryCommission)
+    : Number(order?.paymentBreakdown?.riderPayoutTotal);
+  return Number.isFinite(value) ? value : 0;
+};
+
 const OrderHistory = () => {
   const navigate = useNavigate();
   const [filter, setFilter] = useState("all");
@@ -244,7 +261,7 @@ const OrderHistory = () => {
                       </div>
                       <div className="text-left sm:text-right shrink-0">
                         <span className="block font-bold text-lg text-brand-600 whitespace-nowrap">
-                          ₹{Math.round((order.pricing?.total || 0) * 0.1)}
+                          ₹{riderEarningsFor(order).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                         </span>
                         <span className="ds-caption text-gray-600">Earnings</span>
                       </div>

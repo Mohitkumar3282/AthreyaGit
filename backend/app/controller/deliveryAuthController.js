@@ -237,18 +237,57 @@ export const getDeliveryProfile = async (req, res) => {
 ================================ */
 export const updateDeliveryProfile = async (req, res) => {
     try {
-        const { name, vehicleType, vehicleNumber, drivingLicenseNumber, currentArea, isOnline } = req.body;
+        const {
+            name, vehicleType, vehicleNumber, drivingLicenseNumber, currentArea, isOnline,
+            email, address, accountHolder, accountNumber, ifsc,
+        } = req.body;
 
         const delivery = await Delivery.findById(req.user.id);
         if (!delivery) {
             return handleResponse(res, 404, "Delivery partner not found");
         }
 
-        if (name) delivery.name = name;
-        if (vehicleType) delivery.vehicleType = vehicleType;
-        if (vehicleNumber) delivery.vehicleNumber = vehicleNumber;
-        if (drivingLicenseNumber) delivery.drivingLicenseNumber = drivingLicenseNumber;
-        if (currentArea) delivery.currentArea = currentArea;
+        const clean = (v) => (typeof v === "string" ? v.trim() : v);
+
+        if (name) delivery.name = clean(name);
+        if (vehicleType) {
+            if (!["bike", "cycle", "scooter"].includes(vehicleType)) {
+                return handleResponse(res, 400, "Vehicle type must be bike, scooter or cycle");
+            }
+            delivery.vehicleType = vehicleType;
+        }
+        if (vehicleNumber) delivery.vehicleNumber = clean(vehicleNumber).toUpperCase();
+        if (drivingLicenseNumber) delivery.drivingLicenseNumber = clean(drivingLicenseNumber).toUpperCase();
+        if (currentArea) delivery.currentArea = clean(currentArea);
+
+        // Personal details (Profile → Personal Details).
+        if (typeof email === "string") {
+            const e = clean(email).toLowerCase();
+            if (e && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) {
+                return handleResponse(res, 400, "Enter a valid email address");
+            }
+            delivery.email = e || undefined;
+        }
+        if (typeof address === "string") delivery.address = clean(address);
+
+        // Bank account for payouts (Profile → Bank Account).
+        if (typeof accountHolder === "string" && clean(accountHolder)) {
+            delivery.accountHolder = clean(accountHolder);
+        }
+        if (typeof accountNumber === "string" && clean(accountNumber)) {
+            const n = clean(accountNumber).replace(/\s/g, "");
+            if (!/^\d{9,18}$/.test(n)) {
+                return handleResponse(res, 400, "Account number must be 9 to 18 digits");
+            }
+            delivery.accountNumber = n;
+        }
+        if (typeof ifsc === "string" && clean(ifsc)) {
+            const code = clean(ifsc).toUpperCase();
+            if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(code)) {
+                return handleResponse(res, 400, "Enter a valid IFSC code (e.g. SBIN0001234)");
+            }
+            delivery.ifsc = code;
+        }
 
         // Capture going-offline transition before the save so we know whether
         // to drop the rider's realtime presence nodes after the write.
